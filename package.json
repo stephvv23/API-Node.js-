@@ -1,0 +1,29 @@
+{
+  "name": "simple-nodejs-api",
+  "version": "1.0.0",
+  "description": "my first api with node.js",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "nodemon index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stephvv23/API-Node.js-.git"
+  },
+  "keywords": [
+    "node.js"
+  ],
+  "author": "Stephanie",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/stephvv23/API-Node.js-/issues"
+  },
+  "homepage": "https://github.com/stephvv23/API-Node.js-#readme",
+  "dependencies": {
+    "express": "^5.1.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}
