@@ -4,6 +4,8 @@
 // Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
+// prisma/schema.prisma
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,8 +16,77 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
+  email     String      @id
   name      String
-  email     String   @unique
-  createdAt DateTime @default(now())
+  status    String      @default("active")
+  password  String
+
+  // Relaciones
+  loginAccess   LoginAccess[]
+  securityLogs  SecurityLog[]
+  roles         UserRole[]
+}
+
+model LoginAccess {
+  loginIdAccess Int     @id @default(autoincrement())
+  email         String
+  date          DateTime @default(now())
+
+  // Relación
+  user User @relation(fields: [email], references: [email])
+}
+
+model SecurityLog {
+  securityIdLog Int      @id @default(autoincrement())
+  email         String
+  date          DateTime @default(now())
+  action        String
+  description   String
+  affectedTable String
+
+  // Relación
+  user User @relation(fields: [email], references: [email])
+}
+
+model Role {
+  idRole Int    @id @default(autoincrement())
+  rolName String
+  status  String @default("active")
+
+  users   UserRole[]
+  windows RoleWindow[]
+}
+
+model Window {
+  idWindow   Int    @id @default(autoincrement())
+  windowName String
+  status     String @default("active")
+
+  roles RoleWindow[]
+}
+
+model UserRole {
+  idRole Int
+  email  String
+
+  // Relaciones
+  role Role @relation(fields: [idRole], references: [idRole])
+  user User @relation(fields: [email], references: [email])
+
+  @@id([idRole, email])
+}
+
+model RoleWindow {
+  idRole   Int
+  idWindow Int
+  create   Int
+  read     Int
+  update   Int
+  delete   Int
+
+  // Relaciones
+  role   Role   @relation(fields: [idRole], references: [idRole])
+  window Window @relation(fields: [idWindow], references: [idWindow])
+
+  @@id([idRole, idWindow])
 }
