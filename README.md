@@ -41,14 +41,7 @@ se usa subir para subri cuando no hay datos  |       se usa para subir cuando ya
 # instalar express
     npm install -D @types/express
 
-# isntalar typescript
-    npm install -D typescript
-    npm i -D typescript @types/node
-    npm i -D ts-node-dev
 
-
-# crear tsconfig.json
-    npx tsc --init
 
 # instalar cors
     npm i cors
