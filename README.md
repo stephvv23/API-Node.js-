@@ -46,3 +46,14 @@ se usa subir para subri cuando no hay datos  |       se usa para subir cuando ya
 # instalar cors
     npm i cors
     npm i -D @types/cors
+
+# Run 
+    npm run dev
+
+# Test
+    {
+        "email": "josueelmer1234@gmail.com",
+        "name": "Elmer Josue Rodriguez",
+        "status": "active",
+        "password": "1234"
+    }
