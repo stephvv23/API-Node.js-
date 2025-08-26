@@ -1,11 +1,23 @@
 const { UsersService } = require('./users.service');
 
+/**
+ * UsersController handles HTTP requests for user operations.
+ * Each method corresponds to a REST endpoint and delegates logic to UsersService.
+ */
 const UsersController = {
+  /**
+   * List all users.
+   * GET /users
+   */
   list: async (_req, res) => {
     const users = await UsersService.list();
     res.json(users);
   },
 
+  /**
+   * Get a user by email.
+   * GET /users/:email
+   */
   get: async (req, res) => {
     const { email } = req.params;
     const user = await UsersService.get(email);
@@ -13,6 +25,11 @@ const UsersController = {
     res.json(user);
   },
 
+  /**
+   * Create a new user.
+   * POST /users
+   * Required fields: email, name, password
+   */
   create: async (req, res) => {
     const { email, name, password, status } = req.body || {};
     if (!email || !name || !password) {
@@ -24,13 +41,17 @@ const UsersController = {
       const created = await UsersService.create({ email, name, password, status });
       res.status(201).json(created);
     } catch (e) {
-      // Prisma unique violation
+      // Handles Prisma unique constraint violation (email already exists)
       if (e && e.code === 'P2002')
         return res.status(409).json({ message: 'El email ya existe' });
       throw e;
     }
   },
 
+  /**
+   * Update user data by email.
+   * PUT /users/:email
+   */
   update: async (req, res) => {
     const { email } = req.params;
     const { name, status, password } = req.body || {};
@@ -38,12 +59,17 @@ const UsersController = {
       const updated = await UsersService.update(email, { name, status, password });
       res.json(updated);
     } catch (e) {
+      // Handles case when user is not found
       if (e && e.code === 'P2025')
         return res.status(404).json({ message: 'Usuario no encontrado' });
       throw e;
     }
   },
 
+  /**
+   * Update only the user's status.
+   * PATCH /users/:email/status
+   */
   updateStatus: async (req, res) => {
     const { email } = req.params;
     const { status } = req.body || {};
@@ -52,12 +78,17 @@ const UsersController = {
       const updated = await UsersService.updateStatus(email, status);
       res.json(updated);
     } catch (e) {
+      // Handles case when user is not found
       if (e && e.code === 'P2025')
         return res.status(404).json({ message: 'Usuario no encontrado' });
       throw e;
     }
   },
 
+  /**
+   * Update only the user's password.
+   * PATCH /users/:email/password
+   */
   updatePassword: async (req, res) => {
     const { email } = req.params;
     const { password } = req.body || {};
@@ -66,18 +97,24 @@ const UsersController = {
       const updated = await UsersService.updatePassword(email, password);
       res.json(updated);
     } catch (e) {
+      // Handles case when user is not found
       if (e && e.code === 'P2025')
         return res.status(404).json({ message: 'Usuario no encontrado' });
       throw e;
     }
   },
 
+  /**
+   * Delete a user by email.
+   * DELETE /users/:email
+   */
   remove: async (req, res) => {
     const { email } = req.params;
     try {
       await UsersService.delete(email);
       res.status(204).send();
     } catch (e) {
+      // Handles case when user is not found
       if (e && e.code === 'P2025')
         return res.status(404).json({ message: 'Usuario no encontrado' });
       throw e;

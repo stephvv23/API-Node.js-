@@ -21,31 +21,31 @@ model User {
   status    String      @default("active")
   password  String
 
-  // Relaciones
-  loginAccess   LoginAccess[]
-  securityLogs  SecurityLog[]
-  roles         UserRole[]
+  // Relations
+  loginAccess   LoginAccess[] // Relation: User has many LoginAccess records
+  securityLogs  SecurityLog[] // Relation: User has many SecurityLog records
+  roles         UserRole[]    // Relation: User has many roles through UserRole join table
 }
 
 model LoginAccess {
   loginIdAccess Int     @id @default(autoincrement())
-  email         String
+  email         String // Foreign key: references User.email
   date          DateTime @default(now())
 
-  // Relación
-  user User @relation(fields: [email], references: [email])
+  // Relation
+  user User @relation(fields: [email], references: [email]) // Connects LoginAccess to User by email
 }
 
 model SecurityLog {
   securityIdLog Int      @id @default(autoincrement())
-  email         String
+  email         String   // Foreign key: references User.email
   date          DateTime @default(now())
   action        String
   description   String
   affectedTable String
 
-  // Relación
-  user User @relation(fields: [email], references: [email])
+  // Relation
+  user User @relation(fields: [email], references: [email]) // Connects SecurityLog to User by email
 }
 
 model Role {
@@ -53,40 +53,40 @@ model Role {
   rolName String
   status  String @default("active")
 
-  users   UserRole[]
-  windows RoleWindow[]
+  users   UserRole[]   // Relation: Role has many users through UserRole join table
+  windows RoleWindow[] // Relation: Role has many windows through RoleWindow join table
 }
 
 model Window {
-  idWindow   Int    @id @default(autoincrement())
-  windowName String
-  status     String @default("active")
+  idWindow   Int    @id @default(autoincrement()) // Primary key: unique identifier for each window/module
+  windowName String // Name of the window/module
+  status     String @default("active") // Status of the window, defaults to 'active'
 
-  roles RoleWindow[]
+  roles RoleWindow[] // Relation: Window has many roles through RoleWindow join table
 }
 
 model UserRole {
-  idRole Int
-  email  String
+  idRole Int   // Foreign key: references Role.idRole
+  email  String // Foreign key: references User.email
 
-  // Relaciones
-  role Role @relation(fields: [idRole], references: [idRole])
-  user User @relation(fields: [email], references: [email])
+  // Relations
+  role Role @relation(fields: [idRole], references: [idRole]) // Connects UserRole to Role
+  user User @relation(fields: [email], references: [email])   // Connects UserRole to User
 
-  @@id([idRole, email])
+  @@id([idRole, email]) // Composite primary key
 }
 
 model RoleWindow {
-  idRole   Int
-  idWindow Int
+  idRole   Int // Foreign key: references Role.idRole
+  idWindow Int // Foreign key: references Window.idWindow
   create   Int
   read     Int
   update   Int
   delete   Int
 
-  // Relaciones
-  role   Role   @relation(fields: [idRole], references: [idRole])
-  window Window @relation(fields: [idWindow], references: [idWindow])
+  // Relations
+  role   Role   @relation(fields: [idRole], references: [idRole])     // Connects RoleWindow to Role
+  window Window @relation(fields: [idWindow], references: [idWindow]) // Connects RoleWindow to Window
 
-  @@id([idRole, idWindow])
+  @@id([idRole, idWindow]) // Composite primary key
 }
