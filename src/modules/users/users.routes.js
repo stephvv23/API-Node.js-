@@ -10,5 +10,8 @@ router.put('/:email', UsersController.update);                 // PUT    /api/us
 router.patch('/:email/status', UsersController.updateStatus);  // PATCH  /api/users/:email/status
 router.patch('/:email/password', UsersController.updatePassword); // PATCH /api/users/:email/password
 router.delete('/:email', UsersController.remove);              // DELETE /api/users/:email
+router.post('/login', UsersController.login);
 
 module.exports = router;
+
+
