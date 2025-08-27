@@ -32,20 +32,17 @@ se usa subir para subri cuando no hay datos  |       se usa para subir cuando ya
 
     npx prisma studio
 
-
-
 # instalar bcryp
     npm install bcrypt 
-    npm install -D @types/bcrypt
 
 # instalar express
     npm install -D @types/express
 
-
-
 # instalar cors
     npm i cors
-    npm i -D @types/cors
+
+# instalar el jsonwebToken
+npm i jsonwebtoken
 
 # Run 
     npm run dev
@@ -57,3 +54,6 @@ se usa subir para subri cuando no hay datos  |       se usa para subir cuando ya
         "status": "active",
         "password": "1234"
     }
+
+# corre la api en el postMan
+http://localhost:3000/api/users

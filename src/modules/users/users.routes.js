@@ -23,5 +23,8 @@ router.patch('/:email/password', UsersController.updatePassword); // PATCH /api/
 
 // Route to delete a user by email
 router.delete('/:email', UsersController.remove);              // DELETE /api/users/:email
+router.post('/login', UsersController.login);
 
 module.exports = router;
+
+

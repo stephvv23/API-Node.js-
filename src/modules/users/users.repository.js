@@ -11,8 +11,7 @@ const UsersRepository = {
 
   // Finds a user by email (primary key)
   findByEmail: (email) => prisma.user.findUnique({ where: { email }, select: baseSelect }),
-
-  // Creates a new user with provided data
+  findAuthByEmail: (email) =>prisma.user.findUnique({where: { email },select: { email: true, name: true, status: true, password: true },}),
   create: (data) => prisma.user.create({ data, select: baseSelect }),
 
   // Updates user data by email

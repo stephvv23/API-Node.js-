@@ -1,3 +1,4 @@
+const jwt = require('jsonwebtoken');
 const { UsersService } = require('./users.service');
 
 /**
@@ -120,6 +121,33 @@ const UsersController = {
       throw e;
     }
   },
+
+  login: async (req, res, next) => {
+  try {
+    const { email, password } = req.body || {};
+    if (!email || !password) return next(ApiError.badRequest('email y password requeridos'));
+
+    // Autenticación (compara bcrypt) en el Service
+    const user = await UsersService.login(email, password); // { email, name, status }
+
+    if (!process.env.JWT_SECRET) return next(ApiError.internal('Falta JWT_SECRET'));
+
+    // Firma el token AQUÍ (jwt viene del require de arriba)
+    const token = jwt.sign(
+      { sub: user.email },        // tu PK es el email
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+
+    res.json({ message: 'Login exitoso', token, user });
+  } catch (e) {
+    next(e);
+  }
+},
+
+
+
+
 };
 
 module.exports = { UsersController };
