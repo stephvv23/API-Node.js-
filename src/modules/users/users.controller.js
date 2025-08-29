@@ -87,17 +87,16 @@ const UsersController = {
 
   login: async (req, res, next) => {
   try {
-    const { email, password } = req.body || {};
-    if (!email || !password) return next(ApiError.badRequest('email y password requeridos'));
+    const { email, password, windowName } = req.body || {};
+    if (!email || !password || !windowName) 
+      return next(ApiError.badRequest('email, password y windowName requeridos'));
 
-    // Autenticación (compara bcrypt) en el Service
-    const user = await UsersService.login(email, password); // { email, name, status }
+    const user = await UsersService.login(email, password, windowName);
 
     if (!process.env.JWT_SECRET) return next(ApiError.internal('Falta JWT_SECRET'));
 
-    // Firma el token AQUÍ (jwt viene del require de arriba)
     const token = jwt.sign(
-      { sub: user.email },        // tu PK es el email
+      { sub: user.email },
       process.env.JWT_SECRET,
       { expiresIn: '1h' }
     );
@@ -107,6 +106,7 @@ const UsersController = {
     next(e);
   }
 },
+
 
 
 
