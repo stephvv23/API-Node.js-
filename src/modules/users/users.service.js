@@ -36,24 +36,29 @@ const UsersService = {
   if (!email || !password) throw ApiError.badRequest('email y password requeridos');
 
   const user = await UsersRepository.findAuthWithRoles(email);
+
+   if (user.status !== 'active') {
+    throw ApiError.forbidden('El usuario está inactivo, contacte al administrador');
+  }
+
   if (!user) throw ApiError.unauthorized('Credenciales inválidas');
 
   // Verificar contraseña
   const ok = await bcrypt.compare(password, user.password);
   if (!ok) throw ApiError.unauthorized('Credenciales inválidas');
 
-  // 1. Validar que tenga rol
+  // Validar que tenga rol
   if (!user.roles || user.roles.length === 0) {
     throw ApiError.forbidden('El usuario no tiene roles asignados');
   }
 
-  // 2. Filtrar roles activos
+  // Filtrar roles activos
   const activeRoles = user.roles.filter(ur => ur.role.status === 'active');
   if (activeRoles.length === 0) {
     throw ApiError.forbidden('El rol del usuario está inactivo');
   }
 
-  // 3. Verificar acceso a la ventana
+  // Verificar acceso a la ventana
   let hasAccess = false;
   for (const ur of activeRoles) {
     for (const rw of ur.role.windows) {
@@ -74,7 +79,9 @@ const UsersService = {
 
   // devolver sin hash
   const { name, status } = user;
+  await UsersRepository.createLoginAccess(user.email);
   return { email: user.email, name, status };
+  
 },
 
 

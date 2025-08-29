@@ -12,6 +12,8 @@ const UsersRepository = {
   updatePassword: (email, hashedPassword) =>
     prisma.user.update({ where: { email }, data: { password: hashedPassword }, select: baseSelect }),
   remove: (email) => prisma.user.delete({ where: { email }, select: baseSelect }),
+  createLoginAccess: (email) =>prisma.loginAccess.create({data: { email },}),
+
 };
 
 module.exports = { UsersRepository };
