@@ -57,3 +57,6 @@ npm i jsonwebtoken
 
 # corre la api en el postMan
 http://localhost:3000/api/users
+
+# para correr la api
+npm run dev
