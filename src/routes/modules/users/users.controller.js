@@ -1,5 +1,7 @@
 const jwt = require('jsonwebtoken');
 const { UsersService } = require('./users.service');
+const ApiError = require('../../../utils/apiError'); 
+
 
 /**
  * UsersController handles HTTP requests for user operations.

@@ -1,3 +1,8 @@
+/*
+Error de aplicación con statusCode (400/401/403/404/409/500). 
+Permite hacer next(ApiError.badRequest('...')) en controllers y 
+que el adaptador devuelva la respuesta correcta.
+*/ 
 class ApiError extends Error {
   constructor(code, message) {
     super(message);

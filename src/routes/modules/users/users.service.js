@@ -1,7 +1,7 @@
 const bcrypt = require('bcrypt');
 const { UsersRepository } = require('./users.repository');
 const jwt  = require('jsonwebtoken');
-const ApiError = require('../../utils/ApiError');
+const ApiError = require('../../../utils/apiError');
 
 
 // UsersService contains business logic for user operations.

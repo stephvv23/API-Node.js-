@@ -1,0 +1,64 @@
+// se usara como Agregador de rutas. Importa las rutas de cada módulo, 
+// las compila a RegExp (con path.js), ordena por especificidad 
+// (para que /login gane a /:email) y hace el matching de cada request. 
+// Pasa a los handlers params, query y body ya parseados.
+
+const { URL } = require('url');
+const { readJsonBody } = require('../utils/body');
+const { sendJson } = require('../utils/response');
+const { wrapExpressHandler } = require('../utils/expressify');
+const { compilePath, specificityScore } = require('./path');
+
+// 1) Importa rutas de todos los módulos
+const usersRoutes = require('./modules/users/users.routes');
+const headquartersRoutes = require('./modules/headquarters/headquarter.routes');
+// const rolesRoutes = require('./modules/roles.routes');
+// const patientsRoutes = require('./modules/patients.routes');
+
+// 2) Concatena y compila paths → { method, pattern, paramNames, handler }
+function buildRoutes() {
+  const raw = [
+    ...usersRoutes,
+    ...headquartersRoutes,
+    // ...rolesRoutes,
+    // ...patientsRoutes,
+    // etc.
+  ];
+
+  // Ordena por especificidad ("/login" antes que "/:email")
+  raw.sort((a, b) => specificityScore(b.path) - specificityScore(a.path));
+
+  return raw.map(r => {
+    const { regex, names } = compilePath(r.path);
+    return {
+      method: r.method,
+      pattern: regex,
+      handler: wrapExpressHandler(r.handler, names),
+    };
+  });
+}
+
+const routes = buildRoutes();
+
+async function router(req, res) {
+  const url = new URL(req.url, `http://${req.headers.host}`);
+  const pathname = url.pathname;
+
+  for (const r of routes) {
+    if (req.method !== r.method) continue;
+    const match = pathname.match(r.pattern);
+    if (!match) continue;
+
+    const params = match.slice(1).map(p => {
+      try { return decodeURIComponent(p); } catch { return p; }
+    });
+    const query = Object.fromEntries(url.searchParams.entries());
+    const body = await readJsonBody(req);
+
+    await r.handler({ req, res, params, query, body });
+    return true;
+  }
+  return false;
+}
+
+module.exports = { router };
