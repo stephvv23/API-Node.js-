@@ -20,15 +20,22 @@ class ResShim {
 
 function mapErrorToHttp(resShim, err) {
   // ApiError propio
-  if (err && typeof err.statusCode === 'number') {
-    return resShim.status(err.statusCode).json({ message: err.message, details: err.details || undefined });
+  if (err && typeof err.code === 'number') {   
+    return resShim.status(err.code).json({
+      ok: false,
+      message: err.message,
+      details: err.details || undefined
+    });
   }
   // Errores Prisma comunes
-  if (err && err.code === 'P2002') return resShim.status(409).json({ message: 'Registro duplicado (constraint unique)' });
-  if (err && err.code === 'P2025') return resShim.status(404).json({ message: 'Recurso no encontrado' });
+  if (err && err.code === 'P2002')
+    return resShim.status(409).json({ ok: false, message: 'Registro duplicado (constraint unique)' });
+  if (err && err.code === 'P2025')
+    return resShim.status(404).json({ ok: false, message: 'Recurso no encontrado' });
+
   // Fallback
   console.error('[UNHANDLED ERROR]', err);
-  return resShim.status(500).json({ message: 'Internal Server Error' });
+  return resShim.status(500).json({ ok: false, message: 'Internal Server Error' });
 }
 
 /**

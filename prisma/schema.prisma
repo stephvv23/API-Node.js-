@@ -19,7 +19,7 @@ model User {
   email     String      @id
   name      String      @db.VarChar(150)
   status    String      @default("active") @db.VarChar(25)
-  password  String      @db.VarChar(50)
+  password  String   @db.VarChar(255)
 
   // Relations
   loginAccess   LoginAccess[] // Relation: User has many LoginAccess records

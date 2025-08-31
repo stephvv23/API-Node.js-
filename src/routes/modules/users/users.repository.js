@@ -11,7 +11,9 @@ const UsersRepository = {
 
   // Finds a user by email (primary key)
   findByEmail: (email) => prisma.user.findUnique({ where: { email }, select: baseSelect }),
-  findAuthWithRoles: (email) => prisma.user.findUnique({where: { email },include: {roles: {include: {role: {include: {windows: {include: { window: true }}}}}}}}),
+  findAuthWithRoles: (email) => prisma.user.findUnique({where: { email },select: {email: true,name: true,status: true,password: true,roles: {  include: {role: {select: {idRole: true,rolName: true,status: true,windows: { include: { window: true },},},},},},},}),
+
+
   create: (data) => prisma.user.create({ data, select: baseSelect }),
 
   // Updates user data by email
