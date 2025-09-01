@@ -34,22 +34,22 @@ const UsersController = {
    * Required fields: email, name, password
    */
   create: async (req, res) => {
-    const { email, name, password, status } = req.body || {};
+    const { email, name, password, status, idHeadquarter } = req.body || {};
     if (!email || !name || !password) {
       return res
         .status(400)
         .json({ message: 'email, name y password son obligatorios' });
     }
     try {
-      const created = await UsersService.create({ email, name, password, status });
+      const created = await UsersService.create({ email, name, password, status, idHeadquarter });
       res.status(201).json(created);
     } catch (e) {
-      // Handles Prisma unique constraint violation (email already exists)
       if (e && e.code === 'P2002')
         return res.status(409).json({ message: 'El email ya existe' });
       throw e;
     }
   },
+
 
   /**
    * Update user data by email.
@@ -124,13 +124,18 @@ const UsersController = {
     }
   },
 
+  /**
+   * Login a user into page
+   * POST /users/login
+   * Required fields: email, name, windowName
+   */
   login: async (req, res, next) => {
   try {
-    const { email, password, windowName } = req.body || {};
+    const { email, password, windowName, clientDate } = req.body || {};
     if (!email || !password || !windowName) 
       return next(ApiError.badRequest('email, password y windowName requeridos'));
 
-    const user = await UsersService.login(email, password, windowName);
+    const user = await UsersService.login(email, password, windowName, clientDate);
 
     if (!process.env.JWT_SECRET) return next(ApiError.internal('Falta JWT_SECRET'));
 

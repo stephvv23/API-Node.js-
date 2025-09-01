@@ -16,7 +16,24 @@ const UsersService = {
   // Creates a new user, hashes the password before saving
   create: async (data) => {
     const hashed = await bcrypt.hash(data.password, 10);
-    return UsersRepository.create({ ...data, password: hashed });
+
+    
+    const user = await UsersRepository.create({ 
+      email: data.email,
+      name: data.name,
+      password: hashed,
+      status: data.status || "active"
+    });
+
+    // 2) Crear relación con sede si viene en los datos
+    if (data.idHeadquarter) {
+      await UsersRepository.createHeadquarterRelation(
+        user.email,
+        parseInt(data.idHeadquarter)
+      );
+    }
+
+    return user;
   },
 
   // Updates user data by email; hashes password if provided
@@ -41,7 +58,7 @@ const UsersService = {
   // Deletes a user by email
   delete: (email) => UsersRepository.remove(email),
 
-  login: async (email, password, windowName) => {
+  login: async (email, password, windowName, clientDate) => {
     if (!email || !password) throw ApiError.badRequest('email y password requeridos');
 
     const user = await UsersRepository.findAuthWithRoles(email);
@@ -86,9 +103,9 @@ const UsersService = {
       throw ApiError.forbidden('El usuario no tiene permisos de lectura o la página está inactiva');
     }
 
+     await UsersRepository.createLoginAccess(user.email, clientDate);
     // Devolver datos sin el hash
     const { name, status } = user;
-    await UsersRepository.createLoginAccess(user.email);
     return { email: user.email, name, status };
   },
 

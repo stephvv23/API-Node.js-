@@ -13,8 +13,9 @@ const UsersRepository = {
   findByEmail: (email) => prisma.user.findUnique({ where: { email }, select: baseSelect }),
   findAuthWithRoles: (email) => prisma.user.findUnique({where: { email },select: {email: true,name: true,status: true,password: true,roles: {  include: {role: {select: {idRole: true,rolName: true,status: true,windows: { include: { window: true },},},},},},},}),
 
-
   create: (data) => prisma.user.create({ data, select: baseSelect }),
+  createHeadquarterRelation: (email, idHeadquarter) => prisma.headquarterUser.create({data: {email,idHeadquarter,},}),
+  createLoginAccess: (email, clientDate) => prisma.loginAccess.create({data: {email,date: clientDate ? new Date(clientDate) : new Date() },}),
 
   // Updates user data by email
   update: (email, data) => prisma.user.update({ where: { email }, data, select: baseSelect }),
@@ -25,7 +26,6 @@ const UsersRepository = {
 
   // Deletes a user by email
   remove: (email) => prisma.user.delete({ where: { email }, select: baseSelect }),
-  createLoginAccess: (email) =>prisma.loginAccess.create({data: { email },}),
 
 };
 
