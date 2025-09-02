@@ -25,9 +25,8 @@ function buildRoutes() {
   const raw = [
     ...usersRoutes,
     ...headquartersRoutes,
-    // ====== INICIO: Módulo de assets ======
     ...assetsRoutes,
-    // ====== FIN: Módulo de assets ======
+
     // ...rolesRoutes,
     // ...patientsRoutes,
     // etc.

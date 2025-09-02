@@ -1,4 +1,4 @@
-const { AssetsService } = require('./asstes.service');
+const { AssetsService } = require('./assetes.service');
 
 /**
  * AssetsController maneja las peticiones HTTP para assets.
