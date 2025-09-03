@@ -11,8 +11,9 @@ const UsersService = {
   list: () => UsersRepository.list(),
 
   // Retrieves a user by email
-  get: (email) => UsersRepository.findByEmail(email),
-
+  get: async (email) => {
+    return UsersRepository.findByEmailWithHeadquarters(email);
+  },
   // Creates a new user, hashes the password before saving
   create: async (data) => {
     const hashed = await bcrypt.hash(data.password, 10);
@@ -108,6 +109,10 @@ const UsersService = {
     const { name, status } = user;
     return { email: user.email, name, status };
   },
+
+  getWithHeadquarters: (email) => UsersRepository.findByEmailWithHeadquarters(email),
+
+
 
 
 
