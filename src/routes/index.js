@@ -16,7 +16,6 @@ const cancerRoutes = require('./modules/cancer/cancer.routes');
 
 // const rolesRoutes = require('./modules/roles.routes');
 // const patientsRoutes = require('./modules/patients.routes');
-
 // 2) Concatena y compila paths → { method, pattern, paramNames, handler }
 function buildRoutes() {
   const raw = [

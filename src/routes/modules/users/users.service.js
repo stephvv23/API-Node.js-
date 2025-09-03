@@ -103,7 +103,7 @@ const UsersService = {
       throw ApiError.forbidden('El usuario no tiene permisos de lectura o la página está inactiva');
     }
 
-     await UsersRepository.createLoginAccess(user.email, clientDate);
+    await UsersRepository.createLoginAccess(user.email, clientDate);
     // Devolver datos sin el hash
     const { name, status } = user;
     return { email: user.email, name, status };
