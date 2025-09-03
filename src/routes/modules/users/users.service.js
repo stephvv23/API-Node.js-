@@ -39,12 +39,41 @@ const UsersService = {
 
   // Updates user data by email; hashes password if provided
   update: async (email, data) => {
-    if (data.password) {
-      const hashed = await bcrypt.hash(data.password, 10);
-      return UsersRepository.updatePassword(email, hashed);
+  const updateData = {};
+
+  // Si hay contraseña nueva
+  if (data.password) {
+    const hashed = await bcrypt.hash(data.password, 10);
+    updateData.password = hashed;
+  }
+
+  // Si hay nombre nuevo
+  if (data.name) {
+    updateData.name = data.name;
+  }
+
+  // Si hay cambio de estado
+  if (data.status) {
+    updateData.status = data.status;
+  }
+
+  // Actualizar datos del usuario
+  if (Object.keys(updateData).length > 0) {
+    await UsersRepository.update(email, updateData);
+  }
+
+  // --- Actualizar sedes ---
+  if (Array.isArray(data.sedes)) {
+    await UsersRepository.clearHeadquarters(email);
+    if (data.sedes.length > 0) {
+      await UsersRepository.assignHeadquarters(email, data.sedes);
     }
-    return UsersRepository.update(email, data);
-  },
+  }
+
+  // Devolver usuario actualizado con sedes
+  return UsersRepository.findByEmailWithHeadquarters(email);
+},
+
 
   // Updates only the user's status
   updateStatus: (email, status) =>

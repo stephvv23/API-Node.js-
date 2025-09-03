@@ -45,6 +45,15 @@ const UsersRepository = {
   // Deletes a user by email
   remove: (email) => prisma.user.delete({ where: { email }, select: baseSelect }),
 
+
+  clearHeadquarters: (email) => prisma.headquarterUser.deleteMany({ where: { email } }),
+
+assignHeadquarters: (email, ids) => prisma.headquarterUser.createMany({
+  data: ids.map((id) => ({ email, idHeadquarter: id })),
+  skipDuplicates: true
+}),
+
+
 };
 
 module.exports = { UsersRepository };
