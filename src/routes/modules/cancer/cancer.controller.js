@@ -43,17 +43,17 @@ const CancerController = {
   },
 
   remove: async (req, res) => {
-  const { idCancer } = req.params;
-  try {
-    const updated = await CancerService.delete(idCancer);
-    res.json({ message: 'Cáncer marcado como inactivo (soft delete)', data: updated });
-  } catch (e) {
-    if (e && e.code === 'P2025') {
-      return res.status(404).json({ message: 'Cáncer no encontrado' });
+    const { idCancer } = req.params;
+    try {
+      const updated = await CancerService.delete(idCancer);
+      res.json({ message: 'Cáncer marcado como inactivo (soft delete)', data: updated });
+    } catch (e) {
+      if (e && e.code === 'P2025') {
+        return res.status(404).json({ message: 'Cáncer no encontrado' });
+      }
+      throw e;
     }
-    throw e;
-  }
-},
+  },
 
 
 
