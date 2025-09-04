@@ -51,7 +51,7 @@ model SecurityLog {
 
 model Role {
   idRole Int    @id @default(autoincrement())
-  rolName String @db.VarChar(50)
+  rolName String @db.VarChar(50) @unique
   status  String @default("active") @db.VarChar(25)
 
   users   UserRole[]   // Relation: Role has many users through UserRole join table
@@ -60,7 +60,7 @@ model Role {
 
 model Window {
   idWindow   Int    @id @default(autoincrement()) // Primary key: unique identifier for each window/module
-  windowName String @db.VarChar(75) // Name of the window/module
+  windowName String @db.VarChar(75) @unique// Name of the window/module
   status     String @default("active") @db.VarChar(25) // Status of the window, defaults to 'active'
 
   roles RoleWindow[] // Relation: Window has many roles through RoleWindow join table
@@ -111,7 +111,7 @@ model Asset {
 
 model Category {
   idCategory Int     @id @default(autoincrement())
-  name       String  @db.VarChar(150)
+  name       String  @db.VarChar(150) @unique
   status     String  @db.VarChar(25)
 
   asset      Asset[]  // Relation: Category has many assets
@@ -240,7 +240,7 @@ model Survivor {
 
 model Cancer {
   idCancer    Int    @id @default(autoincrement())
-  cancerName String @db.VarChar(100)
+  cancerName String @db.VarChar(100) @unique
   description String @db.VarChar(300)
   status     String @default("active") @db.VarChar(25)
 
@@ -262,7 +262,7 @@ model Phone {
 
 model Headquarter {
   idHeadquarter Int    @id @default(autoincrement())
-  name           String @db.VarChar(150)
+  name           String @db.VarChar(150) @unique
   schedule       String @db.VarChar(300)
   location       String @db.VarChar(300)
   email          String @db.VarChar(150)
