@@ -17,9 +17,9 @@ const headquartersRoutes = require('./modules/headquarters/headquarter.routes');
 const assetsRoutes = require('./modules/assets/assets.routes');
 // ====== FIN: Módulo de assets ======
 
+const categoriesRoutes = require('./modules/Category/category.routes');
 // const rolesRoutes = require('./modules/roles.routes');
 // const patientsRoutes = require('./modules/patients.routes');
-
 // 2) Concatena y compila paths → { method, pattern, paramNames, handler }
 function buildRoutes() {
   const raw = [
@@ -27,6 +27,7 @@ function buildRoutes() {
     ...headquartersRoutes,
     ...assetsRoutes,
 
+    ...categoriesRoutes,
     // ...rolesRoutes,
     // ...patientsRoutes,
     // etc.
