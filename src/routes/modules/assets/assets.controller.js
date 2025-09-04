@@ -1,11 +1,11 @@
 const { AssetsService } = require('./assetes.service');
 
 /**
- * AssetsController maneja las peticiones HTTP para assets.
+ * AssetsController handles HTTP requests for assets.
  */
 const AssetsController = {
   /**
-   * Listar todos los assets.
+   * List all assets.
    * GET /assets
    */
   list: async (_req, res, next) => {
@@ -16,7 +16,7 @@ const AssetsController = {
   },
 
   /**
-   * Obtener un asset por id.
+   * Get an asset by id.
    * GET /assets/:idAsset
    */
   get: async (req, res, next) => {
@@ -28,7 +28,7 @@ const AssetsController = {
   },
 
   /**
-   * Crear un nuevo asset.
+   * Create a new asset.
    * POST /assets
    */
   create: async (req, res, next) => {
@@ -39,7 +39,7 @@ const AssetsController = {
   },
 
   /**
-   * Actualizar un asset por id.
+   * Update an asset by id.
    * PUT /assets/:idAsset
    */
   update: async (req, res, next) => {
@@ -50,7 +50,7 @@ const AssetsController = {
   },
 
   /**
-   * Eliminar un asset por id.
+   * Delete an asset by id.
    * DELETE /assets/:idAsset
    */
   delete: async (req, res, next) => {

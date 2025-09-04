@@ -12,22 +12,21 @@ const baseSelect = {
 };
 
 const AssetsRepository = {
-  // ✅ Diagnóstico robusto
+  // ✅ Robust diagnostics
   list: async () => {
     try {
-      // Verifica conexión
+      // Checks connection
       await prisma.$queryRaw`SELECT 1`;
-      // Trae datos
+      // Fetches data
       return await prisma.asset.findMany({
         select: {
           ...baseSelect,
-          // Si prefieres sin relaciones, comenta estas dos líneas:
           category: { select: { idCategory: true, name: true, status: true } },
           headquarter: { select: { idHeadquarter: true, name: true, status: true } },
         },
       });
     } catch (e) {
-      // Propaga con contexto
+      // Propagates with context
       throw new Error(`[AssetsRepository.list] ${e.message}`);
     }
   },
