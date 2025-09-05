@@ -14,7 +14,9 @@ const CancerController = {
   },
 
   create: async (req, res) => {
+
     const { cancerName, description, status } = req.body || {};
+
     if (!cancerName) {
       return res
         .status(400)
@@ -28,13 +30,19 @@ const CancerController = {
         .status(400)
         .json({ message: 'status are required'});
     }
+    
     try {
       const created = await CancerService.create({ cancerName, description, status });
       res.status(201).json(created);
     } catch (e) {
-      console.error('[CANCER] create error:', e);
-      res.status(500).json({ message: 'Error Create cancer'});
+      if (e.code === 'P2002') {
+        console.warn('[CANCER] create warning: registro duplicado');
+        return res.status(400).json({ message: 'Registro duplicado: ya existe un cáncer con ese nombre.' });
+      }
+      console.error('[CANCER] create error:', e.message); 
+      return res.status(500).json({ message: 'Error al crear cáncer' });
     }
+
   },
 
   update: async (req, res) => {
