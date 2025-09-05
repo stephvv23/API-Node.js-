@@ -9,35 +9,56 @@ const CancerController = {
   get: async (req, res) => {
     const { idCancer } = req.params;
     const cancer = await CancerService.get(idCancer);
-    if (!cancer) return res.status(404).json({ message: 'Cáncer no encontrado' });
+    if (!cancer) return res.status(404).json({ message: 'Cáncer not found'});
     res.json(cancer);
   },
 
   create: async (req, res) => {
     const { cancerName, description, status } = req.body || {};
-    if (!cancerName || !description) {
+    if (!cancerName) {
       return res
         .status(400)
-        .json({ message: 'cancerName y description son obligatorios' });
+        .json({ message: 'cancerName are required'});
+    }else if (!description){
+      return res
+        .status(400)
+        .json({ message: 'description are required'});
+    }else if (!status){
+      return res
+        .status(400)
+        .json({ message: 'status are required'});
     }
     try {
       const created = await CancerService.create({ cancerName, description, status });
       res.status(201).json(created);
     } catch (e) {
       console.error('[CANCER] create error:', e);
-      res.status(500).json({ message: 'Error al crear cáncer' });
+      res.status(500).json({ message: 'Error Create cancer'});
     }
   },
 
   update: async (req, res) => {
     const { idCancer } = req.params;
     const { cancerName, description, status } = req.body || {};
+    if (!cancerName) {
+      return res
+        .status(400)
+        .json({ message: 'cancerName are required'});
+    }else if (!description){
+      return res
+        .status(400)
+        .json({ message: 'description are required'});
+    }else if (!status){
+      return res
+        .status(400)
+        .json({ message: 'status are required'});
+    }
     try {
       const updated = await CancerService.update(idCancer, { cancerName, description, status });
       res.json(updated);
     } catch (e) {
       if (e && e.code === 'P2025')
-        return res.status(404).json({ message: 'Cáncer no encontrado' });
+        return res.status(404).json({ message: 'Cancer not found'});
       throw e;
     }
   },
@@ -46,16 +67,14 @@ const CancerController = {
     const { idCancer } = req.params;
     try {
       const updated = await CancerService.delete(idCancer);
-      res.json({ message: 'Cáncer marcado como inactivo (soft delete)', data: updated });
+      res.json({ message: 'Cancer marked as inactive (soft delete)', data: updated });
     } catch (e) {
       if (e && e.code === 'P2025') {
-        return res.status(404).json({ message: 'Cáncer no encontrado' });
+        return res.status(404).json({ message: 'Cancer not found' });
       }
       throw e;
     }
   },
-
-
 
 };
 
