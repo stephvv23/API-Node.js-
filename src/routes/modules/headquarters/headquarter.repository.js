@@ -1,4 +1,5 @@
-
+// Ajusta este require según dónde tengas el PrismaClient.
+// Si usas src/lib/prisma.js:
 let prisma = require('../../../lib/prisma.js');
 
 const baseSelect = {

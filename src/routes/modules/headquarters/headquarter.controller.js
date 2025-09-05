@@ -59,25 +59,25 @@ const HeadquarterController = {
   update: async (req, res) => {
     const { id } = req.params;
     const { name, schedule, location, email, description, status } = req.body;
-    const errors = [];
+    const errores = [];
 
-    if (!name) errors.push('El campo "nombre" es obligatorio.');
-    else if (!/^[a-zA-Z0-9\s]+$/.test(name)) errors.push('El campo "nombre" contiene caracteres inválidos.');
+    if (!name) errores.push('El campo "nombre" es obligatorio.');
+    else if (!/^[a-zA-Z0-9\s]+$/.test(name)) errores.push('El campo "nombre" contiene caracteres inválidos.');
 
-    if (!schedule) errors.push('El campo "horario" es obligatorio.');
+    if (!schedule) errores.push('El campo "horario" es obligatorio.');
 
-    if (!location) errors.push('El campo "ubicación" es obligatorio.');
+    if (!location) errores.push('El campo "ubicación" es obligatorio.');
 
-    if (!email) errors.push('El campo "email" es obligatorio.');
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.push('El campo "email" no es válido.');
+    if (!email) errores.push('El campo "email" es obligatorio.');
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errores.push('El campo "email" no es válido.');
 
-    if (!description) errors.push('El campo "descripción" es obligatorio.');
+    if (!description) errores.push('El campo "descripción" es obligatorio.');
 
-    if (!status) errors.push('El campo "estado" es obligatorio.');
-    else if (!['active', 'inactive'].includes(status)) errors.push('El campo "estado" debe ser "active" o "inactive".');
+    if (!status) errores.push('El campo "estado" es obligatorio.');
+    else if (!['active', 'inactive'].includes(status)) errores.push('El campo "estado" debe ser "active" o "inactive".');
 
-    if (errors.length > 0) {
-      return res.status(400).json({ ok: false, errores: errors });
+    if (errores.length > 0) {
+      return res.status(400).json({ ok: false, errores });
     }
 
     try {
