@@ -46,6 +46,8 @@ const HeadquarterController = {
   // Creates a new headquarter
   create: async (req, res) => {
     const { name, schedule, location, email, description, status } = req.body;
+    if (!email) errors.push('El campo "email" es obligatorio.');
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.push('El campo "email" no es válido.');
     try {
       const newHeadquarter = await HeadquarterService.create({ name, schedule, location, email, description, status });
       res.status(201).json({ ok: true, data: newHeadquarter });
@@ -70,6 +72,7 @@ const HeadquarterController = {
 
     if (!email) errors.push('El campo "email" es obligatorio.');
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.push('El campo "email" no es válido.');
+
 
     if (!description) errors.push('El campo "descripción" es obligatorio.');
 
