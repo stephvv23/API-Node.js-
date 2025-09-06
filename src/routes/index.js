@@ -13,7 +13,7 @@ const { compilePath, specificityScore } = require('./path');
 const usersRoutes = require('./modules/users/users.routes');
 const headquartersRoutes = require('./modules/headquarters/headquarter.routes');
 const categoriesRoutes = require('./modules/Category/category.routes');
-// const rolesRoutes = require('./modules/roles.routes');
+const roleRoutes = require('./modules/Role/role.routes');
 // const patientsRoutes = require('./modules/patients.routes');
 // 2) Concatena y compila paths → { method, pattern, paramNames, handler }
 function buildRoutes() {
@@ -21,7 +21,7 @@ function buildRoutes() {
     ...usersRoutes,
     ...headquartersRoutes,
     ...categoriesRoutes,
-    // ...rolesRoutes,
+    ...roleRoutes,
     // ...patientsRoutes,
     // etc.
   ];
