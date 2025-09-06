@@ -5,6 +5,10 @@ const HeadquarterService = {
   listActive: async () => {
     return HeadquarterRepository.listActive();
   },
+  // Lists headquarters with optional status filter
+  list: async ({status = 'active', take, skip} = {}) => {
+        return HeadquarterRepository.list({status, take, skip});
+    },
   // Retrieves a headquarter by id
   findById: async (id) => {
     return HeadquarterRepository.findById(id);

@@ -12,14 +12,19 @@ const HeadquarterController = {
     }
   },
 
-  // Lists all headquarters
-  getAll: async (_req, res) => {
+  // Lists all headquarters with status filter
+  getAll: async (req, res, next) => {
     try {
-      const headquarters = await HeadquarterService.list();
-      res.json({ ok: true, data: headquarters });
+      const status = (req.query.status || 'active').toLowerCase();
+      const allowed = ['active', 'inactive', 'all'];
+      if (!allowed.includes(status)) {
+        return next(ApiError.badRequest('El estado debe ser "active", "inactive" o "all"'));
+      }
+
+      const headquarters = await HeadquarterService.list({ status });
+      return res.status(200).json({ ok: true, data: headquarters });
     } catch (error) {
-      console.error('[HEADQUARTERS] getAll error:', error);
-      res.status(500).json({ ok: false, message: 'Error al obtener las sedes' });
+      return next(error);
     }
   },
 
@@ -41,6 +46,8 @@ const HeadquarterController = {
   // Creates a new headquarter
   create: async (req, res) => {
     const { name, schedule, location, email, description, status } = req.body;
+    if (!email) errors.push('El campo "email" es obligatorio.');
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.push('El campo "email" no es válido.');
     try {
       const newHeadquarter = await HeadquarterService.create({ name, schedule, location, email, description, status });
       res.status(201).json({ ok: true, data: newHeadquarter });
@@ -65,6 +72,7 @@ const HeadquarterController = {
 
     if (!email) errors.push('El campo "email" es obligatorio.');
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.push('El campo "email" no es válido.');
+
 
     if (!description) errors.push('El campo "descripción" es obligatorio.');
 
