@@ -14,6 +14,7 @@ const usersRoutes = require('./modules/users/users.routes');
 const headquartersRoutes = require('./modules/headquarters/headquarter.routes');
 const categoriesRoutes = require('./modules/Category/category.routes');
 const roleRoutes = require('./modules/Role/role.routes');
+const roleWindowsRoutes = require('./modules/RoleWindows/roleWindows.routes');
 // const patientsRoutes = require('./modules/patients.routes');
 // 2) Concatena y compila paths → { method, pattern, paramNames, handler }
 function buildRoutes() {
@@ -22,6 +23,7 @@ function buildRoutes() {
     ...headquartersRoutes,
     ...categoriesRoutes,
     ...roleRoutes,
+    ...roleWindowsRoutes,
     // ...patientsRoutes,
     // etc.
   ];

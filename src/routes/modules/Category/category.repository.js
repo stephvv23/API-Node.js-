@@ -20,7 +20,7 @@ const categoryRepository = {
             skip,
         });
     },
-    getById: (id) => 
+    getByIds: (id) => 
         prisma.category.findUnique({
             where: { idCategory: Number(id) },
             select: baseSelect
