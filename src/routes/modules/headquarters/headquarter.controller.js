@@ -46,8 +46,38 @@ const HeadquarterController = {
   // Creates a new headquarter
   create: async (req, res) => {
     const { name, schedule, location, email, description, status } = req.body;
-    if (!email) errors.push('El campo "email" es obligatorio.');
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.push('El campo "email" no es válido.');
+    const errores = [];
+
+    if (!name) errores.push('El campo "nombre" es obligatorio.');
+    else if (name.length > 150) errores.push('El campo "nombre" no puede tener más de 150 caracteres.');
+
+    if (!schedule) errores.push('El campo "horario" es obligatorio.');
+    else if (schedule.length > 300) errores.push('El campo "horario" no puede tener más de 300 caracteres.');
+
+    if (!location) errores.push('El campo "ubicación" es obligatorio.');
+    else if (location.length > 300) errores.push('El campo "ubicación" no puede tener más de 300 caracteres.');
+
+    if (!email) errores.push('El campo "email" es obligatorio.');
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errores.push('El campo "email" no es válido.');
+    else if (email.length > 150) errores.push('El campo "email" no puede tener más de 150 caracteres.');
+
+    if (!description) errores.push('El campo "descripción" es obligatorio.');
+    else if (description.length > 750) errores.push('El campo "descripción" no puede tener más de 750 caracteres.');
+
+    if (status && status.length > 25) errores.push('El campo "estado" no puede tener más de 25 caracteres.');
+
+    const allHeadquarters = await HeadquarterService.list({ status: 'all' });
+    if (allHeadquarters.some(h => h.name === name)) {
+      errores.push('Ya existe una sede con ese nombre.');
+    }
+    if (allHeadquarters.some(h => h.email === email)) {
+      errores.push('Ya existe una sede con ese email.');
+    }
+
+    if (errores.length > 0) {
+      return res.status(400).json({ ok: false, errores });
+    }
+
     try {
       const newHeadquarter = await HeadquarterService.create({ name, schedule, location, email, description, status });
       res.status(201).json({ ok: true, data: newHeadquarter });
@@ -65,19 +95,33 @@ const HeadquarterController = {
 
     if (!name) errores.push('El campo "nombre" es obligatorio.');
     else if (!/^[a-zA-Z0-9\s]+$/.test(name)) errores.push('El campo "nombre" contiene caracteres inválidos.');
+    else if (name.length > 150) errores.push('El campo "nombre" no puede tener más de 150 caracteres.');
 
     if (!schedule) errores.push('El campo "horario" es obligatorio.');
+    else if (schedule.length > 300) errores.push('El campo "horario" no puede tener más de 300 caracteres.');
 
     if (!location) errores.push('El campo "ubicación" es obligatorio.');
+    else if (location.length > 300) errores.push('El campo "ubicación" no puede tener más de 300 caracteres.');
 
     if (!email) errores.push('El campo "email" es obligatorio.');
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errores.push('El campo "email" no es válido.');
+    else if (email.length > 150) errores.push('El campo "email" no puede tener más de 150 caracteres.');
 
-
-    if (!description) errors.push('El campo "descripción" es obligatorio.');
+    if (!description) errores.push('El campo "descripción" es obligatorio.');
+    else if (description.length > 750) errores.push('El campo "descripción" no puede tener más de 750 caracteres.');
 
     if (!status) errores.push('El campo "estado" es obligatorio.');
     else if (!['active', 'inactive'].includes(status)) errores.push('El campo "estado" debe ser "active" o "inactive".');
+    else if (status.length > 25) errores.push('El campo "estado" no puede tener más de 25 caracteres.');
+
+    if (name) {
+      const existsName = await HeadquarterService.findbyname(name);
+      if (existsName && existsName.idHeadquarter != id) errores.push('Ya existe una sede con ese nombre.');
+    }
+    if (email) {
+      const existsEmail = await HeadquarterService.findbyemail(email);
+      if (existsEmail && existsEmail.idHeadquarter != id) errores.push('Ya existe una sede con ese email.');
+    }
 
     if (errores.length > 0) {
       return res.status(400).json({ ok: false, errores });

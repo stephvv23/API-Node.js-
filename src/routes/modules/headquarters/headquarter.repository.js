@@ -1,5 +1,4 @@
-// Ajusta este require según dónde tengas el PrismaClient.
-// Si usas src/lib/prisma.js:
+
 let prisma = require('../../../lib/prisma.js');
 
 const baseSelect = {
@@ -38,6 +37,16 @@ const HeadquarterRepository = {
       where: { idHeadquarter: Number(id) },
       select: baseSelect
     }),
+    findbyname: (name) =>
+  prisma.headquarter.findUnique({
+    where: { name: name },
+    select: baseSelect
+  }),
+findbyemail: (email) =>
+  prisma.headquarter.findFirst({ 
+    where: { email: email },
+    select: baseSelect
+  }),
   // Creates a new headquarter
   create: (data) =>
     prisma.headquarter.create({
