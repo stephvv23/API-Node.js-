@@ -11,8 +11,9 @@ const UsersService = {
   list: () => UsersRepository.list(),
 
   // Retrieves a user by email
-  get: (email) => UsersRepository.findByEmail(email),
-
+  get: async (email) => {
+    return UsersRepository.findByEmailWithHeadquarters(email);
+  },
   // Creates a new user, hashes the password before saving
   create: async (data) => {
     const hashed = await bcrypt.hash(data.password, 10);
@@ -37,13 +38,41 @@ const UsersService = {
   },
 
   // Updates user data by email; hashes password if provided
+  // --- 🔹 UPDATE con sedes y roles ---
   update: async (email, data) => {
+    const updateData = {};
+
     if (data.password) {
       const hashed = await bcrypt.hash(data.password, 10);
-      return UsersRepository.updatePassword(email, hashed);
+      updateData.password = hashed;
     }
-    return UsersRepository.update(email, data);
+
+    if (data.name) updateData.name = data.name;
+    if (data.status) updateData.status = data.status;
+
+    if (Object.keys(updateData).length > 0) {
+      await UsersRepository.update(email, updateData);
+    }
+
+    // Sedes
+    if (Array.isArray(data.sedes)) {
+      await UsersRepository.clearHeadquarters(email);
+      if (data.sedes.length > 0) {
+        await UsersRepository.assignHeadquarters(email, data.sedes);
+      }
+    }
+
+    // Roles
+    if (Array.isArray(data.roles)) {
+      await UsersRepository.clearRoles(email);
+      if (data.roles.length > 0) {
+        await UsersRepository.assignRoles(email, data.roles);
+      }
+    }
+
+    return UsersRepository.findByEmailWithHeadquarters(email);
   },
+
 
   // Updates only the user's status
   updateStatus: (email, status) =>
@@ -109,7 +138,7 @@ const UsersService = {
     return { email: user.email, name, status };
   },
 
-
+  getWithHeadquarters: (email) => UsersRepository.findByEmailWithHeadquarters(email),
 
 };
 

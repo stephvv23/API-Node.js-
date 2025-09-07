@@ -23,7 +23,6 @@ const roleService = {
         
         })
     },
-    
     delete: async (id) => {
         return roleRepository.update (id, {
             status: 'inactive'
