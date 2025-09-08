@@ -24,6 +24,7 @@ const UsersController = {
   get: async (req, res) => {
     const { email } = req.params;
     const user = await UsersService.get(email);
+
     if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
 
     res.json({
@@ -33,6 +34,10 @@ const UsersController = {
       sedes: user.headquarterUser.map(h => ({
         idHeadquarter: h.idHeadquarter,
         name: h.headquarter.name
+      })),
+      roles: user.roles.map(r => ({
+        idRole: r.role.idRole,
+        name: r.role.rolName
       }))
     });
   },
@@ -67,10 +72,10 @@ const UsersController = {
    */
   update: async (req, res) => {
     const { email } = req.params;
-    const { name, status, password, sedes } = req.body || {};
+    const { name, status, password, sedes, roles } = req.body || {};
 
     try {
-      const updated = await UsersService.update(email, { name, status, password, sedes });
+      const updated = await UsersService.update(email, { name, status, password, sedes, roles });
       res.json(updated);
     } catch (e) {
       if (e && e.code === 'P2025') {

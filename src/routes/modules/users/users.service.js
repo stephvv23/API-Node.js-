@@ -38,41 +38,40 @@ const UsersService = {
   },
 
   // Updates user data by email; hashes password if provided
+  // --- 🔹 UPDATE con sedes y roles ---
   update: async (email, data) => {
-  const updateData = {};
+    const updateData = {};
 
-  // Si hay contraseña nueva
-  if (data.password) {
-    const hashed = await bcrypt.hash(data.password, 10);
-    updateData.password = hashed;
-  }
-
-  // Si hay nombre nuevo
-  if (data.name) {
-    updateData.name = data.name;
-  }
-
-  // Si hay cambio de estado
-  if (data.status) {
-    updateData.status = data.status;
-  }
-
-  // Actualizar datos del usuario
-  if (Object.keys(updateData).length > 0) {
-    await UsersRepository.update(email, updateData);
-  }
-
-  // --- Actualizar sedes ---
-  if (Array.isArray(data.sedes)) {
-    await UsersRepository.clearHeadquarters(email);
-    if (data.sedes.length > 0) {
-      await UsersRepository.assignHeadquarters(email, data.sedes);
+    if (data.password) {
+      const hashed = await bcrypt.hash(data.password, 10);
+      updateData.password = hashed;
     }
-  }
 
-  // Devolver usuario actualizado con sedes
-  return UsersRepository.findByEmailWithHeadquarters(email);
-},
+    if (data.name) updateData.name = data.name;
+    if (data.status) updateData.status = data.status;
+
+    if (Object.keys(updateData).length > 0) {
+      await UsersRepository.update(email, updateData);
+    }
+
+    // Sedes
+    if (Array.isArray(data.sedes)) {
+      await UsersRepository.clearHeadquarters(email);
+      if (data.sedes.length > 0) {
+        await UsersRepository.assignHeadquarters(email, data.sedes);
+      }
+    }
+
+    // Roles
+    if (Array.isArray(data.roles)) {
+      await UsersRepository.clearRoles(email);
+      if (data.roles.length > 0) {
+        await UsersRepository.assignRoles(email, data.roles);
+      }
+    }
+
+    return UsersRepository.findByEmailWithHeadquarters(email);
+  },
 
 
   // Updates only the user's status
@@ -140,10 +139,6 @@ const UsersService = {
   },
 
   getWithHeadquarters: (email) => UsersRepository.findByEmailWithHeadquarters(email),
-
-
-
-
 
 };
 

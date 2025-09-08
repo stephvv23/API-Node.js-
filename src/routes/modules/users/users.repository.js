@@ -11,18 +11,37 @@ const UsersRepository = {
 
   // Finds a user by email (primary key)
   findByEmailWithHeadquarters: (email) =>
-  prisma.user.findUnique({
-    where: { email },
-    include: {
-      headquarterUser: {
-        include: {
-          headquarter: true
+    prisma.user.findUnique({
+      where: { email },
+      include: {
+        headquarterUser: { include: { headquarter: true } },
+        roles: { include: { role: true } }
+      }
+    }),
+
+  // Para login con roles y permisos
+  findAuthWithRoles: (email) =>
+    prisma.user.findUnique({
+      where: { email },
+      select: {
+        email: true,
+        name: true,
+        status: true,
+        password: true,
+        roles: {
+          include: {
+            role: {
+              select: {
+                idRole: true,
+                rolName: true,
+                status: true,
+                windows: { include: { window: true } }
+              }
+            }
+          }
         }
       }
-    }
-  }),
-  findAuthWithRoles: (email) => prisma.user.findUnique({where: { email },select: {email: true,name: true,status: true,password: true,roles: {  include: {role: {select: {idRole: true,rolName: true,status: true,windows: { include: { window: true },},},},},},},}),
-
+    }),
 
   create: (data) => prisma.user.create({ data, select: baseSelect }),
   createHeadquarterRelation: (email, idHeadquarter) => prisma.headquarterUser.create({data: {email,idHeadquarter,},}),
@@ -48,11 +67,18 @@ const UsersRepository = {
 
   clearHeadquarters: (email) => prisma.headquarterUser.deleteMany({ where: { email } }),
 
-assignHeadquarters: (email, ids) => prisma.headquarterUser.createMany({
+  assignHeadquarters: (email, ids) => prisma.headquarterUser.createMany({
   data: ids.map((id) => ({ email, idHeadquarter: id })),
-  skipDuplicates: true
-}),
+  skipDuplicates: true}),
 
+  clearRoles: (email) =>
+    prisma.userRole.deleteMany({ where: { email } }),
+
+  assignRoles: (email, ids) =>
+    prisma.userRole.createMany({
+      data: ids.map((id) => ({ email, idRole: id })),
+      skipDuplicates: true
+    }),
 
 };
 
