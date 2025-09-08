@@ -12,14 +12,19 @@ const HeadquarterController = {
     }
   },
 
-  // Lists all headquarters
-  getAll: async (_req, res) => {
+  // Lists all headquarters with status filter
+  getAll: async (req, res, next) => {
     try {
-      const headquarters = await HeadquarterService.list();
-      res.json({ ok: true, data: headquarters });
+      const status = (req.query.status || 'active').toLowerCase();
+      const allowed = ['active', 'inactive', 'all'];
+      if (!allowed.includes(status)) {
+        return next(ApiError.badRequest('El estado debe ser "active", "inactive" o "all"'));
+      }
+
+      const headquarters = await HeadquarterService.list({ status });
+      return res.status(200).json({ ok: true, data: headquarters });
     } catch (error) {
-      console.error('[HEADQUARTERS] getAll error:', error);
-      res.status(500).json({ ok: false, message: 'Error al obtener las sedes' });
+      return next(error);
     }
   },
 

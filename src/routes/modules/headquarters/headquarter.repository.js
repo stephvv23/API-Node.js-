@@ -12,11 +12,19 @@ const baseSelect = {
 };
 
 const HeadquarterRepository = {
-  // Lists all headquarters
-  list: () =>
-    prisma.headquarter.findMany({
-      select: baseSelect
-    }),
+  // Lists headquarters with optional status, pagination, and ordering
+    list: ({ status = 'active', take = 100, skip = 0 } = {}) => {
+      const where = status === 'all' ? {} : { status };
+      return prisma.headquarter.findMany({
+        where,
+        select: baseSelect,
+        orderBy: {
+          name: 'asc'
+        },
+        take,
+        skip,
+      });
+    },
   // Lists all active headquarters
   listActive: () =>
     prisma.headquarter.findMany({
