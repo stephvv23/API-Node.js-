@@ -18,6 +18,7 @@ const UsersRepository = {
         roles: { include: { role: true } }
       }
     }),
+    
 
   // Para login con roles y permisos
   findAuthWithRoles: (email) =>
