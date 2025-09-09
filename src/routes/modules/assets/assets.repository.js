@@ -31,11 +31,13 @@ const AssetsRepository = {
     }
   },
 
-  findById: (idAsset) =>
-    prisma.asset.findUnique({
+  findById: (idAsset) => {
+    if (!idAsset) throw new Error('idAsset is required');
+    return prisma.asset.findUnique({
       where: { idAsset: Number(idAsset) },
       select: baseSelect,
-    }),
+    });
+  },
 
   create: (data) =>
     prisma.asset.create({
@@ -55,6 +57,26 @@ const AssetsRepository = {
       where: { idAsset: Number(idAsset) },
       select: baseSelect,
     }),
+
+  listByUserEmail: async (email) => {
+  // Busca las sedes del usuario
+  const headquarters = await prisma.headquarterUser.findMany({
+    where: { email },
+    select: { idHeadquarter: true },
+  });
+  const ids = headquarters.map((h) => h.idHeadquarter);
+
+  // Busca los assets de esas sedes, incluyendo category y headquarter
+  return prisma.asset.findMany({
+    where: { idHeadquarter: { in: ids } },
+    select: {
+      ...baseSelect,
+      category: { select: { idCategory: true, name: true, status: true } },
+      headquarter: { select: { idHeadquarter: true, name: true, status: true } },
+    },
+  });
+},
+
 };
 
 module.exports = { AssetsRepository };

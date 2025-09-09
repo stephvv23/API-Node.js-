@@ -21,6 +21,10 @@ const AssetsController = {
    */
   get: async (req, res, next) => {
     try {
+      const { idAsset } = req.params;
+      if (!idAsset) {
+        return res.status(400).json({ error: 'idAsset is required' });
+      }
       const asset = await AssetsService.get(req.params.idAsset);
       if (!asset) return res.status(404).json({ message: 'Asset no encontrado' });
       res.json(asset);
@@ -57,6 +61,18 @@ const AssetsController = {
     try {
       await AssetsService.delete(req.params.idAsset);
       res.status(204).end();
+    } catch (err) { next(err); }
+  },
+
+  // List assets by user email
+  listByUserEmail: async (req, res, next) => {
+    try {
+      const email = req.params.email;
+      if (!email) {
+        return res.status(400).json({ message: 'Email es requerido' });
+      }
+      const assets = await AssetsService.listByUserEmail(email);
+      res.json(assets);
     } catch (err) { next(err); }
   },
 };

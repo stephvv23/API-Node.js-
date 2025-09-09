@@ -22,6 +22,15 @@ const AssetsService = {
 
   // Deletes an asset by id
   delete: (idAsset) => AssetsRepository.remove(idAsset),
-};
 
+  // Lists assets filtered by user email
+  listByUserEmail: async (email) => {
+    try {
+      // Assuming there's a userAssets table linking users and assets
+      return await AssetsRepository.listByUserEmail(email);
+    } catch (e) {
+      throw new Error(`[AssetsService.listByUserEmail] ${e.message}`);
+    }
+  },
+};
 module.exports = { AssetsService };
