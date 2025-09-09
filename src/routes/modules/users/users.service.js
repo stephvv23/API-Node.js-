@@ -109,7 +109,8 @@ const UsersService = {
     return { email: user.email, name, status };
   },
 
-
+  //get headquarters related to user by using email
+  getuserHeadquartersByEmail: (email) => UsersRepository.getuserHeadquartersByEmail(email),
 
 };
 

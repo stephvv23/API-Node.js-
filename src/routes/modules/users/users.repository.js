@@ -1,5 +1,6 @@
 // NOTE: This imports Prisma client from lib/prisma.js (not from ../../prisma/client or .ts)
 const prisma = require('../../../lib/prisma.js'); 
+const { some } = require('./users.routes.js');
 
 // Fields to select for user queries (email, name, status)
 const baseSelect = { email: true, name: true, status: true };
@@ -26,6 +27,9 @@ const UsersRepository = {
 
   // Deletes a user by email
   remove: (email) => prisma.user.delete({ where: { email }, select: baseSelect }),
+
+  // returns headquarters related to user by using email
+  getuserHeadquartersByEmail: (email) => prisma.headquarterUser.findMany({ where: { email }, include: { headquarter: true }, }),
 
 };
 

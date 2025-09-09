@@ -10,4 +10,5 @@ module.exports = [
   { method: 'PATCH',path: '/api/users/:email/status',handler: UsersController.updateStatus },
   { method: 'PATCH',path: '/api/users/:email/password', handler: UsersController.updatePassword },
   { method: 'DELETE', path: '/api/users/:email',     handler: UsersController.remove },
+  { method: 'GET',  path: '/api/users/:email/headquarters', handler: UsersController.getuserHeadquartersByEmail },
 ];

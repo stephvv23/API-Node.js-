@@ -151,6 +151,13 @@ const UsersController = {
   }
 },
 
+  //get headquarters related to user by using email
+  getuserHeadquartersByEmail: async (req, res) => {
+    const { email } = req.params;
+    const userHeadquarters = await UsersService.getuserHeadquartersByEmail(email);
+    if (!userHeadquarters) return res.status(404).json({ message: 'Usuario no encontrado' });
+    res.json(userHeadquarters);
+  },
 
 
 };
