@@ -12,16 +12,18 @@ const { compilePath, specificityScore } = require('./path');
 // 1) Importa rutas de todos los módulos
 const usersRoutes = require('./modules/users/users.routes');
 const headquartersRoutes = require('./modules/headquarters/headquarter.routes');
+const cancerRoutes = require('./modules/cancer/cancer.routes');
 const categoriesRoutes = require('./modules/Category/category.routes');
-// const rolesRoutes = require('./modules/roles.routes');
+const roleRoutes = require('./modules/Role/role.routes');
 // const patientsRoutes = require('./modules/patients.routes');
 // 2) Concatena y compila paths → { method, pattern, paramNames, handler }
 function buildRoutes() {
   const raw = [
     ...usersRoutes,
     ...headquartersRoutes,
+    ...cancerRoutes,  
     ...categoriesRoutes,
-    // ...rolesRoutes,
+    ...roleRoutes,
     // ...patientsRoutes,
     // etc.
   ];
