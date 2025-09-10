@@ -154,20 +154,21 @@ const UsersController = {
     const user = await UsersService.login(email, password, windowName, clientDate);
 
     if (!process.env.JWT_SECRET) return next(ApiError.internal('Falta JWT_SECRET'));
-
+   // data of token - subject,name,roles. Email its sub because a standard of jwt
     const token = jwt.sign(
-      { sub: user.email },
-      process.env.JWT_SECRET,
-      { expiresIn: '1h' }
-    );
+    {
+      sub: user.email,
+      name: user.name,
+      roles: user.roles.map(ur => ur.role.rolName), // save the roles the user ['admin', 'editor']
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: '2m' });
 
     res.json({ message: 'Login exitoso', token, user });
   } catch (e) {
     next(e);
   }
 },
-
-
 
 };
 

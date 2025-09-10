@@ -97,11 +97,11 @@ const UsersService = {
       throw ApiError.forbidden('El usuario está inactivo, contacte al administrador');
     }
 
-    // Verificar contraseña
+    // verify password
     const ok = await bcrypt.compare(password, user.password);
     if (!ok) throw ApiError.unauthorized('Credenciales inválidas');
 
-    // Validar que tenga rol
+    // verify rol
     if (!user.roles || user.roles.length === 0) {
       throw ApiError.forbidden('El usuario no tiene roles asignados');
     }
@@ -127,15 +127,15 @@ const UsersService = {
       }
     }
 
-
     if (!hasAccess) {
       throw ApiError.forbidden('El usuario no tiene permisos de lectura o la página está inactiva');
     }
 
     await UsersRepository.createLoginAccess(user.email, clientDate);
     // Devolver datos sin el hash
-    const { name, status } = user;
-    return { email: user.email, name, status };
+    const { name, status, roles } = user;
+    return { email: user.email, name, status, roles };
+
   },
 
   getWithHeadquarters: (email) => UsersRepository.findByEmailWithHeadquarters(email),
