@@ -180,10 +180,10 @@ const AssetsController = {
   listByUserEmail: async (req, res, next) => {
     try {
       const email = String(req.params?.email || '').trim();
-      if (!email) return res.status(400).json({ message: 'Email es requerido' });
+      if (!email) return res.status(400).json({ message: 'Email is required' });
       // very light email format check
       const simpleEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!simpleEmail.test(email)) return res.status(400).json({ message: 'Email inválido' });
+      if (!simpleEmail.test(email)) return res.status(400).json({ message: 'Invalid email' });
 
       const assets = await AssetsService.listByUserEmail(email);
       res.json(assets);

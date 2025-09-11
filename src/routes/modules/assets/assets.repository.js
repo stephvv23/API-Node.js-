@@ -59,14 +59,14 @@ const AssetsRepository = {
     }),
 
   listByUserEmail: async (email) => {
-  // Busca las sedes del usuario
+  // search headquarters by email
   const headquarters = await prisma.headquarterUser.findMany({
     where: { email },
     select: { idHeadquarter: true },
   });
   const ids = headquarters.map((h) => h.idHeadquarter);
 
-  // Busca los assets de esas sedes, incluyendo category y headquarter
+  // search including category y headquarter
   return prisma.asset.findMany({
     where: { idHeadquarter: { in: ids } },
     select: {
