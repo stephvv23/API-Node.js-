@@ -73,22 +73,29 @@ const roleWindowRepository = {
             },
             select: baseSelect,
         }),
-    update: (idRole, idWindow, data) =>
-        prisma.roleWindow.update({
-            where: {
-                idRole_idWindow: {   
-                    idRole: Number(idRole),
-                    idWindow: Number(idWindow),
-                }
-            },
-            data: {
-                create: data.create,
-                read: data.read,
-                update: data.update,
-                delete: data.remove
-            },
-            select : baseSelect,
-        }),
+    // roleWindows.repository.js
+    update: (idRole, idWindow, flags) =>
+    prisma.roleWindow.upsert({
+        where: {
+            idRole_idWindow: { idRole, idWindow },
+        },
+        update: {
+            create: flags.create,
+            read:   flags.read,
+            update: flags.update,
+            delete: flags.remove,   
+        },
+        create: {
+            idRole,
+            idWindow,
+            create: flags.create,
+            read:   flags.read,
+            update: flags.update,
+            delete: flags.remove,
+        },
+        select: baseSelect,
+    }),
+
     delete: (idRole, idWindow) => 
         prisma.roleWindow.delete({
             where: {

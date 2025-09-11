@@ -29,14 +29,28 @@ const roleWindowService = {
             remove: toBool(data.remove),
         });
     },
-    update: async (idRole,idWindow, data) => {
-        return roleWindowRepository.update(idRole, idWindow, {
-            create: data.create,
-            read: data.read,
-            update: data.update,
-            remove: data.remove,
-        });
+    update: async (idRole, idWindow, data) => {
+    const toInt = (v, name) => {
+        const n = Number(v);
+        if (!Number.isInteger(n)) throw new Error(`${name} inválido`);
+        return n;
+    };
+    const toBool = v => v === true || v === 1 || v === '1' || v === 'true' || v === 'on';
+
+    const roleId   = toInt(idRole, 'idRole');
+    const windowId = toInt(idWindow, 'idWindow');
+
+    const flags = {
+        create: toBool(data.create),
+        read:   toBool(data.read),
+        update: toBool(data.update),
+        remove: toBool(data.remove), 
+    };
+
+    return roleWindowRepository.update(roleId, windowId, flags);
     },
+
+
     delete: async (idRole, idWindow) => {
         return roleWindowRepository.delete(idRole, idWindow);
     }

@@ -86,48 +86,27 @@ const roleWindowController = {
     },
 
     update: async (req, res) => {
-        const { idRole,idWindow } = req.params;
-        const { create, read, update, remove } = req.body;
-        const errors = [];
-        if (!/^[0-9]+$/.test(create)) errors.push('El campo create solo puede contener números.');
-        else if (Number(create) > 0 && Number(create) < 1 ) errors.push('El create debe ser 1 o 0'); 
+        const { idRole, idWindow } = req.params;
 
-        if (!/^[0-9]+$/.test(read)) errors.push('El campo read solo puede contener números.');
-        else if (Number(read) > 0 && Number(read) < 1 ) errors.push('El read debe ser 1 o 0');
-        
-        if (!/^[0-9]+$/.test(update)) errors.push('El campo update solo puede contener números.');
-        else if (Number(update) > 0 && Number(update) < 1 ) errors.push('El read debe ser 1 o 0'); 
+        const asBool = v => v === true || v === 1 || v === '1' || v === 'true';
 
-        if (!/^[0-9]+$/.test(remove)) errors.push('El campo remove solo puede contener números.');
-        else if (Number(remove) > 0 && Number(remove) < 1 ) errors.push('El remove debe ser 1 o 0'); 
-        
+        const flags = {
+            create: asBool(req.body.create),
+            read:   asBool(req.body.read),
+            update: asBool(req.body.update),
+            remove: asBool(req.body.remove ?? req.body.delete), 
+        };
+
         try {
-            const updatedRoleWindow = await roleWindowService.update(idRole, idWindow, {
-                create,
-                read,
-                update,
-                remove
-            });
-
-            if (!updatedRoleWindow) {
-                return res.status(404).json({
-                    ok: false, 
-                    error: 'roleWindow no encontrado'
-                });
-            }
-            res.json({
-                ok: true,
-                data: updatedRoleWindow
-            })
-        } catch (error){
-            console.log('[RoleWindow] update error');
-            const message = error.message || 'Error al actualizar';
-            return res.status(500).json({
-                ok: false,
-                error: message
-            });
+            const updated = await roleWindowService.update(idRole, idWindow, flags);
+            return res.json({ ok: true, data: updated });
+        } catch (error) {
+            console.error('[RoleWindow] update error', error);
+            return res.status(500).json({ ok: false, error: error.message || 'Error al actualizar' });
         }
     },
+
+
 
     delete: async (req, res) => {
         const { idRole, idWindow } = req.params;
