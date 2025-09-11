@@ -14,8 +14,24 @@ const UsersController = {
    */
   list: async (_req, res) => {
     const users = await UsersService.list();
-    res.json(users);
+
+    const mapped = users.map(u => ({
+      email: u.email,
+      name: u.name,
+      status: u.status,
+      roles: u.roles.map(r => ({
+        idRole: r.role.idRole,
+        rolName: r.role.rolName
+      })),
+      sedes: u.headquarterUser.map(h => ({
+        idHeadquarter: h.headquarter.idHeadquarter,
+        name: h.headquarter.name
+      }))
+    }));
+
+  res.json(mapped);
   },
+
 
   /**
    * Get a user by email.
@@ -49,14 +65,14 @@ const UsersController = {
    * Required fields: email, name, password
    */
   create: async (req, res) => {
-    const { email, name, password, status, idHeadquarter } = req.body || {};
+    const { email, name, password, status, idHeadquarter, idRole} = req.body || {};
     if (!email || !name || !password) {
       return res
         .status(400)
         .json({ message: 'email, name y password son obligatorios' });
     }
     try {
-      const created = await UsersService.create({ email, name, password, status, idHeadquarter });
+      const created = await UsersService.create({ email, name, password, status, idHeadquarter, idRole });
       res.status(201).json(created);
     } catch (e) {
       if (e && e.code === 'P2002')
@@ -162,7 +178,7 @@ const UsersController = {
       roles: user.roles.map(ur => ur.role.rolName), // save the roles the user ['admin', 'editor']
     },
     process.env.JWT_SECRET,
-    { expiresIn: '2m' });
+    { expiresIn: '1m' });
 
     res.json({ message: 'Login exitoso', token, user });
   } catch (e) {

@@ -3,22 +3,21 @@ const { UsersRepository } = require('./users.repository');
 const jwt  = require('jsonwebtoken');
 const ApiError = require('../../../utils/apiError');
 
-
 // UsersService contains business logic for user operations.
 // It interacts with UsersRepository for database actions and handles password hashing.
 const UsersService = {
   // Returns a list of all users
-  list: () => UsersRepository.list(),
+  list: () => UsersRepository.findAll(),
 
   // Retrieves a user by email
   get: async (email) => {
     return UsersRepository.findByEmailWithHeadquarters(email);
   },
-  // Creates a new user, hashes the password before saving
+
+  // Creates a new user, hashes the password before saving and the relation with roles and headquarts
   create: async (data) => {
     const hashed = await bcrypt.hash(data.password, 10);
 
-    
     const user = await UsersRepository.create({ 
       email: data.email,
       name: data.name,
@@ -26,14 +25,20 @@ const UsersService = {
       status: data.status || "active"
     });
 
-    // 2) Crear relación con sede si viene en los datos
+    // creation the relation tables
     if (data.idHeadquarter) {
       await UsersRepository.createHeadquarterRelation(
         user.email,
         parseInt(data.idHeadquarter)
       );
     }
-
+    // the method assign await a array. beacause the []
+    if (data.idRole) {
+      await UsersRepository.assignRoles(
+      user.email,
+        [parseInt(data.idRole)]   
+      );
+    }
     return user;
   },
 
@@ -106,13 +111,13 @@ const UsersService = {
       throw ApiError.forbidden('El usuario no tiene roles asignados');
     }
 
-    // Filtrar roles activos
+    // filters the roles actives
     const activeRoles = user.roles.filter(ur => ur.role.status === 'active');
     if (activeRoles.length === 0) {
       throw ApiError.forbidden('El rol del usuario está inactivo');
     }
 
-    // Verificar acceso a la ventana
+    // Verificar access window
     let hasAccess = false;
     for (const ur of activeRoles) {
       for (const rw of ur.role.windows) {   
@@ -132,7 +137,7 @@ const UsersService = {
     }
 
     await UsersRepository.createLoginAccess(user.email, clientDate);
-    // Devolver datos sin el hash
+    //return data
     const { name, status, roles } = user;
     return { email: user.email, name, status, roles };
 
