@@ -1,6 +1,8 @@
 const { CancerService } = require('./cancer.service');
+const { SecurityLogService } = require('./securitylog.service');
 
 const CancerController = {
+
   list: async (_req, res) => {
     const cancers = await CancerService.list();
     res.json(cancers);
@@ -12,9 +14,8 @@ const CancerController = {
     if (!cancer) return res.status(404).json({ message: 'Cáncer not found'});
     res.json(cancer);
   },
-
+  //create with status active by default and log the action
   create: async (req, res) => {
-
     const { cancerName, description, status } = req.body || {};
 
     if (!cancerName) {
@@ -25,11 +26,14 @@ const CancerController = {
       return res
         .status(400)
         .json({ message: 'description are required'});
-    }else if (!status){
-      return res
-        .status(400)
-        .json({ message: 'status are required'});
     }
+
+     await SecurityLogService.log({
+        email: userEmail,
+        action: 'CREATE',
+        description: `Se creó el cáncer "${created.cancerName}"`,
+        affectedTable: 'cancer',
+      });
     
     try {
       const created = await CancerService.create({ cancerName, description, status });
@@ -83,6 +87,21 @@ const CancerController = {
       throw e;
     }
   },
+
+  // cancer.controller.js
+  reactivate: async (req, res) => {
+    const { idCancer } = req.params;
+    try {
+      const updated = await CancerService.reactivate(idCancer);
+      res.json(updated);
+    } catch (e) {
+      if (e && e.code === 'P2025') {
+        return res.status(404).json({ message: 'Cancer not found' });
+      }
+      throw e;
+    }
+  },
+
 
 };
 

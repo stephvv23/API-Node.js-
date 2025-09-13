@@ -6,4 +6,5 @@ module.exports = [
   { method: 'POST', path: '/api/cancers', handler: CancerController.create },
   { method: 'PUT', path: '/api/cancers/:idCancer', handler: CancerController.update },
   { method: 'DELETE', path: '/api/cancers/:idCancer', handler: CancerController.remove },
+  { method: 'PUT', path: '/api/cancers/:idCancer/reactivate', handler: CancerController.reactivate },
 ];
