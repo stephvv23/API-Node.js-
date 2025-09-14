@@ -2,10 +2,10 @@ const { UsersController } = require('../../modules/users/users.controller');
 const { authenticate, authorize } = require('../../../middlewares/auth.middleware');
 
 module.exports = [
-  // Login no requiere token
+  // Login not protected with token because is to get the token
   { method: 'POST', path: '/api/users/login', handler: UsersController.login },
 
-  // Protegidos con JWT
+  // protected routes  with token
   { method: 'GET', path: '/api/users', handler: authenticate(UsersController.list) },
   { method: 'GET', path: '/api/users/:email', handler: authenticate(UsersController.get) },
   { method: 'POST', path: '/api/users', handler: authenticate(authorize('admin')(UsersController.create)) },

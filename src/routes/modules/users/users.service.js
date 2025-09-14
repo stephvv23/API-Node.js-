@@ -43,7 +43,6 @@ const UsersService = {
   },
 
   // Updates user data by email; hashes password if provided
-  // --- 🔹 UPDATE con sedes y roles ---
   update: async (email, data) => {
     const updateData = {};
 
@@ -94,7 +93,7 @@ const UsersService = {
 
   login: async (email, password, windowName, clientDate) => {
     if (!email || !password) throw ApiError.badRequest('email y password requeridos');
-
+    // Find user by email
     const user = await UsersRepository.findAuthWithRoles(email);
     if (!user) throw ApiError.unauthorized('Credenciales inválidas');
 
@@ -117,7 +116,7 @@ const UsersService = {
       throw ApiError.forbidden('El rol del usuario está inactivo');
     }
 
-    // Verificar access window
+    // verify permissions to the window
     let hasAccess = false;
     for (const ur of activeRoles) {
       for (const rw of ur.role.windows) {   
@@ -135,8 +134,6 @@ const UsersService = {
     if (!hasAccess) {
       throw ApiError.forbidden('El usuario no tiene permisos de lectura o la página está inactiva');
     }
-
-    await UsersRepository.createLoginAccess(user.email, clientDate);
     //return data
     const { name, status, roles } = user;
     return { email: user.email, name, status, roles };

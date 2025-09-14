@@ -9,48 +9,21 @@ const UsersRepository = {
   
   // Returns all users with selected fields
   list: () => prisma.user.findMany({ select: baseSelect }),
-
+  // Returns all users with their roles and headquarters
   findAll: () => prisma.user.findMany({
   select: {
     email: true,
     name: true,
     status: true,
     roles: {
-      select: {
-        role: {
-          select: {
-            idRole: true,
-            rolName: true
-          }
-        }
-      }
-    },
-    headquarterUser: {   // 👈 este es el nombre correcto de la relación
-      select: {
-        headquarter: {
-          select: {
-            idHeadquarter: true,
-            name: true
-          }
-        }
-      }
-    }
-  }
-}),
+      select: {role: {select: {idRole: true,rolName: true}}}},
+    headquarterUser: {  
+      select: {headquarter: {select: {idHeadquarter: true,name: true}}}}}}),
 
-
- 
   create: (data) => prisma.user.create({ data, select: baseSelect }),
-  //create log in the binnacle
-  createLoginAccess: (email, clientDate) => prisma.loginAccess.create({data: {email,date: clientDate ? new Date(clientDate) : new Date() },}),
-
+  
   // Updates user data by email
   update: (email, data) => prisma.user.update({ where: { email }, data, select: baseSelect }),
-
-  assignHeadquarters: (email, ids) => prisma.headquarterUser.createMany({data: ids.map((id) => ({ email, idHeadquarter: id })),skipDuplicates: true}),
-
-  update: (email, data) =>
-  prisma.user.update({ where: { email }, data, select: baseSelect }),
 
   // Updates only the user's password (expects hashed password)
   updatePassword: (email, hashedPassword) => prisma.user.update({ where: { email }, data: { password: hashedPassword }, select: baseSelect }),

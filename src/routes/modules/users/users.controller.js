@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const { UsersService } = require('./users.service');
 const ApiError = require('../../../utils/apiError'); 
-
+const { LoginAccessService  } = require('./loginAccess.service');
 
 /**
  * UsersController handles HTTP requests for user operations.
@@ -178,7 +178,11 @@ const UsersController = {
       roles: user.roles.map(ur => ur.role.rolName), // save the roles the user ['admin', 'editor']
     },
     process.env.JWT_SECRET,
-    { expiresIn: '1m' });
+    { expiresIn: '1h' });
+    // Log the login access
+      await LoginAccessService.log({
+        email: email,
+      });
 
     res.json({ message: 'Login exitoso', token, user });
   } catch (e) {
