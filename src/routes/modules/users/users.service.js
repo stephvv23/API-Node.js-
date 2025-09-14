@@ -3,22 +3,21 @@ const { UsersRepository } = require('./users.repository');
 const jwt  = require('jsonwebtoken');
 const ApiError = require('../../../utils/apiError');
 
-
 // UsersService contains business logic for user operations.
 // It interacts with UsersRepository for database actions and handles password hashing.
 const UsersService = {
   // Returns a list of all users
-  list: () => UsersRepository.list(),
+  list: () => UsersRepository.findAll(),
 
   // Retrieves a user by email
   get: async (email) => {
     return UsersRepository.findByEmailWithHeadquarters(email);
   },
-  // Creates a new user, hashes the password before saving
+
+  // Creates a new user, hashes the password before saving and the relation with roles and headquarts
   create: async (data) => {
     const hashed = await bcrypt.hash(data.password, 10);
 
-    
     const user = await UsersRepository.create({ 
       email: data.email,
       name: data.name,
@@ -26,53 +25,58 @@ const UsersService = {
       status: data.status || "active"
     });
 
-    // 2) Crear relación con sede si viene en los datos
+    // creation the relation tables
     if (data.idHeadquarter) {
       await UsersRepository.createHeadquarterRelation(
         user.email,
         parseInt(data.idHeadquarter)
       );
     }
-
+    // the method assign await a array. beacause the []
+    if (data.idRole) {
+      await UsersRepository.assignRoles(
+      user.email,
+        [parseInt(data.idRole)]   
+      );
+    }
     return user;
   },
 
   // Updates user data by email; hashes password if provided
+  // --- 🔹 UPDATE con sedes y roles ---
   update: async (email, data) => {
-  const updateData = {};
+    const updateData = {};
 
-  // Si hay contraseña nueva
-  if (data.password) {
-    const hashed = await bcrypt.hash(data.password, 10);
-    updateData.password = hashed;
-  }
-
-  // Si hay nombre nuevo
-  if (data.name) {
-    updateData.name = data.name;
-  }
-
-  // Si hay cambio de estado
-  if (data.status) {
-    updateData.status = data.status;
-  }
-
-  // Actualizar datos del usuario
-  if (Object.keys(updateData).length > 0) {
-    await UsersRepository.update(email, updateData);
-  }
-
-  // --- Actualizar sedes ---
-  if (Array.isArray(data.sedes)) {
-    await UsersRepository.clearHeadquarters(email);
-    if (data.sedes.length > 0) {
-      await UsersRepository.assignHeadquarters(email, data.sedes);
+    if (data.password) {
+      const hashed = await bcrypt.hash(data.password, 10);
+      updateData.password = hashed;
     }
-  }
 
-  // Devolver usuario actualizado con sedes
-  return UsersRepository.findByEmailWithHeadquarters(email);
-},
+    if (data.name) updateData.name = data.name;
+    if (data.status) updateData.status = data.status;
+
+    if (Object.keys(updateData).length > 0) {
+      await UsersRepository.update(email, updateData);
+    }
+
+    // Sedes
+    if (Array.isArray(data.sedes)) {
+      await UsersRepository.clearHeadquarters(email);
+      if (data.sedes.length > 0) {
+        await UsersRepository.assignHeadquarters(email, data.sedes);
+      }
+    }
+
+    // Roles
+    if (Array.isArray(data.roles)) {
+      await UsersRepository.clearRoles(email);
+      if (data.roles.length > 0) {
+        await UsersRepository.assignRoles(email, data.roles);
+      }
+    }
+
+    return UsersRepository.findByEmailWithHeadquarters(email);
+  },
 
 
   // Updates only the user's status
@@ -98,22 +102,22 @@ const UsersService = {
       throw ApiError.forbidden('El usuario está inactivo, contacte al administrador');
     }
 
-    // Verificar contraseña
+    // verify password
     const ok = await bcrypt.compare(password, user.password);
     if (!ok) throw ApiError.unauthorized('Credenciales inválidas');
 
-    // Validar que tenga rol
+    // verify rol
     if (!user.roles || user.roles.length === 0) {
       throw ApiError.forbidden('El usuario no tiene roles asignados');
     }
 
-    // Filtrar roles activos
+    // filters the roles actives
     const activeRoles = user.roles.filter(ur => ur.role.status === 'active');
     if (activeRoles.length === 0) {
       throw ApiError.forbidden('El rol del usuario está inactivo');
     }
 
-    // Verificar acceso a la ventana
+    // Verificar access window
     let hasAccess = false;
     for (const ur of activeRoles) {
       for (const rw of ur.role.windows) {   
@@ -128,22 +132,18 @@ const UsersService = {
       }
     }
 
-
     if (!hasAccess) {
       throw ApiError.forbidden('El usuario no tiene permisos de lectura o la página está inactiva');
     }
 
     await UsersRepository.createLoginAccess(user.email, clientDate);
-    // Devolver datos sin el hash
-    const { name, status } = user;
-    return { email: user.email, name, status };
+    //return data
+    const { name, status, roles } = user;
+    return { email: user.email, name, status, roles };
+
   },
 
   getWithHeadquarters: (email) => UsersRepository.findByEmailWithHeadquarters(email),
-
-
-
-
 
 };
 

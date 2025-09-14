@@ -14,8 +14,24 @@ const UsersController = {
    */
   list: async (_req, res) => {
     const users = await UsersService.list();
-    res.json(users);
+
+    const mapped = users.map(u => ({
+      email: u.email,
+      name: u.name,
+      status: u.status,
+      roles: u.roles.map(r => ({
+        idRole: r.role.idRole,
+        rolName: r.role.rolName
+      })),
+      sedes: u.headquarterUser.map(h => ({
+        idHeadquarter: h.headquarter.idHeadquarter,
+        name: h.headquarter.name
+      }))
+    }));
+
+  res.json(mapped);
   },
+
 
   /**
    * Get a user by email.
@@ -24,6 +40,7 @@ const UsersController = {
   get: async (req, res) => {
     const { email } = req.params;
     const user = await UsersService.get(email);
+
     if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
 
     res.json({
@@ -33,6 +50,10 @@ const UsersController = {
       sedes: user.headquarterUser.map(h => ({
         idHeadquarter: h.idHeadquarter,
         name: h.headquarter.name
+      })),
+      roles: user.roles.map(r => ({
+        idRole: r.role.idRole,
+        name: r.role.rolName
       }))
     });
   },
@@ -44,14 +65,14 @@ const UsersController = {
    * Required fields: email, name, password
    */
   create: async (req, res) => {
-    const { email, name, password, status, idHeadquarter } = req.body || {};
+    const { email, name, password, status, idHeadquarter, idRole} = req.body || {};
     if (!email || !name || !password) {
       return res
         .status(400)
         .json({ message: 'email, name y password son obligatorios' });
     }
     try {
-      const created = await UsersService.create({ email, name, password, status, idHeadquarter });
+      const created = await UsersService.create({ email, name, password, status, idHeadquarter, idRole });
       res.status(201).json(created);
     } catch (e) {
       if (e && e.code === 'P2002')
@@ -67,10 +88,10 @@ const UsersController = {
    */
   update: async (req, res) => {
     const { email } = req.params;
-    const { name, status, password, sedes } = req.body || {};
+    const { name, status, password, sedes, roles } = req.body || {};
 
     try {
-      const updated = await UsersService.update(email, { name, status, password, sedes });
+      const updated = await UsersService.update(email, { name, status, password, sedes, roles });
       res.json(updated);
     } catch (e) {
       if (e && e.code === 'P2025') {
@@ -149,20 +170,21 @@ const UsersController = {
     const user = await UsersService.login(email, password, windowName, clientDate);
 
     if (!process.env.JWT_SECRET) return next(ApiError.internal('Falta JWT_SECRET'));
-
+   // data of token - subject,name,roles. Email its sub because a standard of jwt
     const token = jwt.sign(
-      { sub: user.email },
-      process.env.JWT_SECRET,
-      { expiresIn: '1h' }
-    );
+    {
+      sub: user.email,
+      name: user.name,
+      roles: user.roles.map(ur => ur.role.rolName), // save the roles the user ['admin', 'editor']
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: '1m' });
 
     res.json({ message: 'Login exitoso', token, user });
   } catch (e) {
     next(e);
   }
 },
-
-
 
 };
 
