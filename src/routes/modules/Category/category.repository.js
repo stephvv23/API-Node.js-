@@ -1,3 +1,4 @@
+// Repository for Category entity. Handles all database operations using Prisma.
 let prisma = require ('../../../lib/prisma.js');
 
 const baseSelect = {
@@ -8,8 +9,9 @@ const baseSelect = {
 
 const categoryRepository = {
 
+    // List categories, optionally filtered by status, with pagination.
     list : ({status = 'active', take = 100, skip = 0} = {}) => {
-        const where = status === 'all' ? {}: {status}; // enlistar todas las categorias
+        const where = status === 'all' ? {}: {status}; // list all categories if 'all'
         return prisma.category.findMany({
             where,
             select: baseSelect,
@@ -20,11 +22,19 @@ const categoryRepository = {
             skip,
         });
     },
+    // Get a category by its ID.
     getByIds: (id) => 
         prisma.category.findUnique({
             where: { idCategory: Number(id) },
             select: baseSelect
         }),
+    // Find a category by its name.
+    findByName: (name) => 
+        prisma.category.findUnique({
+            where: {name: name},
+            select: baseSelect
+        }),
+    // Create a new category.
     create: (data) => 
         prisma.category.create({
             data: {
@@ -33,16 +43,18 @@ const categoryRepository = {
             },
             select : baseSelect,
         }),
+    // Update a category by ID.
     update: (id, data) => 
         prisma.category.update({
             where: {idCategory : Number(id)},
             data: {
                 name: data.name,
-                status: data.status || "active"
+                status: data.status 
             },
             select : baseSelect,
         }),
 
+    // Soft-delete a category (set status to 'inactive').
     delete: (id) =>
         prisma.category.update({
             where: { idCategory: Number(id) },

@@ -1,3 +1,4 @@
+// Repository for RoleWindow entity. Handles all database operations using Prisma.
 let prisma = require('../../../lib/prisma.js');
 
 const baseSelect = {
@@ -16,6 +17,7 @@ const baseWindow = {
 }
 
 const roleWindowRepository = {
+    // List windows, optionally filtered by status, with pagination.
     listWindows : ({
         status = 'active', 
         take = 100,
@@ -33,6 +35,7 @@ const roleWindowRepository = {
         });
     },
 
+    // List role-window permissions, with pagination.
     list: ({take = 100, skip = 0} = {}) => {
         return prisma.roleWindow.findMany({
             select: baseSelect,
@@ -40,6 +43,7 @@ const roleWindowRepository = {
             skip,
         });
     },
+    // Get a role-window permission by composite IDs.
     getByIds: (idRole, idWindow) =>
         prisma.roleWindow.findUnique({
         where: {
@@ -49,6 +53,7 @@ const roleWindowRepository = {
             }
         }
         }),
+    // Create or update a role-window permission (upsert).
     create: (data) =>
         prisma.roleWindow.upsert({
             where: {
@@ -73,7 +78,7 @@ const roleWindowRepository = {
             },
             select: baseSelect,
         }),
-    // roleWindows.repository.js
+    // Update a role-window permission (upsert).
     update: (idRole, idWindow, flags) =>
     prisma.roleWindow.upsert({
         where: {
@@ -96,6 +101,7 @@ const roleWindowRepository = {
         select: baseSelect,
     }),
 
+    // Delete a role-window permission by composite IDs.
     delete: (idRole, idWindow) => 
         prisma.roleWindow.delete({
             where: {

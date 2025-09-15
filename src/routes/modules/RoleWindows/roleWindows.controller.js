@@ -1,7 +1,9 @@
+// Controller for RoleWindow entity. Handles HTTP requests, validation, and calls the service layer.
 const { roleWindowService } = require('./roleWindows.service');
 const ApiError = require('../../../utils/apiError');
 
 const roleWindowController = {
+    // List windows, with status filter and validation.
     listWindows: async(req, res, next) => {
         try {
             const status = (req.query.status || 'active').toLowerCase();
@@ -16,6 +18,7 @@ const roleWindowController = {
             return next(error);
         }
     },
+    // List role-window permissions, with permission filters.
     list: async (req, res, next) => {
         try {
             const create = (Number(req.query.create) || 0);
@@ -36,6 +39,7 @@ const roleWindowController = {
             return next(error);
         }
     },
+    // Get a role-window permission by composite IDs.
     getByIds: async (req, res) => {
         const { idRole, idWindow } = req.params;
         try {
@@ -57,6 +61,7 @@ const roleWindowController = {
         }
     },
 
+    // Create a new role-window permission.
     create: async (req, res) => {
         const { idRole, idWindow, create, read, update, remove } = req.body;
         try {
@@ -85,6 +90,7 @@ const roleWindowController = {
         } 
     },
 
+    // Update a role-window permission by composite IDs.
     update: async (req, res) => {
         const { idRole, idWindow } = req.params;
 
@@ -106,8 +112,7 @@ const roleWindowController = {
         }
     },
 
-
-
+    // Delete a role-window permission by composite IDs.
     delete: async (req, res) => {
         const { idRole, idWindow } = req.params;
         try {
@@ -132,6 +137,5 @@ const roleWindowController = {
         }
     }
 }
-
 
 module.exports = { roleWindowController };
