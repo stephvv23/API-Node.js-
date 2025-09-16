@@ -1,7 +1,12 @@
+
+// Import PrismaClient from Prisma ORM
 const { PrismaClient } = require('@prisma/client');
+
+// Create a Prisma client instance to interact with the database
 const prisma = new PrismaClient();
 
-
+// Define a reusable selection of fields for queries
+// (Ensures only these properties are returned from the database)
 const baseSelect = {
   idEmergencyContact: true,
   nameEmergencyContact: true,

@@ -27,10 +27,12 @@ const EmergencyContactsService = {
     return EmergencyContactsRepository.update(idEmergencyContact, data);
   },
 
+  // Soft deletes an emergency contact by id (marks as inactive)
+  softDelete: async (id) => {
+    return await EmergencyContactsRepository.update(id, { status: 'inactive' });
+  }
 
-  // Deletes an emergency contact by id
-  delete: (idEmergencyContact) => EmergencyContactsRepository.remove(idEmergencyContact),
 };
 
-
+// Export the service for use in controllers
 module.exports = { EmergencyContactsService };
