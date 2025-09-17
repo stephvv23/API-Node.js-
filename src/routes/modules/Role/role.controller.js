@@ -73,7 +73,7 @@ const roleController = {
         const errors = [];
 
         // ID validation (digits only)
-        if (!/^\d+$/.test(String(id))) {
+        if (!/^[0-9\s]+$/.test(id)) {
             errors.push('El id solo puede contener números');
         }
 
@@ -106,10 +106,11 @@ const roleController = {
             status = String(status).trim();
         }
 
+
         if (errors.length) return res.status(400).json({ ok: false, errors });
 
         const payload = {};
-        if (rolName !== undefined) payload.rolName = rolName; // correct key
+        if (rolName !== undefined) payload.rolName = rolName; 
         if (status  !== undefined) payload.status  = status;
 
         if (!Object.keys(payload).length) {
@@ -117,31 +118,37 @@ const roleController = {
         }
 
         try {
+
             const updated = await roleService.update(id, payload);
             if (!updated) return res.status(404).json({ ok: false, error: 'Rol no encontrado' });
             return res.status(200).json({ ok: true, data: updated });
         } catch (err) {
-            return next?.(err) ?? res.status(500).json({ ok:false, error:'Error interno update' });
+            return res.status(500).json({ ok:false, error:'Error interno update' });
         }
     },
 
 
     // Soft-delete a role by ID.
-    delete: async (req, res) => {
-        const { id } = req.params;
-        
-        if (!/^[0-9\s]+$/.test(id)) return res.status(400).json({ok: false, error: 'el id solo puede ser numeros'});
+    delete: async (req, res, next) => {
+        const raw = String(req.params.id ?? '').trim();
+        if (!/^\d+$/.test(raw)) {
+            return res.status(400).json({ ok: false, error: 'El id solo puede contener números' });
+        }
+        const id = Number.parseInt(raw, 10);
 
         try {
-            const deletedRole = await roleService.delete(id);
-            if (!deletedRole) {
-                return res.status(404).json({ ok: false, error: 'Rol no encontrado' });
+            const deleted = await roleService.delete(id);
+            if (!deleted) {
+            return res.status(404).json({ ok: false, error: 'Rol no encontrado' });
             }
-            return res.status(200).json({ ok: true, data: deletedRole });
-        } catch (error) {
-            return next(ApiError.internal('Error interno delete'));
+            return res.status(200).json({ ok: true, data: deleted });
+        } catch (e) {
+            if (e?.code === 'P2025') {
+            return res.status(404).json({ ok: false, error: 'Rol no encontrado' });
+            }
+            return next ? next(e) : res.status(500).json({ ok: false, error: 'Error interno delete' });
         }
-    }
+        }
 
 };
 

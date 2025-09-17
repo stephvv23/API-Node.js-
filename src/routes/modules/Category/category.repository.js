@@ -23,7 +23,7 @@ const categoryRepository = {
         });
     },
     // Get a category by its ID.
-    getByIds: (id) => 
+    getById: (id) => 
         prisma.category.findUnique({
             where: { idCategory: Number(id) },
             select: baseSelect
@@ -44,15 +44,17 @@ const categoryRepository = {
             select : baseSelect,
         }),
     // Update a category by ID.
-    update: (id, data) => 
-        prisma.category.update({
-            where: {idCategory : Number(id)},
-            data: {
-                name: data.name,
-                status: data.status 
-            },
-            select : baseSelect,
-        }),
+    update: async (id, data) => {
+        try {
+            return await prisma.category.update({
+            where: { idCategory: Number(id) },
+            data,
+            select: baseSelect,
+            });
+        } catch (e) {
+            if (e?.code === 'P2025') return null; // not found -> let controller send 404
+        }
+    },
 
     // Soft-delete a category (set status to 'inactive').
     delete: (id) =>

@@ -17,6 +17,11 @@ module.exports = [
         handler: roleWindowController.getByIds
     },
     {
+        method: 'GET',
+        path: '/api/roleWindows/:idRole',
+        handler: roleWindowController.getByIdRole
+    },
+    {
         method: 'POST',
         path: '/api/roleWindows',
         handler: roleWindowController.create

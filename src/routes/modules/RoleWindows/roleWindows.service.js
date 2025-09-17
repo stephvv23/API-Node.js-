@@ -22,6 +22,9 @@ const roleWindowService = {
     getByIds: async (idRole, idWindow) => {
         return roleWindowRepository.getByIds(idRole, idWindow);
     },
+    getByIdRole: async (idRole) => {
+        return roleWindowRepository.getByIdRole(idRole);
+    },
     // Create or update a role-window permission.
     create: async (data) => {
         const toBool = v => v === true || v === 'true' || v === 1 || v === '1';

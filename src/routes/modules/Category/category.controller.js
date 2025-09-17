@@ -97,6 +97,7 @@ const categoryController = {
         }
         if (!/^[0-9\s]+$/.test(id)) 
             errors.push('El id solo puede ser numeros');
+        
 
         if (errors.length) return res.status(400).json({ ok: false, errors });
 
@@ -122,15 +123,19 @@ const categoryController = {
 
     // Soft-delete a category by ID.
     delete: async (req, res) => {
-        const { id } = req.params;
+        const raw = String(req.params.id ?? '').trim();
+        
 
-        if (!/^[0-9\s]+$/.test(id)) return res.status(400).json({ok: false, error: 'el id solo puede ser numeros'});
+        if (!/^[0-9\s]+$/.test(raw)) return res.status(400).json({ok: false, error: 'el id solo puede ser numeros'});
+        
+        const id = Number.parseInt(raw, 10);
+        
         try {
             const deletedCategory = await categoryService.delete(id);
             if (!deletedCategory) {
                 return res.status(404).json({ ok: false, error: 'Categoría no encontrada' });
             }
-            res.json({ ok: true, data: deletedCategory });
+            return res.json({ ok: true, data: deletedCategory });
         } catch (error) {
             console.log('[Categories] delete error');
             const message = error.message || 'Error al eliminar la categoria';

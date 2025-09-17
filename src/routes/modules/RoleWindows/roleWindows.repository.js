@@ -1,6 +1,7 @@
 // Repository for RoleWindow entity. Handles all database operations using Prisma.
 let prisma = require('../../../lib/prisma.js');
 
+// Base select fields for RoleWindow
 const baseSelect = {
     idRole: true,
     idWindow: true,
@@ -10,6 +11,7 @@ const baseSelect = {
     delete: true
 };
 
+// Base select fields for Window
 const baseWindow = {
     idWindow: true,
     windowName: true,
@@ -17,7 +19,7 @@ const baseWindow = {
 }
 
 const roleWindowRepository = {
-    // List windows, optionally filtered by status, with pagination.
+    // List windows, optionally filtered by status, with pagination
     listWindows : ({
         status = 'active', 
         take = 100,
@@ -35,7 +37,7 @@ const roleWindowRepository = {
         });
     },
 
-    // List role-window permissions, with pagination.
+    // List role-window permissions, with pagination
     list: ({take = 100, skip = 0} = {}) => {
         return prisma.roleWindow.findMany({
             select: baseSelect,
@@ -43,7 +45,8 @@ const roleWindowRepository = {
             skip,
         });
     },
-    // Get a role-window permission by composite IDs.
+
+    // Get a role-window permission by composite IDs
     getByIds: (idRole, idWindow) =>
         prisma.roleWindow.findUnique({
         where: {
@@ -53,32 +56,66 @@ const roleWindowRepository = {
             }
         }
         }),
-    // Create or update a role-window permission (upsert).
+
+    // Get all windows with permissions for a given role
+    getByIdRole: async (idRole) => {
+        const roleId = Number(idRole);
+
+        const windows = await prisma.window.findMany({
+            where: { status: 'active' },
+            select: {
+            idWindow: true,
+            windowName: true,
+            roles: {
+                where: { idRole: roleId },
+                select: { create: true, read: true, update: true, delete: true },
+                take: 1,
+            },
+            },
+            orderBy: { idWindow: 'asc' },
+        });
+
+        return windows.map(w => {
+            const perms = w.roles[0];
+            return {
+            idWindow: w.idWindow,
+            name: w.windowName,
+            create: perms?.create ?? false,
+            read:   perms?.read   ?? false,
+            update: perms?.update ?? false,
+            remove: perms?.delete ?? false, 
+            };
+        });
+        },
+
+
+    // Create or update (upsert) a role-window permission
     create: (data) =>
         prisma.roleWindow.upsert({
             where: {
-            idRole_idWindow: {
-                idRole: Number(data.idRole),
-                idWindow: Number(data.idWindow),
-            }
+                idRole_idWindow: {
+                    idRole: Number(data.idRole),
+                    idWindow: Number(data.idWindow),
+                }
             },
             create: {
-            idRole: Number(data.idRole),
-            idWindow: Number(data.idWindow),
-            create: data.create,
-            read: data.read,
-            update: data.update,
-            delete: data.remove, 
+                idRole: Number(data.idRole),
+                idWindow: Number(data.idWindow),
+                create: data.create,
+                read: data.read,
+                update: data.update,
+                delete: data.remove, 
             },
             update: {
-            create: data.create,
-            read: data.read,
-            update: data.update,
-            delete: data.remove,
+                create: data.create,
+                read: data.read,
+                update: data.update,
+                delete: data.remove,
             },
             select: baseSelect,
         }),
-    // Update a role-window permission (upsert).
+
+    // Update a role-window permission (upsert)
     update: (idRole, idWindow, flags) =>
     prisma.roleWindow.upsert({
         where: {
@@ -101,7 +138,7 @@ const roleWindowRepository = {
         select: baseSelect,
     }),
 
-    // Delete a role-window permission by composite IDs.
+    // Delete a role-window permission by composite IDs
     delete: (idRole, idWindow) => 
         prisma.roleWindow.delete({
             where: {
