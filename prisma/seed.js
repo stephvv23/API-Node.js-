@@ -1,5 +1,6 @@
 // prisma/seed.js
 const { PrismaClient } = require('@prisma/client');
+const bcrypt = require('bcrypt');
 const prisma = new PrismaClient();
 
 async function main() {
@@ -14,18 +15,22 @@ async function main() {
   });
 
   const windows = await Promise.all(
-    ['Assets', 'Suppliers', 'Survivors', 'Activities', 'Security'].map((w) =>
+    ['Assets', 'Suppliers', 'Survivors', 'Activities', 'Security', 'AdminPage', 'Users', 'Cancers'].map((w) =>
       prisma.window.create({ data: { windowName: w, status: 'active' } })
     )
   );
 
   /* ===================== USUARIOS / ROLES ===================== */
+  // Hashear las contraseñas antes de guardarlas
+  const adminPassword = await bcrypt.hash('Admin#123', 10);
+  const coordinatorPassword = await bcrypt.hash('Coord#123', 10);
+
   const admin = await prisma.user.create({
     data: {
       email: 'admin@funca.org',
       name: 'Admin Funca',
       status: 'active',
-      password: 'Admin#123', // solo demo
+      password: adminPassword,
     },
   });
 
@@ -34,7 +39,7 @@ async function main() {
       email: 'coordinator@funca.org',
       name: 'Coordinador Sede Central',
       status: 'active',
-      password: 'Coord#123', // solo demo
+      password: coordinatorPassword,
     },
   });
 
