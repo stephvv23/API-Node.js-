@@ -16,7 +16,9 @@ const cancerRoutes = require('./modules/cancer/cancer.routes');
 const categoriesRoutes = require('./modules/Category/category.routes');
 const roleRoutes = require('./modules/Role/role.routes');
 const roleWindowsRoutes = require('./modules/RoleWindows/roleWindows.routes');
+const emergencyContactRoutes = require('./modules/emergencyContact/emergencyContact.routes');
 // const patientsRoutes = require('./modules/patients.routes');
+
 // 2) Concatena y compila paths → { method, pattern, paramNames, handler }
 function buildRoutes() {
   const raw = [
@@ -26,6 +28,7 @@ function buildRoutes() {
     ...categoriesRoutes,
     ...roleRoutes,
     ...roleWindowsRoutes,
+    ...emergencyContactRoutes,
     // ...patientsRoutes,
     // etc.
   ];
