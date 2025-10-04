@@ -12,11 +12,11 @@ module.exports = [
   { method: 'GET', path: '/api/headquarters/:id', handler: authenticate(HeadquarterController.getById) },
 
 
-  { method: 'POST', path: '/api/headquarters', handler: authenticate(authorize('admin')(HeadquarterController.create)) },
+  { method: 'POST', path: '/api/headquarters', handler: authenticate(authorize('ADMIN')(HeadquarterController.create)) },
 
 
-  { method: 'PUT', path: '/api/headquarters/:id', handler: authenticate(authorize('admin')(HeadquarterController.update)) },
+  { method: 'PUT', path: '/api/headquarters/:id', handler: authenticate(authorize('ADMIN')(HeadquarterController.update)) },
 
 
-  { method: 'DELETE', path: '/api/headquarters/:id', handler: authenticate(authorize('admin')(HeadquarterController.delete)) },
+  { method: 'DELETE', path: '/api/headquarters/:id', handler: authenticate(authorize('ADMIN')(HeadquarterController.delete)) },
 ];
