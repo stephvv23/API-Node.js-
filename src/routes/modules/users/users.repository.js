@@ -18,7 +18,7 @@ const UsersRepository = {
     roles: {
       select: {role: {select: {idRole: true,rolName: true}}}},
     headquarterUser: {  
-      select: {headquarter: {select: {idHeadquarter: true,name: true}}}}}}),
+      select: {idHeadquarter: true, headquarter: {select: {idHeadquarter: true,name: true}}}}}}),
 
   create: (data) => prisma.user.create({ data, select: baseSelect }),
   
@@ -44,10 +44,28 @@ const UsersRepository = {
   assignRoles: (email, ids) => prisma.userRole.createMany({data: ids.map((id) => ({ email, idRole: id })),skipDuplicates: true}),
 
   // Finds a user by email (primary key)
-  findByEmailWithHeadquarters: (email) => prisma.user.findUnique({where: { email },include: {headquarterUser: { include: { headquarter: true } },roles: { include: { role: true } }}}),
+  findByEmailWithHeadquarters: (email) => prisma.user.findUnique({where: { email },include: {headquarterUser: { select: { idHeadquarter: true, headquarter: true } },roles: { include: { role: true } }}}),
    
   // Login roles and permitions the window
   findAuthWithRoles: (email) =>prisma.user.findUnique({where: { email }, select: {email: true, name: true, status: true, password: true, roles: {include: {role: {select: {idRole: true,rolName: true,status: true,windows: { include: { window: true }}}}}}}}),
+  
+  // verify that a headquarter exists and is active
+  verifyHeadquarterExists: (idHeadquarter) => prisma.headquarter.findFirst({
+    where: { 
+      idHeadquarter: parseInt(idHeadquarter),
+      status: 'active'
+    },
+    select: { idHeadquarter: true }
+  }),
+
+  // verify that a role exists and is active
+  verifyRoleExists: (idRole) => prisma.role.findFirst({
+    where: { 
+      idRole: parseInt(idRole),
+      status: 'active'
+    },
+    select: { idRole: true }
+  }),
   
 };
 

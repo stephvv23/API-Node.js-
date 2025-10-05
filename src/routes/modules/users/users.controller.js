@@ -3,6 +3,7 @@ const { UsersService } = require('./users.service');
 const ApiError = require('../../../utils/apiError'); 
 const { LoginAccessService  } = require('./loginAccess.service');
 
+
 /**
  * UsersController handles HTTP requests for user operations.
  * Each method corresponds to a REST endpoint and delegates logic to UsersService.
@@ -65,12 +66,50 @@ const UsersController = {
    * Required fields: email, name, password
    */
   create: async (req, res) => {
-    const { email, name, password, status, idHeadquarter, idRole} = req.body || {};
-    if (!email || !name || !password) {
+    const body = req.body || {};
+    
+    // verify that the body is a valid JSON
+    if (body.__jsonError) {
       return res
         .status(400)
-        .json({ message: 'email, name y password son obligatorios' });
+        .json({ message: 'JSON inválido. Verifique la sintaxis del request body.' });
     }
+    
+    const { email, name, password, status, idHeadquarter, idRole} = body;
+    
+    // validate the required fields (including empty strings)
+    if (!email || email.trim() === '') {
+      return res
+        .status(400)
+        .json({ message: 'El email es obligatorio' });
+    }
+    
+    if (!name || name.trim() === '') {
+      return res
+        .status(400)
+        .json({ message: 'El nombre es obligatorio' });
+    }
+    
+    if (!password || password.trim() === '') {
+      return res
+        .status(400)
+        .json({ message: 'La contraseña es obligatoria' });
+    }
+
+    // validate that a headquarter is provided
+    if (!idHeadquarter) {
+      return res
+        .status(400)
+        .json({ message: 'El usuario debe tener al menos una sede asignada' });
+    }
+
+    // validate that a role is provided
+    if (!idRole) {
+      return res
+        .status(400)
+        .json({ message: 'El usuario debe tener al menos un rol asignado' });
+    }
+    
     try {
       const created = await UsersService.create({ email, name, password, status, idHeadquarter, idRole });
       res.status(201).json(created);
@@ -88,7 +127,16 @@ const UsersController = {
    */
   update: async (req, res) => {
     const { email } = req.params;
-    const { name, status, password, sedes, roles } = req.body || {};
+    const body = req.body || {};
+    
+    // verify that the body is a valid JSON
+    if (body.__jsonError) {
+      return res
+        .status(400)
+        .json({ message: 'JSON inválido. Verifique la sintaxis del request body.' });
+    }
+    
+    const { name, status, password, sedes, roles } = body;
 
     try {
       const updated = await UsersService.update(email, { name, status, password, sedes, roles });
@@ -113,7 +161,7 @@ const UsersController = {
       const updated = await UsersService.updateStatus(email, status);
       res.json(updated);
     } catch (e) {
-      // Handles case when user is not found
+      // handle case when user is not found
       if (e && e.code === 'P2025')
         return res.status(404).json({ message: 'Usuario no encontrado' });
       throw e;
@@ -132,7 +180,7 @@ const UsersController = {
       const updated = await UsersService.updatePassword(email, password);
       res.json(updated);
     } catch (e) {
-      // Handles case when user is not found
+      // handle case when user is not found
       if (e && e.code === 'P2025')
         return res.status(404).json({ message: 'Usuario no encontrado' });
       throw e;

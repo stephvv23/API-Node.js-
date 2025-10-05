@@ -3,6 +3,28 @@ const { UsersRepository } = require('./users.repository');
 const jwt  = require('jsonwebtoken');
 const ApiError = require('../../../utils/apiError');
 
+/**
+ * validate the format of an email
+ * @param {string} email - The email to validate
+ * @returns {boolean} - true if the format is valid, false if not
+ */
+const isValidEmail = (email) => {
+  // Regex to validate email format: usuario@dominio.extension
+  // Allows any extension after the dot (com, org, lo, etc.)
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  return emailRegex.test(email);
+};
+
+/**
+ * validate the format of a password
+ * @param {string} password - The password to validate
+ * @returns {boolean} - true if the format is valid, false if not
+ */
+const isValidPassword = (password) => {
+  // The password must have at least 6 characters
+  return password && password.length >= 6;
+};
+
 // UsersService contains business logic for user operations.
 // It interacts with UsersRepository for database actions and handles password hashing.
 const UsersService = {
@@ -16,11 +38,59 @@ const UsersService = {
 
   // Creates a new user, hashes the password before saving and the relation with roles and headquarts
   create: async (data) => {
+    // validate the fields
+    
+    // validate the email
+    if (!data.email) {
+      throw ApiError.badRequest('El email es obligatorio');
+    }
+    if (!isValidEmail(data.email)) {
+      throw ApiError.badRequest('El formato del email no es válido. Debe seguir el formato: usuario@dominio.extension');
+    }
+    
+    // validate the name
+    if (!data.name) {
+      throw ApiError.badRequest('El nombre es obligatorio');
+    }
+    if (data.name.trim().length === 0) {
+      throw ApiError.badRequest('El nombre no puede estar vacío');
+    }
+    
+    // validate the password
+    if (!data.password) {
+      throw ApiError.badRequest('La contraseña es obligatoria');
+    }
+    if (!isValidPassword(data.password)) {
+      throw ApiError.badRequest('La contraseña debe tener al menos 6 caracteres');
+    }
+
+    // validate that at least one headquarter is provided
+    if (!data.idHeadquarter) {
+      throw ApiError.badRequest('El usuario debe tener al menos una sede asignada');
+    }
+
+    // validate that at least one role is provided
+    if (!data.idRole) {
+      throw ApiError.badRequest('El usuario debe tener al menos un rol asignado');
+    }
+
+    // verify that the headquarter exists and is active
+    const headquarterExists = await UsersRepository.verifyHeadquarterExists(data.idHeadquarter);
+    if (!headquarterExists) {
+      throw ApiError.badRequest(`La sede con ID ${data.idHeadquarter} no existe o está inactiva`);
+    }
+
+    // verify that the role exists and is active
+    const roleExists = await UsersRepository.verifyRoleExists(data.idRole);
+    if (!roleExists) {
+      throw ApiError.badRequest(`El rol con ID ${data.idRole} no existe o está inactivo`);
+    }
+
     const hashed = await bcrypt.hash(data.password, 10);
 
     const user = await UsersRepository.create({ 
       email: data.email,
-      name: data.name,
+      name: data.name.trim(),
       password: hashed,
       status: data.status || "active"
     });
@@ -58,16 +128,32 @@ const UsersService = {
       await UsersRepository.update(email, updateData);
     }
 
-    // Sedes
+    // validate the headquarters if they are provided
     if (Array.isArray(data.sedes)) {
+      // verify that all the headquarters exist and are active
+      for (const sedeId of data.sedes) {
+        const headquarterExists = await UsersRepository.verifyHeadquarterExists(sedeId);
+        if (!headquarterExists) {
+          throw ApiError.badRequest(`La sede con ID ${sedeId} no existe o está inactiva`);
+        }
+      }
+      
       await UsersRepository.clearHeadquarters(email);
       if (data.sedes.length > 0) {
         await UsersRepository.assignHeadquarters(email, data.sedes);
       }
     }
 
-    // Roles
+    // validate the roles if they are provided
     if (Array.isArray(data.roles)) {
+      // verify that all the roles exist and are active
+      for (const roleId of data.roles) {
+        const roleExists = await UsersRepository.verifyRoleExists(roleId);
+        if (!roleExists) {
+          throw ApiError.badRequest(`El rol con ID ${roleId} no existe o está inactivo`);
+        }
+      }
+      
       await UsersRepository.clearRoles(email);
       if (data.roles.length > 0) {
         await UsersRepository.assignRoles(email, data.roles);
