@@ -130,6 +130,11 @@ const UsersService = {
 
     // validate the headquarters if they are provided
     if (Array.isArray(data.sedes)) {
+      // prevent removing all headquarters
+      if (data.sedes.length === 0) {
+        throw ApiError.badRequest('El usuario debe tener al menos una sede asignada');
+      }
+      
       // verify that all the headquarters exist and are active
       for (const sedeId of data.sedes) {
         const headquarterExists = await UsersRepository.verifyHeadquarterExists(sedeId);
@@ -139,13 +144,16 @@ const UsersService = {
       }
       
       await UsersRepository.clearHeadquarters(email);
-      if (data.sedes.length > 0) {
-        await UsersRepository.assignHeadquarters(email, data.sedes);
-      }
+      await UsersRepository.assignHeadquarters(email, data.sedes);
     }
 
     // validate the roles if they are provided
     if (Array.isArray(data.roles)) {
+      // prevent removing all roles
+      if (data.roles.length === 0) {
+        throw ApiError.badRequest('El usuario debe tener al menos un rol asignado');
+      }
+      
       // verify that all the roles exist and are active
       for (const roleId of data.roles) {
         const roleExists = await UsersRepository.verifyRoleExists(roleId);
@@ -155,9 +163,7 @@ const UsersService = {
       }
       
       await UsersRepository.clearRoles(email);
-      if (data.roles.length > 0) {
-        await UsersRepository.assignRoles(email, data.roles);
-      }
+      await UsersRepository.assignRoles(email, data.roles);
     }
 
     return UsersRepository.findByEmailWithHeadquarters(email);
