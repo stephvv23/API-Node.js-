@@ -16,6 +16,16 @@ const isValidEmail = (email) => {
 };
 
 /**
+ * validate the length of an email field
+ * @param {string} email - The email to validate
+ * @returns {boolean} - true if the length is valid, false if not
+ */
+const isValidEmailLength = (email) => {
+  // Email must not exceed 254 characters (RFC 5321 standard)
+  return email && email.length <= 254;
+};
+
+/**
  * validate the format of a password
  * @param {string} password - The password to validate
  * @returns {boolean} - true if the format is valid, false if not
@@ -23,6 +33,26 @@ const isValidEmail = (email) => {
 const isValidPassword = (password) => {
   // The password must have at least 6 characters
   return password && password.length >= 6;
+};
+
+/**
+ * validate the length of a name field
+ * @param {string} name - The name to validate
+ * @returns {boolean} - true if the length is valid, false if not
+ */
+const isValidNameLength = (name) => {
+  // Name must be between 1 and 150 characters (VarChar(150))
+  return name && name.length >= 1 && name.length <= 150;
+};
+
+/**
+ * validate the length of a status field
+ * @param {string} status - The status to validate
+ * @returns {boolean} - true if the length is valid, false if not
+ */
+const isValidStatusLength = (status) => {
+  // Status must be between 1 and 25 characters (VarChar(25))
+  return status && status.length >= 1 && status.length <= 25;
 };
 
 // UsersService contains business logic for user operations.
@@ -44,6 +74,9 @@ const UsersService = {
     if (!data.email) {
       throw ApiError.badRequest('El email es obligatorio');
     }
+    if (!isValidEmailLength(data.email)) {
+      throw ApiError.badRequest('El email no puede exceder 254 caracteres');
+    }
     if (!isValidEmail(data.email)) {
       throw ApiError.badRequest('El formato del email no es válido. Debe seguir el formato: usuario@dominio.extension');
     }
@@ -55,6 +88,9 @@ const UsersService = {
     if (data.name.trim().length === 0) {
       throw ApiError.badRequest('El nombre no puede estar vacío');
     }
+    if (!isValidNameLength(data.name.trim())) {
+      throw ApiError.badRequest('El nombre debe tener entre 1 y 150 caracteres');
+    }
     
     // validate the password
     if (!data.password) {
@@ -62,6 +98,11 @@ const UsersService = {
     }
     if (!isValidPassword(data.password)) {
       throw ApiError.badRequest('La contraseña debe tener al menos 6 caracteres');
+    }
+
+    // validate the status if provided
+    if (data.status && !isValidStatusLength(data.status)) {
+      throw ApiError.badRequest('El status debe tener entre 1 y 25 caracteres');
     }
 
     // validate that at least one headquarter is provided
@@ -116,13 +157,36 @@ const UsersService = {
   update: async (email, data) => {
     const updateData = {};
 
+    // validate email length if provided (though email is primary key, good practice)
+    if (data.email) {
+      if (!isValidEmailLength(data.email)) {
+        throw ApiError.badRequest('El email no puede exceder 254 caracteres');
+      }
+      if (!isValidEmail(data.email)) {
+        throw ApiError.badRequest('El formato del email no es válido. Debe seguir el formato: usuario@dominio.extension');
+      }
+    }
+
+    // validate name length if provided
+    if (data.name) {
+      if (!isValidNameLength(data.name.trim())) {
+        throw ApiError.badRequest('El nombre debe tener entre 1 y 150 caracteres');
+      }
+      updateData.name = data.name.trim();
+    }
+
+    // validate status length if provided
+    if (data.status) {
+      if (!isValidStatusLength(data.status)) {
+        throw ApiError.badRequest('El status debe tener entre 1 y 25 caracteres');
+      }
+      updateData.status = data.status;
+    }
+
     if (data.password) {
       const hashed = await bcrypt.hash(data.password, 10);
       updateData.password = hashed;
     }
-
-    if (data.name) updateData.name = data.name;
-    if (data.status) updateData.status = data.status;
 
     if (Object.keys(updateData).length > 0) {
       await UsersRepository.update(email, updateData);
