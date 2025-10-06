@@ -58,6 +58,14 @@ const UsersRepository = {
     select: { idHeadquarter: true }
   }),
 
+  // check if headquarter exists (regardless of status)
+  checkHeadquarterExists: (idHeadquarter) => prisma.headquarter.findFirst({
+    where: { 
+      idHeadquarter: parseInt(idHeadquarter)
+    },
+    select: { idHeadquarter: true, status: true }
+  }),
+
   // verify that a role exists and is active
   verifyRoleExists: (idRole) => prisma.role.findFirst({
     where: { 
@@ -65,6 +73,14 @@ const UsersRepository = {
       status: 'active'
     },
     select: { idRole: true }
+  }),
+
+  // check if role exists (regardless of status)
+  checkRoleExists: (idRole) => prisma.role.findFirst({
+    where: { 
+      idRole: parseInt(idRole)
+    },
+    select: { idRole: true, status: true }
   }),
   
 };

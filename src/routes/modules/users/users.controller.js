@@ -96,15 +96,15 @@ const UsersController = {
         .json({ message: 'La contraseña es obligatoria' });
     }
 
-    // validate that a headquarter is provided
-    if (!idHeadquarter) {
+    // validate that a headquarter is provided and not empty
+    if (!idHeadquarter || (Array.isArray(idHeadquarter) && idHeadquarter.length === 0)) {
       return res
         .status(400)
         .json({ message: 'El usuario debe tener al menos una sede asignada' });
     }
 
-    // validate that a role is provided
-    if (!idRole) {
+    // validate that a role is provided and not empty
+    if (!idRole || (Array.isArray(idRole) && idRole.length === 0)) {
       return res
         .status(400)
         .json({ message: 'El usuario debe tener al menos un rol asignado' });
@@ -188,14 +188,17 @@ const UsersController = {
   },
 
   /**
-   * Delete a user by email.
+   * Soft delete a user by email (change status to inactive).
    * DELETE /users/:email
    */
   remove: async (req, res) => {
     const { email } = req.params;
     try {
-      await UsersService.delete(email);
-      res.status(204).send();
+      const updatedUser = await UsersService.delete(email);
+      res.json({ 
+        message: 'Usuario desactivado exitosamente',
+        user: updatedUser 
+      });
     } catch (e) {
       // Handles case when user is not found
       if (e && e.code === 'P2025')

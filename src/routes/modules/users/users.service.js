@@ -31,8 +31,8 @@ const isValidEmailLength = (email) => {
  * @returns {boolean} - true if the format is valid, false if not
  */
 const isValidPassword = (password) => {
-  // The password must have at least 6 characters
-  return password && password.length >= 6;
+  // The password must have at least 6 characters and maximum 200 characters
+  return password && password.length >= 6 && password.length <= 200;
 };
 
 /**
@@ -97,7 +97,7 @@ const UsersService = {
       throw ApiError.badRequest('La contraseña es obligatoria');
     }
     if (!isValidPassword(data.password)) {
-      throw ApiError.badRequest('La contraseña debe tener al menos 6 caracteres');
+      throw ApiError.badRequest('La contraseña debe tener entre 6 y 200 caracteres');
     }
 
     // validate the status if provided
@@ -106,25 +106,39 @@ const UsersService = {
     }
 
     // validate that at least one headquarter is provided
-    if (!data.idHeadquarter) {
+    if (!data.idHeadquarter || (Array.isArray(data.idHeadquarter) && data.idHeadquarter.length === 0)) {
       throw ApiError.badRequest('El usuario debe tener al menos una sede asignada');
     }
 
     // validate that at least one role is provided
-    if (!data.idRole) {
+    if (!data.idRole || (Array.isArray(data.idRole) && data.idRole.length === 0)) {
       throw ApiError.badRequest('El usuario debe tener al menos un rol asignado');
     }
 
-    // verify that the headquarter exists and is active
-    const headquarterExists = await UsersRepository.verifyHeadquarterExists(data.idHeadquarter);
-    if (!headquarterExists) {
-      throw ApiError.badRequest(`La sede con ID ${data.idHeadquarter} no existe o está inactiva`);
+    // Normalize data to arrays for consistent handling
+    const headquarterIds = Array.isArray(data.idHeadquarter) ? data.idHeadquarter : [data.idHeadquarter];
+    const roleIds = Array.isArray(data.idRole) ? data.idRole : [data.idRole];
+
+    // verify that all headquarters exist and are active
+    for (const headquarterId of headquarterIds) {
+      const headquarterCheck = await UsersRepository.checkHeadquarterExists(headquarterId);
+      if (!headquarterCheck) {
+        throw ApiError.badRequest(`La sede con ID ${headquarterId} no existe`);
+      }
+      if (headquarterCheck.status !== 'active') {
+        throw ApiError.badRequest(`La sede con ID ${headquarterId} está inactiva`);
+      }
     }
 
-    // verify that the role exists and is active
-    const roleExists = await UsersRepository.verifyRoleExists(data.idRole);
-    if (!roleExists) {
-      throw ApiError.badRequest(`El rol con ID ${data.idRole} no existe o está inactivo`);
+    // verify that all roles exist and are active
+    for (const roleId of roleIds) {
+      const roleCheck = await UsersRepository.checkRoleExists(roleId);
+      if (!roleCheck) {
+        throw ApiError.badRequest(`El rol con ID ${roleId} no existe`);
+      }
+      if (roleCheck.status !== 'active') {
+        throw ApiError.badRequest(`El rol con ID ${roleId} está inactivo`);
+      }
     }
 
     const hashed = await bcrypt.hash(data.password, 10);
@@ -137,17 +151,17 @@ const UsersService = {
     });
 
     // creation the relation tables
-    if (data.idHeadquarter) {
-      await UsersRepository.createHeadquarterRelation(
+    if (headquarterIds.length > 0) {
+      await UsersRepository.assignHeadquarters(
         user.email,
-        parseInt(data.idHeadquarter)
+        headquarterIds.map(id => parseInt(id))
       );
     }
-    // the method assign await a array. beacause the []
-    if (data.idRole) {
+    
+    if (roleIds.length > 0) {
       await UsersRepository.assignRoles(
-      user.email,
-        [parseInt(data.idRole)]   
+        user.email,
+        roleIds.map(id => parseInt(id))
       );
     }
     return user;
@@ -184,6 +198,9 @@ const UsersService = {
     }
 
     if (data.password) {
+      if (!isValidPassword(data.password)) {
+        throw ApiError.badRequest('La contraseña debe tener entre 6 y 200 caracteres');
+      }
       const hashed = await bcrypt.hash(data.password, 10);
       updateData.password = hashed;
     }
@@ -201,9 +218,12 @@ const UsersService = {
       
       // verify that all the headquarters exist and are active
       for (const sedeId of data.sedes) {
-        const headquarterExists = await UsersRepository.verifyHeadquarterExists(sedeId);
-        if (!headquarterExists) {
-          throw ApiError.badRequest(`La sede con ID ${sedeId} no existe o está inactiva`);
+        const headquarterCheck = await UsersRepository.checkHeadquarterExists(sedeId);
+        if (!headquarterCheck) {
+          throw ApiError.badRequest(`La sede con ID ${sedeId} no existe`);
+        }
+        if (headquarterCheck.status !== 'active') {
+          throw ApiError.badRequest(`La sede con ID ${sedeId} está inactiva`);
         }
       }
       
@@ -220,9 +240,12 @@ const UsersService = {
       
       // verify that all the roles exist and are active
       for (const roleId of data.roles) {
-        const roleExists = await UsersRepository.verifyRoleExists(roleId);
-        if (!roleExists) {
-          throw ApiError.badRequest(`El rol con ID ${roleId} no existe o está inactivo`);
+        const roleCheck = await UsersRepository.checkRoleExists(roleId);
+        if (!roleCheck) {
+          throw ApiError.badRequest(`El rol con ID ${roleId} no existe`);
+        }
+        if (roleCheck.status !== 'active') {
+          throw ApiError.badRequest(`El rol con ID ${roleId} está inactivo`);
         }
       }
       
@@ -240,12 +263,17 @@ const UsersService = {
 
   // Updates only the user's password, hashes before saving
   updatePassword: async (email, password) => {
+    if (!isValidPassword(password)) {
+      throw ApiError.badRequest('La contraseña debe tener entre 6 y 200 caracteres');
+    }
     const hashed = await bcrypt.hash(password, 10);
     return UsersRepository.updatePassword(email, hashed);
   },
 
-  // Deletes a user by email
-  delete: (email) => UsersRepository.remove(email),
+  // Soft delete a user by email (change status to inactive)
+  delete: async (email) => {
+    return UsersRepository.update(email, { status: 'inactive' });
+  },
 
   login: async (email, password, windowName, clientDate) => {
     if (!email || !password) throw ApiError.badRequest('email y password requeridos');
