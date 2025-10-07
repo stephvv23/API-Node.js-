@@ -1,0 +1,458 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  email     String      @id
+  name      String      @db.VarChar(150)
+  status    String      @default("active") @db.VarChar(25)
+  password  String   @db.VarChar(255)
+
+  // Relations
+  loginAccess   LoginAccess[] // Relation: User has many LoginAccess records
+  securityLogs  SecurityLog[] // Relation: User has many SecurityLog records
+  roles         UserRole[]    // Relation: User has many roles through UserRole join table
+  headquarterUser HeadquarterUser[] // AGREGADO NUEVO: tabla relacional con sedes
+}
+
+model LoginAccess {
+  loginIdAccess Int     @id @default(autoincrement())
+  email         String @db.VarChar(150) // Foreign key: references User.email
+  date          DateTime @default(now())
+
+  // Relation
+  user User @relation(fields: [email], references: [email]) // Connects LoginAccess to User by email
+}
+
+model SecurityLog {
+  securityIdLog Int      @id @default(autoincrement())
+  email         String @db.VarChar(150) // Foreign key: references User.email
+  date          DateTime @default(now())
+  action        String @db.VarChar(25)
+  description   String @db.VarChar(700)
+  affectedTable String @db.VarChar(50)
+
+  // Relation
+  user User @relation(fields: [email], references: [email]) // Connects SecurityLog to User by email
+}
+
+model Role {
+  idRole Int    @id @default(autoincrement())
+  rolName String @db.VarChar(50) @unique
+  status  String @default("active") @db.VarChar(25)
+
+  users   UserRole[]   // Relation: Role has many users through UserRole join table
+  windows RoleWindow[] // Relation: Role has many windows through RoleWindow join table
+}
+
+model Window {
+  idWindow   Int    @id @default(autoincrement()) // Primary key: unique identifier for each window/module
+  windowName String @db.VarChar(75) @unique// Name of the window/module
+  status     String @default("active") @db.VarChar(25) // Status of the window, defaults to 'active'
+
+  roles RoleWindow[] // Relation: Window has many roles through RoleWindow join table
+}
+
+model UserRole {
+  idRole Int   // Foreign key: references Role.idRole
+  email  String @db.VarChar(150) // Foreign key: references User.email
+
+  // Relations
+  role Role @relation(fields: [idRole], references: [idRole]) // Connects UserRole to Role
+  user User @relation(fields: [email], references: [email])   // Connects UserRole to User
+
+  @@id([idRole, email]) // Composite primary key
+}
+
+model RoleWindow {
+  idRole   Int // Foreign key: references Role.idRole
+  idWindow Int // Foreign key: references Window.idWindow
+  create   Boolean
+  read     Boolean
+  update   Boolean
+  delete   Boolean
+
+  // Relations
+  role   Role   @relation(fields: [idRole], references: [idRole])     // Connects RoleWindow to Role
+  window Window @relation(fields: [idWindow], references: [idWindow]) // Connects RoleWindow to Window
+
+  @@id([idRole, idWindow]) // Composite primary key
+}
+
+
+//NUEVAS TABLAS Y RELACIONES
+
+model Asset {
+    idAsset Int @id @default(autoincrement())
+    idCategory Int 
+    idHeadquarter Int
+    name String @db.VarChar(50)
+    type String @db.VarChar(50)
+    description String @db.VarChar(750)
+    status String @db.VarChar(25)
+    //Relations
+    category     Category     @relation(fields: [idCategory], references: [idCategory])
+    headquarter  Headquarter  @relation(fields: [idHeadquarter], references: [idHeadquarter])
+
+}
+
+model Category {
+  idCategory Int     @id @default(autoincrement())
+  name       String  @db.VarChar(150) @unique
+  status     String  @db.VarChar(25)
+
+  asset      Asset[]  // Relation: Category has many assets
+  categorySupplier CategorySupplier[] // tabla relacional
+}
+
+model Supplier {
+  idSupplier    Int     @id @default(autoincrement()) 
+  name          String  @db.VarChar(150)
+  taxId         String?  @db.VarChar(20)
+  type          String  @db.VarChar(50)
+  email         String  @db.VarChar(150)
+  address       String  @db.VarChar(150)
+  paymentTerms  String  @db.VarChar(50)
+  description   String  @db.VarChar(750)
+  status        String  @db.VarChar(25)
+
+  categorySupplier CategorySupplier[] // tabla relacional
+  headquarterSupplier HeadquarterSupplier[] // tabla relacional
+  phoneSupplier PhoneSupplier[] // tabla relacional
+}
+
+model Activity {
+  idActivity     Int @id @default(autoincrement())
+  idHeadquarter  Int //FK de headquarter
+  tittle         String @db.VarChar(150)
+  description    String @db.VarChar(750)
+  type           String @db.VarChar(50)
+  modality       String @db.VarChar(25)
+  capacity       Int
+  location       String @db.VarChar(300)
+  date           DateTime 
+  status         String @default("active") @db.VarChar(25)
+
+
+  headquarter Headquarter @relation(fields: [idHeadquarter], references: [idHeadquarter]) 
+  activityVolunteer ActivityVolunteer[] // tabla relacional
+  activitySurvivor ActivitySurvivor[] // tabla relacional
+  activityGodparent ActivityGodparent[] // tabla relacional
+}
+
+model Volunteer {
+  idVolunteer    Int    @id @default(autoincrement())
+  name           String @db.VarChar(200)
+  identifier     String @db.VarChar(30)
+  country        String @db.VarChar(75)
+  birthday       DateTime
+  email          String @db.VarChar(80)
+  residence      String @db.VarChar(300)
+  modality       String @db.VarChar(20)
+  institution    String @db.VarChar(100)
+  availableSchedule String @db.VarChar(300)
+  requiredHours  Int?
+  startDate       DateTime
+  finishDate      DateTime?
+  imageAuthorization Boolean
+  notes           String @db.VarChar(250)
+  status        String @default("active") @db.VarChar(25)
+
+  phoneVolunteer PhoneVolunteer [] // tabla relacional
+  headquarterVolunteer HeadquarterVolunteer [] //tabla relacional
+  emergencyContactVolunteer EmergencyContactVolunteer [] // tabla relacional
+  activityVolunteer ActivityVolunteer [] // tabla relacional
+}
+
+model Godparent {
+  idGodparent   Int    @id @default(autoincrement())
+  idSurvivor    Int?    // FK de supervivientes
+  idHeadquarter Int    // FK de headquarters
+  name          String @db.VarChar(200)
+  email         String @db.VarChar(150)
+  paymentMethod String @db.VarChar(50)
+  startDate     DateTime
+  finishDate    DateTime?
+  description      String @db.VarChar(250)
+  status       String @default("active") @db.VarChar(25)
+
+  godParentsPhone GodparentPhone[] // tabla relacional
+  activityGodparent ActivityGodparent[] // tabla relacional
+
+  survivor Survivor? @relation(fields: [idSurvivor], references: [idSurvivor]) // Relación opcional con Survivor
+  headquarter Headquarter @relation(fields: [idHeadquarter], references: [idHeadquarter]) // Relación con Headquarters
+}
+
+model EmergencyContact {
+  idEmergencyContact Int    @id @default(autoincrement())
+  nameEmergencyContact String @db.VarChar(150)
+  emailEmergencyContact String @db.VarChar(150)
+  relationship       String @db.VarChar(50)
+  status             String @default("active") @db.VarChar(25)
+
+  emergencyContactVolunteer EmergencyContactVolunteer[] // tabla relacional
+  emergencyContactPhone EmergencyContactPhone[] // tabla relacional
+  emergencyContactSurvivor EmergencyContactSurvivor[] // tabla relacional
+}
+
+model Survivor {
+  idSurvivor    Int    @id @default(autoincrement())
+  idHeadquarter Int    // FK de headquarters
+  survivorName  String @db.VarChar(200)
+  documentNumber String @db.VarChar(30)
+  country       String @db.VarChar(75)
+  birthday      DateTime
+  email         String @db.VarChar(150)
+  residence     String @db.VarChar(300)
+  genre         String @db.VarChar(25)
+  workingCondition String @db.VarChar(50)
+  CONAPDIS      Boolean
+  IMAS          Boolean
+  physicalFileStatus String @db.VarChar(25)
+  medicalRecord  String @db.VarChar(25)
+  dateHomeSINRUBE String @db.VarChar(25)
+  foodBank       String @db.VarChar(25)
+  socioEconomicStudy String @db.VarChar(25)
+  notes          String? @db.VarChar(250)
+  status       String @default("active") @db.VarChar(25)
+
+  emergencyContactSurvivor EmergencyContactSurvivor[] // tabla relacional
+  phoneSurvivor PhoneSurvivor[] // tabla relacional
+  activitySurvivor ActivitySurvivor[] // tabla relacional
+  cancerSurvivor CancerSurvivor[] // tabla relacional
+  godparent       Godparent[]       // tabla relacional
+
+  headquarter Headquarter @relation(fields: [idHeadquarter], references: [idHeadquarter]) // Relación con Headquarters
+}
+
+model Cancer {
+  idCancer    Int    @id @default(autoincrement())
+  cancerName String @db.VarChar(100) @unique
+  description String @db.VarChar(300)
+  status     String @default("active") @db.VarChar(25)
+
+  cancerSurvivor CancerSurvivor[] // tabla relacional
+}
+
+model Phone {
+  idPhone       Int @id @default(autoincrement())
+  phone         Int
+
+  phoneVolunteers PhoneVolunteer[] // tabla relacional
+  phoneSurvivor   PhoneSurvivor[]   // tabla relacional
+  emergencyContactPhone EmergencyContactPhone[] // tabla relacional
+  headquarterPhone HeadquarterPhone[] // tabla relacional
+  godparentPhone GodparentPhone[] // tabla relacional
+  phoneSupplier PhoneSupplier[] // tabla relacional
+
+}
+
+model Headquarter {
+  idHeadquarter Int    @id @default(autoincrement())
+  name           String @db.VarChar(150) @unique
+  schedule       String @db.VarChar(300)
+  location       String @db.VarChar(300)
+  email          String @db.VarChar(150)
+  description    String @db.VarChar(750)
+  status         String @default("active") @db.VarChar(25)
+
+  activities     Activity[] // AGREGADO NUEVO: FK con actividad
+  headquarterUser HeadquarterUser[] // AGREGADO NUEVO: tabla relacional con usuarios
+  headquarterVolunteer HeadquarterVolunteer[] // tabla relacional 
+  headquarterPhone HeadquarterPhone[] // tabla relacional 
+  godparent Godparent[] // Relación con Godparent
+  survivor Survivor[] // Relación con Survivor
+  asset Asset[] // Relación con Asset
+  headquarterSupplier HeadquarterSupplier[] // tabla relacional
+}
+
+//TABLAS RELACIONALES
+model HeadquarterUser {
+  idHeadquarter Int    // Foreign key: references Headquarters.idHeadquarters
+  email          String @db.VarChar(150) // Foreign key: references User.email
+
+  // Relations
+  headquarter Headquarter @relation(fields: [idHeadquarter], references: [idHeadquarter]) // Connects HeadquartersUser to Headquarters
+  user         User         @relation(fields: [email], references: [email])                   // Connects HeadquartersUser to User
+
+  @@id([idHeadquarter, email]) // Composite primary key
+}
+
+model HeadquarterVolunteer {
+  idHeadquarter Int    // Foreign key: references Headquarter.idHeadquarter
+  idVolunteer   Int    // Foreign key: references Volunteer.idVolunteer
+
+  // Relations
+  headquarter Headquarter @relation(fields: [idHeadquarter], references: [idHeadquarter]) // Connects HeadquarterVolunteer to Headquarter
+  volunteer   Volunteer   @relation(fields: [idVolunteer], references: [idVolunteer])       // Connects HeadquarterVolunteer to Volunteer
+
+  @@id([idHeadquarter, idVolunteer]) // Composite primary key
+}
+
+model HeadquarterPhone {
+  idHeadquarter Int // Foreign key: references Headquarter.idHeadquarter
+  idPhone       Int // Foreign key: references Phone.idPhone
+
+  // Relations
+  headquarter Headquarter @relation(fields: [idHeadquarter], references: [idHeadquarter]) // Connects HeadquarterPhone to Headquarter
+  phone       Phone       @relation(fields: [idPhone], references: [idPhone])             // Connects HeadquarterPhone to Phone
+
+  @@id([idHeadquarter, idPhone]) // Composite primary key
+}
+
+model PhoneSurvivor {
+  idPhone       Int // Foreign key: references Phone.idPhone
+  idSurvivor    Int // Foreign key: references Survivor.idSurvivor
+
+  // Relations
+  phone    Phone    @relation(fields: [idPhone], references: [idPhone])       // Connects phoneSurvivor to Phone
+  survivor Survivor @relation(fields: [idSurvivor], references: [idSurvivor]) // Connects phoneSurvivor to Survivor
+
+  @@id([idPhone, idSurvivor]) // Composite primary key
+}
+
+model PhoneVolunteer {
+  idPhone      Int // Foreign key: references Phone.idPhone
+  idVolunteer  Int // Foreign key: references Volunteer.idVolunteer
+
+  // Relations
+  phone     Phone     @relation(fields: [idPhone], references: [idPhone])       // Connects phoneVolunteer to Phone
+  volunteer Volunteer @relation(fields: [idVolunteer], references: [idVolunteer]) // Connects phoneVolunteer to Volunteer
+
+  @@id([idPhone, idVolunteer]) // Composite primary key
+} 
+
+model GodparentPhone {
+  idGodparent Int // Foreign key: references Godparent.idGodparent
+  idPhone     Int // Foreign key: references Phone.idPhone
+
+  // Relations
+  godparent Godparent @relation(fields: [idGodparent], references: [idGodparent]) // Connects GodparentPhone to Godparent
+  phone     Phone     @relation(fields: [idPhone], references: [idPhone])         // Connects GodparentPhone to Phone
+
+  @@id([idGodparent, idPhone]) // Composite primary key
+}
+
+model ActivityVolunteer {
+  idActivity   Int // Foreign key: references Activity.idActivity
+  idVolunteer  Int // Foreign key: references Volunteer.idVolunteer
+
+  // Relations
+  activity  Activity  @relation(fields: [idActivity], references: [idActivity])   // Connects ActivityVolunteer to Activity
+  volunteer Volunteer @relation(fields: [idVolunteer], references: [idVolunteer]) // Connects ActivityVolunteer to Volunteer
+
+  @@id([idActivity, idVolunteer]) // Composite primary key
+}
+
+model ActivityGodparent {
+  idActivity  Int // Foreign key: references Activity.idActivity
+  idGodparent Int // Foreign key: references Godparent.idGodparent
+
+  // Relations
+  activity  Activity  @relation(fields: [idActivity], references: [idActivity])   // Connects ActivityGodparent to Activity
+  godparent Godparent @relation(fields: [idGodparent], references: [idGodparent]) // Connects ActivityGodparent to Godparent
+
+  @@id([idActivity, idGodparent]) // Composite primary key
+}
+
+model ActivitySurvivor {
+  idActivity  Int // Foreign key: references Activity.idActivity
+  idSurvivor  Int // Foreign key: references Survivor.idSurvivor
+
+  // Relations
+  activity Activity @relation(fields: [idActivity], references: [idActivity]) // Connects activitySurvivor to Activity
+  survivor Survivor @relation(fields: [idSurvivor], references: [idSurvivor]) // Connects activitySurvivor to Survivor
+
+  @@id([idActivity, idSurvivor]) // Composite primary key
+}
+
+model EmergencyContactVolunteer {
+  idEmergencyContact Int // Foreign key: references EmergencyContact.idEmergencyContact
+  idVolunteer        Int // Foreign key: references Volunteer.idVolunteer
+
+  // Relations
+  emergencyContact EmergencyContact @relation(fields: [idEmergencyContact], references: [idEmergencyContact]) // Connects EmergencyContactVolunteer to EmergencyContact
+  volunteer        Volunteer        @relation(fields: [idVolunteer], references: [idVolunteer])                   // Connects EmergencyContactVolunteer to Volunteer
+
+  @@id([idEmergencyContact, idVolunteer]) // Composite primary key
+}
+
+model EmergencyContactSurvivor {
+  idEmergencyContact Int // Foreign key: references EmergencyContact.idEmergencyContact
+  idSurvivor         Int // Foreign key: references Survivor.idSurvivor
+
+  // Relations
+  emergencyContact EmergencyContact @relation(fields: [idEmergencyContact], references: [idEmergencyContact]) // Connects EmergencyContactSurvivor to EmergencyContact
+  survivor         Survivor         @relation(fields: [idSurvivor], references: [idSurvivor])                   // Connects EmergencyContactSurvivor to Survivor
+
+  @@id([idEmergencyContact, idSurvivor]) // Composite primary key
+}
+
+model EmergencyContactPhone {
+  idEmergencyContact Int // Foreign key: references EmergencyContact.idEmergencyContact
+  idPhone            Int // Foreign key: references Phone.idPhone
+
+  // Relations
+  emergencyContact EmergencyContact @relation(fields: [idEmergencyContact], references: [idEmergencyContact]) // Connects EmergencyContactPhone to EmergencyContact
+  phone            Phone            @relation(fields: [idPhone], references: [idPhone])                         // Connects EmergencyContactPhone to Phone
+
+  @@id([idEmergencyContact, idPhone]) // Composite primary key
+}
+
+model CancerSurvivor {
+  idCancer   Int // Foreign key: references Cancer.idCancer
+  idSurvivor Int // Foreign key: references Survivor.idSurvivor
+  status     String
+  aftermath  String
+  // Relations
+  cancer   Cancer   @relation(fields: [idCancer], references: [idCancer])     // Connects cancerSurvivor to Cancer
+  survivor Survivor @relation(fields: [idSurvivor], references: [idSurvivor]) // Connects cancerSurvivor to Survivor
+
+  @@id([idCancer, idSurvivor]) // Composite primary key
+}
+
+model CategorySupplier {
+  idCategory Int
+  idSupplier Int
+
+  category Category @relation(fields: [idCategory], references: [idCategory])
+  supplier Supplier @relation(fields: [idSupplier], references: [idSupplier])
+
+  @@id([idCategory, idSupplier]) // PK compuesta
+}
+
+
+model PhoneSupplier {
+  idPhone    Int
+  idSupplier Int
+
+  phone    Phone    @relation(fields: [idPhone], references: [idPhone])
+  supplier Supplier @relation(fields: [idSupplier], references: [idSupplier])
+
+  @@id([idPhone, idSupplier]) // PK compuesta
+}
+
+model HeadquarterSupplier {
+  idHeadquarter Int
+  idSupplier    Int
+
+  headquarter Headquarter @relation(fields: [idHeadquarter], references: [idHeadquarter])
+  supplier     Supplier     @relation(fields: [idSupplier], references: [idSupplier])
+
+  @@id([idHeadquarter, idSupplier]) // PK compuesta
+}
+
+// -------------  FIN NUEVAS TABLAS Y RELACIONES -------------

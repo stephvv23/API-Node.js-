@@ -2,10 +2,13 @@
   "name": "simple-nodejs-api",
   "version": "1.0.0",
   "description": "my first api with node.js",
-  "main": "index.js",
-  "type": "module",
+  "main": "dist/server.js",
   "scripts": {
-    "dev": "nodemon index.js"
+    "dev": "nodemon src/server.js",
+    "start": "node src/server.js"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
   },
   "repository": {
     "type": "git",
@@ -21,9 +24,14 @@
   },
   "homepage": "https://github.com/stephvv23/API-Node.js-#readme",
   "dependencies": {
-    "express": "^5.1.0"
+    "@prisma/client": "^6.15.0",
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.1",
+    "jsonwebtoken": "^9.0.2"
   },
   "devDependencies": {
-    "nodemon": "^3.1.10"
+    "nodemon": "^3.1.10",
+    "prisma": "^6.15.0"
   }
 }

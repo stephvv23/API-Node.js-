@@ -1,0 +1,191 @@
+const jwt = require('jsonwebtoken');
+const { UsersService } = require('./users.service');
+const ApiError = require('../../../utils/apiError'); 
+
+
+/**
+ * UsersController handles HTTP requests for user operations.
+ * Each method corresponds to a REST endpoint and delegates logic to UsersService.
+ */
+const UsersController = {
+  /**
+   * List all users.
+   * GET /users
+   */
+  list: async (_req, res) => {
+    const users = await UsersService.list();
+
+    const mapped = users.map(u => ({
+      email: u.email,
+      name: u.name,
+      status: u.status,
+      roles: u.roles.map(r => ({
+        idRole: r.role.idRole,
+        rolName: r.role.rolName
+      })),
+      sedes: u.headquarterUser.map(h => ({
+        idHeadquarter: h.headquarter.idHeadquarter,
+        name: h.headquarter.name
+      }))
+    }));
+
+  res.json(mapped);
+  },
+
+
+  /**
+   * Get a user by email.
+   * GET /users/:email
+   */
+  get: async (req, res) => {
+    const { email } = req.params;
+    const user = await UsersService.get(email);
+
+    if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
+
+    res.json({
+      email: user.email,
+      name: user.name,
+      status: user.status,
+      sedes: user.headquarterUser.map(h => ({
+        idHeadquarter: h.idHeadquarter,
+        name: h.headquarter.name
+      })),
+      roles: user.roles.map(r => ({
+        idRole: r.role.idRole,
+        name: r.role.rolName
+      }))
+    });
+  },
+
+
+  /**
+   * Create a new user.
+   * POST /users
+   * Required fields: email, name, password
+   */
+  create: async (req, res) => {
+    const { email, name, password, status, idHeadquarter, idRole} = req.body || {};
+    if (!email || !name || !password) {
+      return res
+        .status(400)
+        .json({ message: 'email, name y password son obligatorios' });
+    }
+    try {
+      const created = await UsersService.create({ email, name, password, status, idHeadquarter, idRole });
+      res.status(201).json(created);
+    } catch (e) {
+      if (e && e.code === 'P2002')
+        return res.status(409).json({ message: 'El email ya existe' });
+      throw e;
+    }
+  },
+
+
+  /**
+   * Update user data by email.
+   * PUT /users/:email
+   */
+  update: async (req, res) => {
+    const { email } = req.params;
+    const { name, status, password, sedes, roles } = req.body || {};
+
+    try {
+      const updated = await UsersService.update(email, { name, status, password, sedes, roles });
+      res.json(updated);
+    } catch (e) {
+      if (e && e.code === 'P2025') {
+        return res.status(404).json({ message: 'Usuario no encontrado' });
+      }
+      throw e;
+    }
+  },
+
+  /**
+   * Update only the user's status.
+   * PATCH /users/:email/status
+   */
+  updateStatus: async (req, res) => {
+    const { email } = req.params;
+    const { status } = req.body || {};
+    if (!status) return res.status(400).json({ message: 'status es obligatorio' });
+    try {
+      const updated = await UsersService.updateStatus(email, status);
+      res.json(updated);
+    } catch (e) {
+      // Handles case when user is not found
+      if (e && e.code === 'P2025')
+        return res.status(404).json({ message: 'Usuario no encontrado' });
+      throw e;
+    }
+  },
+
+  /**
+   * Update only the user's password.
+   * PATCH /users/:email/password
+   */
+  updatePassword: async (req, res) => {
+    const { email } = req.params;
+    const { password } = req.body || {};
+    if (!password) return res.status(400).json({ message: 'password es obligatorio' });
+    try {
+      const updated = await UsersService.updatePassword(email, password);
+      res.json(updated);
+    } catch (e) {
+      // Handles case when user is not found
+      if (e && e.code === 'P2025')
+        return res.status(404).json({ message: 'Usuario no encontrado' });
+      throw e;
+    }
+  },
+
+  /**
+   * Delete a user by email.
+   * DELETE /users/:email
+   */
+  remove: async (req, res) => {
+    const { email } = req.params;
+    try {
+      await UsersService.delete(email);
+      res.status(204).send();
+    } catch (e) {
+      // Handles case when user is not found
+      if (e && e.code === 'P2025')
+        return res.status(404).json({ message: 'Usuario no encontrado' });
+      throw e;
+    }
+  },
+
+  /**
+   * Login a user into page
+   * POST /users/login
+   * Required fields: email, name, windowName
+   */
+  login: async (req, res, next) => {
+  try {
+    const { email, password, windowName, clientDate } = req.body || {};
+    if (!email || !password || !windowName) 
+      return next(ApiError.badRequest('email, password y windowName requeridos'));
+
+    const user = await UsersService.login(email, password, windowName, clientDate);
+
+    if (!process.env.JWT_SECRET) return next(ApiError.internal('Falta JWT_SECRET'));
+   // data of token - subject,name,roles. Email its sub because a standard of jwt
+    const token = jwt.sign(
+    {
+      sub: user.email,
+      name: user.name,
+      roles: user.roles.map(ur => ur.role.rolName), // save the roles the user ['admin', 'editor']
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: '1m' });
+
+    res.json({ message: 'Login exitoso', token, user });
+  } catch (e) {
+    next(e);
+  }
+},
+
+};
+
+module.exports = { UsersController };
