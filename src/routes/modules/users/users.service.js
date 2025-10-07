@@ -119,25 +119,19 @@ const UsersService = {
     const headquarterIds = Array.isArray(data.idHeadquarter) ? data.idHeadquarter : [data.idHeadquarter];
     const roleIds = Array.isArray(data.idRole) ? data.idRole : [data.idRole];
 
-    // verify that all headquarters exist and are active
+    // verify that all headquarters exist
     for (const headquarterId of headquarterIds) {
       const headquarterCheck = await UsersRepository.checkHeadquarterExists(headquarterId);
       if (!headquarterCheck) {
         throw ApiError.badRequest(`La sede con ID ${headquarterId} no existe`);
       }
-      if (headquarterCheck.status !== 'active') {
-        throw ApiError.badRequest(`La sede con ID ${headquarterId} está inactiva`);
-      }
     }
 
-    // verify that all roles exist and are active
+    // verify that all roles exist
     for (const roleId of roleIds) {
       const roleCheck = await UsersRepository.checkRoleExists(roleId);
       if (!roleCheck) {
         throw ApiError.badRequest(`El rol con ID ${roleId} no existe`);
-      }
-      if (roleCheck.status !== 'active') {
-        throw ApiError.badRequest(`El rol con ID ${roleId} está inactivo`);
       }
     }
 
@@ -216,14 +210,11 @@ const UsersService = {
         throw ApiError.badRequest('El usuario debe tener al menos una sede asignada');
       }
       
-      // verify that all the headquarters exist and are active
+      // verify that all the headquarters exist
       for (const sedeId of data.sedes) {
         const headquarterCheck = await UsersRepository.checkHeadquarterExists(sedeId);
         if (!headquarterCheck) {
           throw ApiError.badRequest(`La sede con ID ${sedeId} no existe`);
-        }
-        if (headquarterCheck.status !== 'active') {
-          throw ApiError.badRequest(`La sede con ID ${sedeId} está inactiva`);
         }
       }
       
@@ -238,14 +229,11 @@ const UsersService = {
         throw ApiError.badRequest('El usuario debe tener al menos un rol asignado');
       }
       
-      // verify that all the roles exist and are active
+      // verify that all the roles exist
       for (const roleId of data.roles) {
         const roleCheck = await UsersRepository.checkRoleExists(roleId);
         if (!roleCheck) {
           throw ApiError.badRequest(`El rol con ID ${roleId} no existe`);
-        }
-        if (roleCheck.status !== 'active') {
-          throw ApiError.badRequest(`El rol con ID ${roleId} está inactivo`);
         }
       }
       
