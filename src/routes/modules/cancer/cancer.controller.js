@@ -121,7 +121,7 @@ const CancerController = {
       await SecurityLogService.log({
         email: userEmail,
         action: 'REACTIVATE',
-        description: `Se reactivo el cáncer "${updated.cancerName}"`,
+        description: `Se reactivó el cáncer "${updated.cancerName}"`,
         affectedTable: 'cancer',
       });
       
