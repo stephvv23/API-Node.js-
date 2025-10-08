@@ -13,6 +13,12 @@ const HeadquarterService = {
   findById: async (id) => {
     return HeadquarterRepository.findById(id);
   },
+  findbyname: async (name) => {
+    return HeadquarterRepository.findbyname(name);
+  },
+  findbyemail: async (email) => {
+    return HeadquarterRepository.findbyemail(email);
+  },
   // Creates a new headquarter
   create: async (data) => {
     return HeadquarterRepository.create({
@@ -26,7 +32,6 @@ const HeadquarterService = {
   },
   // Updates headquarter data by id
   update: async (id, data) => {
-    // data debe incluir todos los campos a actualizar
     return HeadquarterRepository.update(id, data);
   },
   // Updates only the headquarter status by id
