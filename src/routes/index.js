@@ -1,7 +1,7 @@
-// se usara como Agregador de rutas. Importa las rutas de cada módulo, 
-// las compila a RegExp (con path.js), ordena por especificidad 
-// (para que /login gane a /:email) y hace el matching de cada request. 
-// Pasa a los handlers params, query y body ya parseados.
+// Used as a route aggregator. Imports routes from each module,
+// compiles them to RegExp (using path.js), sorts by specificity
+// (so "/login" wins over "/:email") and matches each request.
+// Passes parsed params, query and body to the handlers.
 
 const { URL } = require('url');
 const { readJsonBody } = require('../utils/body');
@@ -9,18 +9,18 @@ const { sendJson } = require('../utils/response');
 const { wrapExpressHandler } = require('../utils/expressify');
 const { compilePath, specificityScore } = require('./path');
 
-// 1) Importa rutas de todos los módulos
+// 1) Import routes from all modules
 const usersRoutes = require('./modules/users/users.routes');
 const headquartersRoutes = require('./modules/headquarters/headquarter.routes');
 
-// ====== INICIO: Módulo de assets ======
+// ====== START: assets module ======
 const assetsRoutes = require('./modules/assets/assets.routes');
-// ====== FIN: Módulo de assets ======
+// ====== END: assets module ======
 
 const categoriesRoutes = require('./modules/Category/category.routes');
 // const rolesRoutes = require('./modules/roles.routes');
 // const patientsRoutes = require('./modules/patients.routes');
-// 2) Concatena y compila paths → { method, pattern, paramNames, handler }
+// 2) Concatenate and compile paths → { method, pattern, paramNames, handler }
 function buildRoutes() {
   const raw = [
     ...usersRoutes,
@@ -33,7 +33,7 @@ function buildRoutes() {
     // etc.
   ];
 
-  // Ordena por especificidad ("/login" antes que "/:email")
+  // Sort by specificity ("/login" before "/:email")
   raw.sort((a, b) => specificityScore(b.path) - specificityScore(a.path));
 
   return raw.map(r => {

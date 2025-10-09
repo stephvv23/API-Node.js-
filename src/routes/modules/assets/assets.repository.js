@@ -12,7 +12,7 @@ const baseSelect = {
 };
 
 const AssetsRepository = {
-  // ✅ Robust diagnostics
+  // Robust diagnostics
   list: async () => {
     try {
       // Checks connection
@@ -66,7 +66,7 @@ const AssetsRepository = {
   });
   const ids = headquarters.map((h) => h.idHeadquarter);
 
-  // search including category y headquarter
+  // search including category and headquarter
   return prisma.asset.findMany({
     where: { idHeadquarter: { in: ids } },
     select: {
