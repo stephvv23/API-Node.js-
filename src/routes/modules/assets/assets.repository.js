@@ -77,6 +77,24 @@ const AssetsRepository = {
   });
 },
 
+  // Check if category exists and is active
+  categoryExists: async (idCategory) => {
+    const category = await prisma.category.findUnique({
+      where: { idCategory: Number(idCategory) },
+      select: { idCategory: true, status: true }
+    });
+    return category && category.status === 'active';
+  },
+
+  // Check if headquarter exists and is active
+  headquarterExists: async (idHeadquarter) => {
+    const headquarter = await prisma.headquarter.findUnique({
+      where: { idHeadquarter: Number(idHeadquarter) },
+      select: { idHeadquarter: true, status: true }
+    });
+    return headquarter && headquarter.status === 'active';
+  },
+
 };
 
 module.exports = { AssetsRepository };

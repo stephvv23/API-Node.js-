@@ -85,12 +85,19 @@ function validateAssetBody(body = {}, { partial = false } = {}) {
   // description (optional, string, 0..750)
   if (has('description')) {
     const v = body.description;
+    // If provided, description must be a string and not an empty string
     if (v != null && typeof v !== 'string') {
       errors.push({ field: 'description', code: 'type', message: 'must be a string' });
-    } else if ((v ?? '').length > MAX.description) {
+    } else if (v == null) {
+      // treat null/undefined as empty string for storage
+      data.description = '';
+    } else if (v.trim().length === 0) {
+      // reject explicitly empty descriptions when provided
+      errors.push({ field: 'description', code: 'empty', message: 'description must not be empty' });
+    } else if (v.length > MAX.description) {
       errors.push({ field: 'description', code: 'maxLength', max: MAX.description });
     } else {
-      data.description = v ?? '';
+      data.description = v;
     }
   }
 
@@ -145,7 +152,13 @@ const AssetsController = {
 
       const asset = await AssetsService.create(data);
       res.status(201).json(asset);
-    } catch (err) { next(err); }
+    } catch (err) { 
+      // Handle validation errors from service
+      if (err.name === 'ValidationError') {
+        return res.status(err.statusCode || 400).json({ message: err.message });
+      }
+      next(err); 
+    }
   },
 
   /** PUT /assets/:idAsset */
@@ -162,7 +175,13 @@ const AssetsController = {
 
       const asset = await AssetsService.update(id, data);
       res.json(asset);
-    } catch (err) { next(err); }
+    } catch (err) { 
+      // Handle validation errors from service
+      if (err.name === 'ValidationError') {
+        return res.status(err.statusCode || 400).json({ message: err.message });
+      }
+      next(err); 
+    }
   },
 
   /** DELETE /assets/:idAsset */
