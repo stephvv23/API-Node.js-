@@ -1,7 +1,5 @@
 // NOTE: This imports Prisma client from lib/prisma.js (not from ../../prisma/client or .ts)
 const prisma = require('../../../lib/prisma.js'); 
-require('./users.routes.js');
-
 // Fields to select for user queries (email, name, status)
 const baseSelect = { email: true, name: true, status: true };
 
