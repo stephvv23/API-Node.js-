@@ -82,6 +82,14 @@ const UsersRepository = {
     },
     select: { idRole: true, status: true }
   }),
+
+  // check if window exists (regardless of status)
+  checkWindowExists: (windowName) => prisma.window.findFirst({
+    where: { 
+      windowName: windowName
+    },
+    select: { idWindow: true, windowName: true, status: true }
+  }),
   
 };
 

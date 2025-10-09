@@ -288,23 +288,29 @@ const UsersService = {
       throw ApiError.forbidden('El rol del usuario está inactivo');
     }
 
-    // verify permissions to the window
+    // First, verify if the window exists
+    const window = await UsersRepository.checkWindowExists(windowName);
+    if (!window) {
+      throw ApiError.forbidden('La página no existe');
+    }
+    
+    if (window.status !== 'active') {
+      throw ApiError.forbidden('La página está inactiva');
+    }
+
+    // Then verify permissions to the window
     let hasAccess = false;
     for (const ur of activeRoles) {
       for (const rw of ur.role.windows) {   
-        if (
-          rw.window.windowName === windowName &&
-          rw.window.status === 'active' &&
-          rw.read === true   
-        ) {
+        if (rw.window.windowName === windowName && rw.read === true) {
           hasAccess = true;
           break;
         }
       }
     }
-
+    
     if (!hasAccess) {
-      throw ApiError.forbidden('El usuario no tiene permisos de lectura o la página está inactiva');
+      throw ApiError.forbidden('El usuario no tiene permisos de lectura');
     }
     //return data
     const { name, status, roles } = user;
