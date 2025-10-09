@@ -2,7 +2,7 @@
 // Adds input validation and consistent error responses.
 // Length limits and required fields come from Prisma schema.
 
-const { AssetsService } = require('./assetes.service');
+const { AssetsService } = require('./assets.service');
 
 // ---- validation helpers ----
 const MAX = {
