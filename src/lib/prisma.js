@@ -6,7 +6,7 @@ const globalForPrisma = global;
 const prisma =
   globalForPrisma.prisma ||
   new PrismaClient({
-    log: ['query', 'info', 'warn', 'error'], // 👈 logs completos
+    log: ['query', 'info', 'warn', 'error'], // logs complete
   });
 
 if (process.env.NODE_ENV !== 'production') {
