@@ -83,7 +83,15 @@ const AssetsRepository = {
       where: { idCategory: Number(idCategory) },
       select: { idCategory: true, status: true }
     });
-    return category && category.status === 'active';
+    
+    if (!category) {
+      return { exists: false, active: false };
+    }
+    
+    return { 
+      exists: true, 
+      active: category.status === 'active' 
+    };
   },
 
   // Check if headquarter exists and is active
@@ -92,7 +100,15 @@ const AssetsRepository = {
       where: { idHeadquarter: Number(idHeadquarter) },
       select: { idHeadquarter: true, status: true }
     });
-    return headquarter && headquarter.status === 'active';
+    
+    if (!headquarter) {
+      return { exists: false, active: false };
+    }
+    
+    return { 
+      exists: true, 
+      active: headquarter.status === 'active' 
+    };
   },
 
 };

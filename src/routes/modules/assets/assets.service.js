@@ -23,17 +23,23 @@ const AssetsService = {
   create: async (data) => {
     // Validate that category exists and is active
     if (data.idCategory) {
-      const categoryExists = await AssetsRepository.categoryExists(data.idCategory);
-      if (!categoryExists) {
-        throw new ValidationError('Category does not exist or is inactive');
+      const categoryStatus = await AssetsRepository.categoryExists(data.idCategory);
+      if (!categoryStatus.exists) {
+        throw new ValidationError('Category does not exist');
+      }
+      if (!categoryStatus.active) {
+        throw new ValidationError('Category is inactive');
       }
     }
 
     // Validate that headquarter exists and is active
     if (data.idHeadquarter) {
-      const headquarterExists = await AssetsRepository.headquarterExists(data.idHeadquarter);
-      if (!headquarterExists) {
-        throw new ValidationError('Headquarter does not exist or is inactive');
+      const headquarterStatus = await AssetsRepository.headquarterExists(data.idHeadquarter);
+      if (!headquarterStatus.exists) {
+        throw new ValidationError('Headquarter does not exist');
+      }
+      if (!headquarterStatus.active) {
+        throw new ValidationError('Headquarter is inactive');
       }
     }
 
@@ -44,17 +50,23 @@ const AssetsService = {
   update: async (idAsset, data) => {
     // Validate category if being updated
     if (data.idCategory) {
-      const categoryExists = await AssetsRepository.categoryExists(data.idCategory);
-      if (!categoryExists) {
-        throw new ValidationError('Category does not exist or is inactive');
+      const categoryStatus = await AssetsRepository.categoryExists(data.idCategory);
+      if (!categoryStatus.exists) {
+        throw new ValidationError('Category does not exist');
+      }
+      if (!categoryStatus.active) {
+        throw new ValidationError('Category is inactive');
       }
     }
 
     // Validate headquarter if being updated
     if (data.idHeadquarter) {
-      const headquarterExists = await AssetsRepository.headquarterExists(data.idHeadquarter);
-      if (!headquarterExists) {
-        throw new ValidationError('Headquarter does not exist or is inactive');
+      const headquarterStatus = await AssetsRepository.headquarterExists(data.idHeadquarter);
+      if (!headquarterStatus.exists) {
+        throw new ValidationError('Headquarter does not exist');
+      }
+      if (!headquarterStatus.active) {
+        throw new ValidationError('Headquarter is inactive');
       }
     }
 

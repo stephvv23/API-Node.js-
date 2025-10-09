@@ -33,6 +33,17 @@ function validateAssetBody(body = {}, { partial = false } = {}) {
   const errors = [];
   const data = {};
   const has = (k) => Object.prototype.hasOwnProperty.call(body, k);
+  
+  // Define allowed fields for asset creation/update
+  const allowedFields = ['idCategory', 'idHeadquarter', 'name', 'type', 'description', 'status'];
+  
+  // Check for unexpected fields and warn (but don't reject)
+  const bodyKeys = Object.keys(body);
+  const unexpectedFields = bodyKeys.filter(key => !allowedFields.includes(key));
+  if (unexpectedFields.length > 0) {
+    // Log unexpected fields but continue processing
+    console.warn('Unexpected fields in request body:', unexpectedFields);
+  }
 
   // idCategory (required on create)
   if (!partial || has('idCategory')) {
@@ -99,6 +110,9 @@ function validateAssetBody(body = {}, { partial = false } = {}) {
     } else {
       data.description = v;
     }
+  } else if (!partial) {
+    // For create operations, set default empty description if not provided
+    data.description = '';
   }
 
   // status (required on create, 'active' | 'inactive', max 25)
