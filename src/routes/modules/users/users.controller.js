@@ -2,7 +2,18 @@ const jwt = require('jsonwebtoken');
 const { UsersService } = require('./users.service');
 const ApiError = require('../../../utils/apiError'); 
 const { LoginAccessService  } = require('./loginAccess.service');
+const { SecurityLogService } = require('../../../services/securitylog.service');
 
+/**
+ * Helper function to format headquarters and roles for logging
+ * @param {Object} user - User object with headquarters and roles
+ * @returns {string} - Formatted string with headquarters and roles info
+ */
+const formatUserRelations = (user) => {
+  const sedes = user.headquarterUser?.map(h => `${h.headquarter.name} (ID: ${h.headquarter.idHeadquarter})`).join(', ') || 'Sin sedes';
+  const roles = user.roles?.map(r => `${r.role.rolName} (ID: ${r.role.idRole})`).join(', ') || 'Sin roles';
+  return `Sedes: [${sedes}], Roles: [${roles}]`;
+};
 
 /**
  * UsersController handles HTTP requests for user operations.
@@ -112,6 +123,22 @@ const UsersController = {
     
     try {
       const created = await UsersService.create({ email, name, password, status, idHeadquarter, idRole });
+      
+      // Log the user creation
+      const userEmail = req.user?.sub;
+      const userWithRelations = await UsersService.get(created.email);
+      await SecurityLogService.log({
+        email: userEmail,
+        action: 'CREATE',
+        description: 
+          `Se creó el usuario con los siguientes datos: ` +
+          `Email: "${created.email}", ` +
+          `Nombre: "${created.name}", ` +
+          `Estado: "${created.status}". ` +
+          `${formatUserRelations(userWithRelations)}.`,
+        affectedTable: 'User',
+      });
+
       res.status(201).json(created);
     } catch (e) {
       if (e && e.code === 'P2002')
@@ -139,7 +166,55 @@ const UsersController = {
     const { name, status, password, sedes, roles } = body;
 
     try {
+      // Get the previous user data for comparison
+      const previousUser = await UsersService.get(email);
+      if (!previousUser) {
+        return res.status(404).json({ message: 'Usuario no encontrado' });
+      }
+
       const updated = await UsersService.update(email, { name, status, password, sedes, roles });
+      
+      // Log the user update
+      const userEmail = req.user?.sub;
+      
+      // Check if only status changed from inactive to active (reactivation)
+      const onlyStatusChange = 
+        previousUser.status === 'inactive' &&
+        updated.status === 'active' &&
+        previousUser.name === updated.name;
+
+      if (onlyStatusChange) {
+        await SecurityLogService.log({
+          email: userEmail,
+          action: 'REACTIVATE',
+          description:
+            `Se reactivó el usuario con email "${email}". Datos completos:\n` +
+            `Email: "${updated.email}", ` +
+            `Nombre: "${updated.name}", ` +
+            `Estado: "${updated.status}". ` +
+            `${formatUserRelations(updated)}.`,
+          affectedTable: 'User',
+        });
+      } else {
+        await SecurityLogService.log({
+          email: userEmail,
+          action: 'UPDATE',
+          description:
+            `Se actualizó el usuario con email "${email}".\n` +
+            `Versión previa: ` +
+            `Email: "${previousUser.email}", ` +
+            `Nombre: "${previousUser.name}", ` +
+            `Estado: "${previousUser.status}". ` +
+            `${formatUserRelations(previousUser)}. \n` +
+            `Nueva versión: ` +
+            `Email: "${updated.email}", ` +
+            `Nombre: "${updated.name}", ` +
+            `Estado: "${updated.status}". ` +
+            `${formatUserRelations(updated)}. \n`,
+          affectedTable: 'User',
+        });
+      }
+
       res.json(updated);
     } catch (e) {
       if (e && e.code === 'P2025') {
@@ -158,7 +233,44 @@ const UsersController = {
     const { status } = req.body || {};
     if (!status) return res.status(400).json({ message: 'status es obligatorio' });
     try {
+      // Get the previous user data for comparison
+      const previousUser = await UsersService.get(email);
+      if (!previousUser) {
+        return res.status(404).json({ message: 'Usuario no encontrado' });
+      }
+
       const updated = await UsersService.updateStatus(email, status);
+      
+      // Log the status change
+      const userEmail = req.user?.sub;
+      
+      // Check if user was reactivated (from inactive to active)
+      if (previousUser.status === 'inactive' && status === 'active') {
+        await SecurityLogService.log({
+          email: userEmail,
+          action: 'REACTIVATE',
+          description:
+            `Se reactivó el usuario con email "${email}". Datos completos:\n` +
+            `Email: "${updated.email}", ` +
+            `Nombre: "${updated.name}", ` +
+            `Estado: "${updated.status}". ` +
+            `${formatUserRelations(updated)}.`,
+          affectedTable: 'User',
+        });
+      } else {
+        await SecurityLogService.log({
+          email: userEmail,
+          action: 'UPDATE',
+          description:
+            `Se actualizó el estado del usuario con email "${email}".\n` +
+            `Estado previo: "${previousUser.status}" ` +
+            `${formatUserRelations(previousUser)}.\n` +
+            `Nuevo estado: "${updated.status}" ` +
+            `${formatUserRelations(updated)}.`,
+          affectedTable: 'User',
+        });
+      }
+
       res.json(updated);
     } catch (e) {
       // handle case when user is not found
@@ -194,7 +306,27 @@ const UsersController = {
   remove: async (req, res) => {
     const { email } = req.params;
     try {
+      // Get the user data before deletion for logging
+      const userToDelete = await UsersService.get(email);
+      if (!userToDelete) {
+        return res.status(404).json({ message: 'Usuario no encontrado' });
+      }
+
       const updatedUser = await UsersService.delete(email);
+      
+      // Log the user deactivation
+      const userEmail = req.user?.sub;
+      await SecurityLogService.log({
+        email: userEmail,
+        action: 'INACTIVE',
+        description: `Se inactivó el usuario: ` +
+          `Email: "${email}", ` +
+          `Nombre: "${userToDelete.name}", ` +
+          `Estado: "${updatedUser.status}". ` +
+          `${formatUserRelations(userToDelete)}.`,
+        affectedTable: 'User',
+      });
+
       res.json({ 
         message: 'Usuario desactivado exitosamente',
         user: updatedUser 

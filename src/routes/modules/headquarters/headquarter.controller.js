@@ -1,5 +1,5 @@
 const { HeadquarterService } = require('./headquarter.service');
-const { SecurityLogService } = require('../cancer/securitylog.service');
+const { SecurityLogService } = require('../../../services/securitylog.service');
 
 const HeadquarterController = {
   // Lists all active headquarters
