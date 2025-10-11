@@ -1,4 +1,5 @@
 const { HeadquarterService } = require('./headquarter.service');
+const { SecurityLogService } = require('../cancer/securitylog.service');
 
 const HeadquarterController = {
   // Lists all active headquarters
@@ -80,6 +81,22 @@ const HeadquarterController = {
 
     try {
       const newHeadquarter = await HeadquarterService.create({ name, schedule, location, email, description, status });
+      const userEmail = req.user?.sub; 
+      await SecurityLogService.log({
+        email: userEmail,
+        action: 'CREATE',
+        description: 
+          `Se creó la sede con los siguientes datos: ` +
+          `ID: "${newHeadquarter.idHeadquarter}", ` +
+          `Nombre: "${newHeadquarter.name}", ` +
+          `Horario: "${newHeadquarter.schedule}", ` +
+          `Ubicación: "${newHeadquarter.location}", ` +
+          `Correo: "${newHeadquarter.email}", ` +
+          `Descripción: "${newHeadquarter.description}", ` +
+          `Estado: "${newHeadquarter.status}".`,
+        affectedTable: 'Headquarter',
+      });
+
       res.status(201).json({ ok: true, data: newHeadquarter });
     } catch (error) {
       console.error('[HEADQUARTERS] create error:', error);
@@ -128,9 +145,63 @@ const HeadquarterController = {
     }
 
     try {
+      // gets the previous headquarter data
+      const previousHeadquarter = await HeadquarterService.findById(id);
+
       const updatedHeadquarter = await HeadquarterService.update(id, { name, schedule, location, email, description, status });
       if (!updatedHeadquarter) {
         return res.status(404).json({ ok: false, message: `No se encontró la sede con el ID ${id}` });
+      }
+
+      // Register in the log the changes (previous and new)
+      const userEmail = req.user?.sub;
+
+      // verify if only the status changed from inactive to active
+      const onlyStatusChange =
+        previousHeadquarter.status === 'inactive' &&
+        updatedHeadquarter.status === 'active' &&
+        previousHeadquarter.name === updatedHeadquarter.name &&
+        previousHeadquarter.schedule === updatedHeadquarter.schedule &&
+        previousHeadquarter.location === updatedHeadquarter.location &&
+        previousHeadquarter.email === updatedHeadquarter.email &&
+        previousHeadquarter.description === updatedHeadquarter.description;
+
+      if (onlyStatusChange) {
+        await SecurityLogService.log({
+          email: userEmail,
+          action: 'REACTIVATE',
+          description:
+        `Se reactivó la sede con ID "${id}". Datos completos:\n` +
+        `Nombre: "${updatedHeadquarter.name}", ` +
+        `Horario: "${updatedHeadquarter.schedule}", ` +
+        `Ubicación: "${updatedHeadquarter.location}", ` +
+        `Correo: "${updatedHeadquarter.email}", ` +
+        `Descripción: "${updatedHeadquarter.description}", ` +
+        `Estado: "${updatedHeadquarter.status}".`,
+          affectedTable: 'Headquarter',
+        });
+      } else {
+        await SecurityLogService.log({
+          email: userEmail,
+          action: 'UPDATE',
+          description:
+        `Se actualizó la sede con ID "${id}".\n` +
+        `Versión previa: ` +
+        `Nombre: "${previousHeadquarter.name}", ` +
+        `Horario: "${previousHeadquarter.schedule}", ` +
+        `Ubicación: "${previousHeadquarter.location}", ` +
+        `Correo: "${previousHeadquarter.email}", ` +
+        `Descripción: "${previousHeadquarter.description}", ` +
+        `Estado: "${previousHeadquarter.status}". \n` +
+        `Nueva versión: ` +
+        `Nombre: "${updatedHeadquarter.name}", ` +
+        `Horario: "${updatedHeadquarter.schedule}", ` +
+        `Ubicación: "${updatedHeadquarter.location}", ` +
+        `Correo: "${updatedHeadquarter.email}", ` +
+        `Descripción: "${updatedHeadquarter.description}", ` +
+        `Estado: "${updatedHeadquarter.status}". \n`,
+          affectedTable: 'Headquarter',
+        });
       }
       res.json({ ok: true, data: updatedHeadquarter });
     } catch (error) {
@@ -148,9 +219,22 @@ const HeadquarterController = {
       if (!deletedHeadquarter) {
         return res.status(404).json({ ok: false, message: 'Sede no encontrada' });
       }
+      const userEmail = req.user?.sub; 
+      await SecurityLogService.log({
+        email: userEmail,
+        action: 'INACTIVE',
+        description: `Se inactivó la sede: `+
+        `ID "${id}", `+
+        `Nombre: "${deletedHeadquarter.name}", ` +
+        `Horario: "${deletedHeadquarter.schedule}", ` +
+        `Ubicación: "${deletedHeadquarter.location}", ` +
+        `Correo: "${deletedHeadquarter.email}", ` +
+        `Descripción: "${deletedHeadquarter.description}", ` +
+        `Estado: "${deletedHeadquarter.status}".`,
+        affectedTable: 'Headquarter',
+      });
       res.json({ ok: true, data: deletedHeadquarter });
     } catch (error) {
-      console.error('[HEADQUARTERS] remove error:', error);
       res.status(500).json({ ok: false, message: 'Error al eliminar la sede' });
     }
   }
