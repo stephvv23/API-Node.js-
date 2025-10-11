@@ -226,6 +226,7 @@ CREATE TABLE `Headquarter` (
     `description` VARCHAR(750) NOT NULL,
     `status` VARCHAR(25) NOT NULL DEFAULT 'active',
 
+    UNIQUE INDEX `Headquarter_name_key`(`name`),
     PRIMARY KEY (`idHeadquarter`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 

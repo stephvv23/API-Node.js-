@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const { UsersService } = require('./users.service');
 const ApiError = require('../../../utils/apiError'); 
+const { LoginAccessService  } = require('./loginAccess.service');
 
 
 /**
@@ -14,8 +15,24 @@ const UsersController = {
    */
   list: async (_req, res) => {
     const users = await UsersService.list();
-    res.json(users);
+
+    const mapped = users.map(u => ({
+      email: u.email,
+      name: u.name,
+      status: u.status,
+      roles: u.roles.map(r => ({
+        idRole: r.role.idRole,
+        rolName: r.role.rolName
+      })),
+      sedes: u.headquarterUser.map(h => ({
+        idHeadquarter: h.headquarter.idHeadquarter,
+        name: h.headquarter.name
+      }))
+    }));
+
+  res.json(mapped);
   },
+
 
   /**
    * Get a user by email.
@@ -24,9 +41,24 @@ const UsersController = {
   get: async (req, res) => {
     const { email } = req.params;
     const user = await UsersService.get(email);
+
     if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
-    res.json(user);
+
+    res.json({
+      email: user.email,
+      name: user.name,
+      status: user.status,
+      sedes: user.headquarterUser.map(h => ({
+        idHeadquarter: h.idHeadquarter,
+        name: h.headquarter.name
+      })),
+      roles: user.roles.map(r => ({
+        idRole: r.role.idRole,
+        name: r.role.rolName
+      }))
+    });
   },
+
 
   /**
    * Create a new user.
@@ -34,14 +66,52 @@ const UsersController = {
    * Required fields: email, name, password
    */
   create: async (req, res) => {
-    const { email, name, password, status, idHeadquarter } = req.body || {};
-    if (!email || !name || !password) {
+    const body = req.body || {};
+    
+    // verify that the body is a valid JSON
+    if (body.__jsonError) {
       return res
         .status(400)
-        .json({ message: 'email, name y password son obligatorios' });
+        .json({ message: 'JSON inválido. Verifique la sintaxis del request body.' });
     }
+    
+    const { email, name, password, status, idHeadquarter, idRole} = body;
+    
+    // validate the required fields (including empty strings)
+    if (!email || email.trim() === '') {
+      return res
+        .status(400)
+        .json({ message: 'El email es obligatorio' });
+    }
+    
+    if (!name || name.trim() === '') {
+      return res
+        .status(400)
+        .json({ message: 'El nombre es obligatorio' });
+    }
+    
+    if (!password || password.trim() === '') {
+      return res
+        .status(400)
+        .json({ message: 'La contraseña es obligatoria' });
+    }
+
+    // validate that a headquarter is provided and not empty
+    if (!idHeadquarter || (Array.isArray(idHeadquarter) && idHeadquarter.length === 0)) {
+      return res
+        .status(400)
+        .json({ message: 'El usuario debe tener al menos una sede asignada' });
+    }
+
+    // validate that a role is provided and not empty
+    if (!idRole || (Array.isArray(idRole) && idRole.length === 0)) {
+      return res
+        .status(400)
+        .json({ message: 'El usuario debe tener al menos un rol asignado' });
+    }
+    
     try {
-      const created = await UsersService.create({ email, name, password, status, idHeadquarter });
+      const created = await UsersService.create({ email, name, password, status, idHeadquarter, idRole });
       res.status(201).json(created);
     } catch (e) {
       if (e && e.code === 'P2002')
@@ -57,14 +127,24 @@ const UsersController = {
    */
   update: async (req, res) => {
     const { email } = req.params;
-    const { name, status, password } = req.body || {};
+    const body = req.body || {};
+    
+    // verify that the body is a valid JSON
+    if (body.__jsonError) {
+      return res
+        .status(400)
+        .json({ message: 'JSON inválido. Verifique la sintaxis del request body.' });
+    }
+    
+    const { name, status, password, sedes, roles } = body;
+
     try {
-      const updated = await UsersService.update(email, { name, status, password });
+      const updated = await UsersService.update(email, { name, status, password, sedes, roles });
       res.json(updated);
     } catch (e) {
-      // Handles case when user is not found
-      if (e && e.code === 'P2025')
+      if (e && e.code === 'P2025') {
         return res.status(404).json({ message: 'Usuario no encontrado' });
+      }
       throw e;
     }
   },
@@ -81,7 +161,7 @@ const UsersController = {
       const updated = await UsersService.updateStatus(email, status);
       res.json(updated);
     } catch (e) {
-      // Handles case when user is not found
+      // handle case when user is not found
       if (e && e.code === 'P2025')
         return res.status(404).json({ message: 'Usuario no encontrado' });
       throw e;
@@ -100,7 +180,7 @@ const UsersController = {
       const updated = await UsersService.updatePassword(email, password);
       res.json(updated);
     } catch (e) {
-      // Handles case when user is not found
+      // handle case when user is not found
       if (e && e.code === 'P2025')
         return res.status(404).json({ message: 'Usuario no encontrado' });
       throw e;
@@ -108,14 +188,17 @@ const UsersController = {
   },
 
   /**
-   * Delete a user by email.
+   * Soft delete a user by email (change status to inactive).
    * DELETE /users/:email
    */
   remove: async (req, res) => {
     const { email } = req.params;
     try {
-      await UsersService.delete(email);
-      res.status(204).send();
+      const updatedUser = await UsersService.delete(email);
+      res.json({ 
+        message: 'Usuario desactivado exitosamente',
+        user: updatedUser 
+      });
     } catch (e) {
       // Handles case when user is not found
       if (e && e.code === 'P2025')
@@ -138,12 +221,19 @@ const UsersController = {
     const user = await UsersService.login(email, password, windowName, clientDate);
 
     if (!process.env.JWT_SECRET) return next(ApiError.internal('Falta JWT_SECRET'));
-
+   // data of token - subject,name,roles. Email its sub because a standard of jwt
     const token = jwt.sign(
-      { sub: user.email },
-      process.env.JWT_SECRET,
-      { expiresIn: '1h' }
-    );
+    {
+      sub: user.email,
+      name: user.name,
+      roles: user.roles.map(ur => ur.role.rolName), // save the roles the user ['admin', 'editor']
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: '1h' });
+    // Log the login access
+      await LoginAccessService.log({
+        email: email,
+      });
 
     res.json({ message: 'Login exitoso', token, user });
   } catch (e) {

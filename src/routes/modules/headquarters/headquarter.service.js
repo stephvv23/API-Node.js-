@@ -5,9 +5,19 @@ const HeadquarterService = {
   listActive: async () => {
     return HeadquarterRepository.listActive();
   },
+  // Lists headquarters with optional status filter
+  list: async ({status = 'active', take, skip} = {}) => {
+        return HeadquarterRepository.list({status, take, skip});
+    },
   // Retrieves a headquarter by id
   findById: async (id) => {
     return HeadquarterRepository.findById(id);
+  },
+  findbyname: async (name) => {
+    return HeadquarterRepository.findbyname(name);
+  },
+  findbyemail: async (email) => {
+    return HeadquarterRepository.findbyemail(email);
   },
   // Creates a new headquarter
   create: async (data) => {
@@ -22,7 +32,6 @@ const HeadquarterService = {
   },
   // Updates headquarter data by id
   update: async (id, data) => {
-    // data debe incluir todos los campos a actualizar
     return HeadquarterRepository.update(id, data);
   },
   // Updates only the headquarter status by id

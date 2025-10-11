@@ -10,8 +10,18 @@ function readJsonBody(req) {
     req.on('data', (chunk) => { data += chunk; if (data.length > 1e6) req.destroy(); }); // ~1MB
     req.on('end', () => {
       if (!data) return resolve({});
-      try { resolve(JSON.parse(data)); }
-      catch { resolve({}); } // evita romper si no viene JSON válido
+      try { 
+        const parsed = JSON.parse(data);
+        resolve(parsed);
+      }
+      catch (error) { 
+        // if there is a JSON error, we return an object that indicates the error
+        resolve({ 
+          __jsonError: true, 
+          __jsonErrorMessage: 'JSON inválido: ' + error.message,
+          __rawData: data
+        }); 
+      }
     });
   });
 }

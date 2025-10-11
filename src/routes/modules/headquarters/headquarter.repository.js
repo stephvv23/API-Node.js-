@@ -1,5 +1,4 @@
-// Ajusta este require según dónde tengas el PrismaClient.
-// Si usas src/lib/prisma.js:
+
 let prisma = require('../../../lib/prisma.js');
 
 const baseSelect = {
@@ -13,11 +12,19 @@ const baseSelect = {
 };
 
 const HeadquarterRepository = {
-  // Lists all headquarters
-  list: () =>
-    prisma.headquarter.findMany({
-      select: baseSelect
-    }),
+  // Lists headquarters with optional status, pagination, and ordering
+    list: ({ status = 'active', take = 100, skip = 0 } = {}) => {
+      const where = status === 'all' ? {} : { status };
+      return prisma.headquarter.findMany({
+        where,
+        select: baseSelect,
+        orderBy: {
+          name: 'asc'
+        },
+        take,
+        skip,
+      });
+    },
   // Lists all active headquarters
   listActive: () =>
     prisma.headquarter.findMany({
@@ -30,6 +37,16 @@ const HeadquarterRepository = {
       where: { idHeadquarter: Number(id) },
       select: baseSelect
     }),
+    findbyname: (name) =>
+  prisma.headquarter.findUnique({
+    where: { name: name },
+    select: baseSelect
+  }),
+findbyemail: (email) =>
+  prisma.headquarter.findFirst({ 
+    where: { email: email },
+    select: baseSelect
+  }),
   // Creates a new headquarter
   create: (data) =>
     prisma.headquarter.create({
