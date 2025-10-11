@@ -20,8 +20,8 @@ async function main() {
     )
   );
 
-  /* ===================== USUARIOS / ROLES ===================== */
-  // Hashear las contraseñas antes de guardarlas
+  /* ===================== Users / Roles ===================== */
+  // Hash the passwords before storing them
   const adminPassword = await bcrypt.hash('Admin#123', 10);
   const coordinatorPassword = await bcrypt.hash('Coord#123', 10);
 
@@ -50,7 +50,7 @@ async function main() {
     ],
   });
 
-  // Permisos RoleWindow
+  // Permissions RoleWindow
   await Promise.all(
     windows.map((win) =>
       prisma.roleWindow.create({
@@ -122,24 +122,10 @@ async function main() {
     data: [
       {
         email: admin.email,
-        date: new Date('2025-08-30T09:00:05.000Z'),
-        action: 'LOGIN',
-        description: 'Inicio de sesión exitoso',
-        affectedTable: 'User',
-      },
-      {
-        email: admin.email,
         date: new Date('2025-08-30T09:05:00.000Z'),
         action: 'CREATE',
         description: 'Registro de sede y categorías iniciales',
         affectedTable: 'Headquarter',
-      },
-      {
-        email: coordinator.email,
-        date: new Date('2025-08-30T09:16:00.000Z'),
-        action: 'LOGIN',
-        description: 'Inicio de sesión exitoso',
-        affectedTable: 'User',
       },
     ],
   });
@@ -338,8 +324,8 @@ async function main() {
     },
   });
 
-  /* ===================== RELACIONES / PUENTES ===================== */
-  // Usuarios por sede
+  /* ===================== RELATIONS / BRIDGES ===================== */
+  // Users by headquarters
   await prisma.headquarterUser.createMany({
     data: [
       { idHeadquarter: hq1.idHeadquarter, email: admin.email },
@@ -348,12 +334,12 @@ async function main() {
     ],
   });
 
-  // Voluntarios por sede
+  // Volunteers by headquarters
   await prisma.headquarterVolunteer.create({
     data: { idHeadquarter: hq1.idHeadquarter, idVolunteer: volunteer.idVolunteer },
   });
 
-  // Teléfonos por sede
+  // Phones by headquarters
   await prisma.headquarterPhone.createMany({
     data: [
       { idHeadquarter: hq1.idHeadquarter, idPhone: phoneObjs[0].idPhone }, // 8888-1234
@@ -362,7 +348,7 @@ async function main() {
     ],
   });
 
-  // Teléfonos de personas
+  // Phones of people
   await prisma.phoneSurvivor.create({
     data: { idPhone: phoneObjs[3].idPhone, idSurvivor: survivor.idSurvivor }, // 6050-1234
   });
@@ -373,7 +359,7 @@ async function main() {
     data: { idGodparent: godparent.idGodparent, idPhone: phoneObjs[5].idPhone }, // 8911-2233
   });
 
-  // Contactos de emergencia
+  // Emergency contacts
   const [ec1, ec2] = await Promise.all([
     prisma.emergencyContact.create({
       data: {
@@ -407,7 +393,7 @@ async function main() {
     ],
   });
 
-  // Proveedores por categoría / teléfonos / sede
+  // Suppliers by category / phones / headquarters
   await prisma.categorySupplier.createMany({
     data: [
       { idCategory: cat1.idCategory, idSupplier: sup1.idSupplier }, // Meditech → Equipos médicos
