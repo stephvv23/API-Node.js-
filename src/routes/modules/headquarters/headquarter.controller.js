@@ -223,7 +223,7 @@ const HeadquarterController = {
       await SecurityLogService.log({
         email: userEmail,
         action: 'INACTIVE',
-        description: `Se inactivo la sede: `+
+        description: `Se inactivó la sede: `+
         `ID "${id}", `+
         `Nombre: "${deletedHeadquarter.name}", ` +
         `Horario: "${deletedHeadquarter.schedule}", ` +
