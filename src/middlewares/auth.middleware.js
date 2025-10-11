@@ -2,7 +2,7 @@
 const jwt = require('jsonwebtoken');
 const ApiError = require('../utils/apiError');
 
-// Autenticación: valida JWT y mete el usuario en ctx
+// authentication validate JWT and put the user in ctx
 // auth.middleware.js
 function authenticate(handler) {
   return async (req, res, next) => {
@@ -13,7 +13,7 @@ function authenticate(handler) {
 
     try {
       const payload = jwt.verify(token, process.env.JWT_SECRET);
-      req.user = payload; // ahora disponible en controllers
+      req.user = payload; // now available in controllers
     } catch (err) {
       return next(ApiError.unauthorized('Token inválido o expirado'));
     }
@@ -23,7 +23,7 @@ function authenticate(handler) {
 }
 
 
-// Autorización: verifica que el usuario tenga rol permitido
+// Authorization: verify that the user has the allowed role
 function authorize(...allowedRoles) {
   return (handler) => {
     return async (req, res, next) => {

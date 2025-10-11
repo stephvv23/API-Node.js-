@@ -16,9 +16,9 @@ const UsersRepository = {
     name: true,
     status: true,
     roles: {
-      select: {role: {select: {idRole: true,rolName: true}}}},
+      select: {idRole: true, role: {select: {idRole: true,rolName: true}}}},
     headquarterUser: {  
-      select: {headquarter: {select: {idHeadquarter: true,name: true}}}}}}),
+      select: {idHeadquarter: true, headquarter: {select: {idHeadquarter: true,name: true}}}}}}),
 
   create: (data) => prisma.user.create({ data, select: baseSelect }),
   
@@ -44,10 +44,52 @@ const UsersRepository = {
   assignRoles: (email, ids) => prisma.userRole.createMany({data: ids.map((id) => ({ email, idRole: id })),skipDuplicates: true}),
 
   // Finds a user by email (primary key)
-  findByEmailWithHeadquarters: (email) => prisma.user.findUnique({where: { email },include: {headquarterUser: { include: { headquarter: true } },roles: { include: { role: true } }}}),
+  findByEmailWithHeadquarters: (email) => prisma.user.findUnique({where: { email },include: {headquarterUser: { select: { idHeadquarter: true, headquarter: true } },roles: { select: { idRole: true, role: true } }}}),
    
   // Login roles and permitions the window
   findAuthWithRoles: (email) =>prisma.user.findUnique({where: { email }, select: {email: true, name: true, status: true, password: true, roles: {include: {role: {select: {idRole: true,rolName: true,status: true,windows: { include: { window: true }}}}}}}}),
+  
+  // verify that a headquarter exists and is active
+  verifyHeadquarterExists: (idHeadquarter) => prisma.headquarter.findFirst({
+    where: { 
+      idHeadquarter: parseInt(idHeadquarter),
+      status: 'active'
+    },
+    select: { idHeadquarter: true }
+  }),
+
+  // check if headquarter exists (regardless of status)
+  checkHeadquarterExists: (idHeadquarter) => prisma.headquarter.findFirst({
+    where: { 
+      idHeadquarter: parseInt(idHeadquarter)
+    },
+    select: { idHeadquarter: true, status: true }
+  }),
+
+  // verify that a role exists and is active
+  verifyRoleExists: (idRole) => prisma.role.findFirst({
+    where: { 
+      idRole: parseInt(idRole),
+      status: 'active'
+    },
+    select: { idRole: true }
+  }),
+
+  // check if role exists (regardless of status)
+  checkRoleExists: (idRole) => prisma.role.findFirst({
+    where: { 
+      idRole: parseInt(idRole)
+    },
+    select: { idRole: true, status: true }
+  }),
+
+  // check if window exists (regardless of status)
+  checkWindowExists: (windowName) => prisma.window.findFirst({
+    where: { 
+      windowName: windowName
+    },
+    select: { idWindow: true, windowName: true, status: true }
+  }),
   
 };
 
