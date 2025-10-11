@@ -31,7 +31,7 @@ const UsersRepository = {
   // Deletes a user by email
   remove: (email) => prisma.user.delete({ where: { email }, select: baseSelect }),
 
-  //relational tables with user. (headquarters and roles)
+  //relational tables with user (headquarters and roles)
 
   createHeadquarterRelation: (email, idHeadquarter) => prisma.headquarterUser.create({data: {email,idHeadquarter,},}),
 
