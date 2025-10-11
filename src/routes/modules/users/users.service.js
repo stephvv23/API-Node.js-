@@ -275,9 +275,7 @@ const UsersService = {
 
     // verify password
     const ok = await bcrypt.compare(password, user.password);
-    
-    // this line give me some errors
-    //if (!ok) throw ApiError.unauthorized('Credenciales inválidas');
+    if (!ok) throw ApiError.unauthorized('Credenciales inválidas');
 
     // verify rol
     if (!user.roles || user.roles.length === 0) {
