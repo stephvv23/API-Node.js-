@@ -224,7 +224,7 @@ const HeadquarterController = {
         email: userEmail,
         action: 'INACTIVE',
         description: `Se inactivo la sede: `+
-        `ID "${id}" ,`+
+        `ID "${id}", `+
         `Nombre: "${deletedHeadquarter.name}", ` +
         `Horario: "${deletedHeadquarter.schedule}", ` +
         `Ubicación: "${deletedHeadquarter.location}", ` +
