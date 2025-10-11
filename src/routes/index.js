@@ -12,6 +12,7 @@ const { compilePath, specificityScore } = require('./path');
 // 1) Import routes from all modules
 const usersRoutes = require('./modules/users/users.routes');
 const headquartersRoutes = require('./modules/headquarters/headquarter.routes');
+const assetsRoutes = require('./modules/assets/assets.routes');
 const cancerRoutes = require('./modules/cancer/cancer.routes');
 const categoriesRoutes = require('./modules/Category/category.routes');
 const roleRoutes = require('./modules/Role/role.routes');
