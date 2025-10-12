@@ -1,9 +1,9 @@
-/* Helper for index. 
+/*index collaborator. 
 Routing utilities:
 
 compilePath('/api/users/:email') → { regex: /^\/api\/users\/([^/]+)$/, names: ['email'] }
 
-specificityScore(path) to sort routes (more static > fewer params).
+specificityScore(path) to sort routes (more static > fewer parameters).
 Avoids writing RegExp by hand and ensures named params.
 */
 function compilePath(template) {

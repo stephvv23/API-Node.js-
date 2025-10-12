@@ -1,7 +1,7 @@
-// Used as a route aggregator. Imports routes from each module,
-// compiles them to RegExp (using path.js), sorts by specificity
-// (so "/login" wins over "/:email") and matches each request.
-// Passes parsed params, query and body to the handlers.
+// Will be used as Route Aggregator. Imports routes from each module, 
+// compiles them to RegExp (with path.js), sorts by specificity 
+// (so that /login beats /:email) and does the matching for each request. 
+// Passes to handlers params, query and body already parsed.
 
 const { URL } = require('url');
 const { readJsonBody } = require('../utils/body');
