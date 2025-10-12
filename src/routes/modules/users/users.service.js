@@ -158,7 +158,9 @@ const UsersService = {
         roleIds.map(id => parseInt(id))
       );
     }
-    return user;
+    
+    // Return the complete user data with relations
+    return UsersRepository.findByEmailWithHeadquarters(user.email);
   },
 
   // Updates user data by email; hashes password if provided
@@ -246,8 +248,11 @@ const UsersService = {
 
 
   // Updates only the user's status
-  updateStatus: (email, status) =>
-    UsersRepository.update(email, { status }),
+  updateStatus: async (email, status) => {
+    await UsersRepository.update(email, { status });
+    // Return the updated user with relations
+    return UsersRepository.findByEmailWithHeadquarters(email);
+  },
 
   // Updates only the user's password, hashes before saving
   updatePassword: async (email, password) => {

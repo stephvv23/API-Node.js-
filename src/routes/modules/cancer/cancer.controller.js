@@ -1,5 +1,5 @@
 const { CancerService } = require('./cancer.service');
-const { SecurityLogService } = require('./securitylog.service');
+const { SecurityLogService } = require('../../../services/securitylog.service');
 
 const CancerController = {
 
