@@ -68,11 +68,9 @@ const UsersController = {
 
     // verify that the body is a valid JSON
     if (body.__jsonError) {
-      return res
-        .status(400)
-        .json({
-          message: "JSON inválido. Verifique la sintaxis del request body.",
-        });
+      return res.status(400).json({
+        message: "JSON inválido. Verifique la sintaxis del request body.",
+      });
     }
 
     const { email, name, password, status, idHeadquarter, idRole } = body;
@@ -134,11 +132,9 @@ const UsersController = {
 
     // verify that the body is a valid JSON
     if (body.__jsonError) {
-      return res
-        .status(400)
-        .json({
-          message: "JSON inválido. Verifique la sintaxis del request body.",
-        });
+      return res.status(400).json({
+        message: "JSON inválido. Verifique la sintaxis del request body.",
+      });
     }
 
     const { name, status, password, sedes, roles } = body;
@@ -240,35 +236,42 @@ const UsersController = {
         clientDate
       );
 
+      if (!user) return next(ApiError.unauthorized("Credenciales inválidas"));
+
       // obtain the roles of the user
       const roleIds = user.roles.map((r) => r.idRole);
 
       // Consult the permissions of the roles of the user
       const permissions = await prisma.roleWindow.findMany({
-        where: {
-          idRole: { in: roleIds },
-        },
-        select: {
-          window: {
-            select: { windowName: true },
-          },
-          create: true,
-          read: true,
-          update: true,
-          delete: true,
+        where: { idRole: { in: roleIds } },
+        include: {
+          window: true, // include window details
         },
       });
 
-      // transform all the permissions to a simple array
-      // e.g. [{window:'users', create:true, read:true, update:false, delete:false}, {...}]
-      // if the user has multiple roles, permissions can be duplicated for the same window
+      //transform permissions to a more friendly format
       const permissionsList = permissions.map((p) => ({
-        window: p.window.name,
-        create: Boolean(p.create),
-        read: Boolean(p.read),
-        update: Boolean(p.update),
-        delete: Boolean(p.delete),
+        window: p.window?.windowName || `id:${p.idWindow}`, // if window is null, use idWindow
+        create: !!p.create,
+        read: !!p.read,
+        update: !!p.update,
+        delete: !!p.delete,
       }));
+
+      // Merge permissions by window, if multiple roles have permissions for the same window
+      const mergedPermissions = Object.values(
+        permissionsList.reduce((acc, p) => {
+          const key = p.window;
+          if (!acc[key]) acc[key] = { ...p };
+          else {
+            acc[key].create ||= p.create;
+            acc[key].read ||= p.read;
+            acc[key].update ||= p.update;
+            acc[key].delete ||= p.delete;
+          }
+          return acc;
+        }, {})
+      );
 
       if (!process.env.JWT_SECRET)
         return next(ApiError.internal("Falta JWT_SECRET"));
@@ -278,8 +281,7 @@ const UsersController = {
           sub: user.email,
           name: user.name,
           roles: user.roles.map((ur) => ur.role.rolName), // save the roles the user ['admin', 'editor']
-          permissions: permissionsList   // here go all the details about permissions
-
+          permissions: permissionsList, // here go all the details about permissions
         },
         process.env.JWT_SECRET,
         { expiresIn: "1h" }
