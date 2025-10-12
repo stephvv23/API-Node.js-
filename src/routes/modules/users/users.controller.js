@@ -145,7 +145,6 @@ const UsersController = {
       
       // Log the user creation
       const userEmail = req.user?.sub;
-      const userWithRelations = await UsersService.get(created.email);
       await SecurityLogService.log({
         email: userEmail,
         action: 'CREATE',
@@ -154,7 +153,7 @@ const UsersController = {
           `Email: "${created.email}", ` +
           `Nombre: "${created.name}", ` +
           `Estado: "${created.status}". ` +
-          `${formatUserRelations(userWithRelations)}.`,
+          `${formatUserRelations(created)}.`,
         affectedTable: 'User',
       });
 

@@ -158,7 +158,9 @@ const UsersService = {
         roleIds.map(id => parseInt(id))
       );
     }
-    return user;
+    
+    // Return the complete user data with relations
+    return UsersRepository.findByEmailWithHeadquarters(user.email);
   },
 
   // Updates user data by email; hashes password if provided
