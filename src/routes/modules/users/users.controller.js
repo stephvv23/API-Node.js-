@@ -205,12 +205,12 @@ const UsersController = {
             `Email: "${previousUser.email}", ` +
             `Nombre: "${previousUser.name}", ` +
             `Estado: "${previousUser.status}". ` +
-            `${formatUserRelations(previousUser)}. \n` +
+            `${formatUserRelations(previousUser)}.\n` +
             `Nueva versión: ` +
             `Email: "${updated.email}", ` +
             `Nombre: "${updated.name}", ` +
             `Estado: "${updated.status}". ` +
-            `${formatUserRelations(updated)}. \n`,
+            `${formatUserRelations(updated)}.\n`,
           affectedTable: 'User',
         });
       }
