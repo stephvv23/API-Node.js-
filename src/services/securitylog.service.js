@@ -1,4 +1,4 @@
-const prisma = require('../../../lib/prisma.js');
+const prisma = require('../lib/prisma.js');
 
 const SecurityLogService = {
   log: async ({ email, action, description, affectedTable }) => {

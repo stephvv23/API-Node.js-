@@ -396,8 +396,8 @@ async function main() {
   // Suppliers by category / phones / headquarters
   await prisma.categorySupplier.createMany({
     data: [
-      { idCategory: cat1.idCategory, idSupplier: sup1.idSupplier }, // Meditech → Equipos médicos
-      { idCategory: cat2.idCategory, idSupplier: sup2.idSupplier }, // Muebles PZ → Mobiliario
+      { idCategory: cat1.idCategory, idSupplier: sup1.idSupplier }, // Meditech → Medical equipment
+      { idCategory: cat2.idCategory, idSupplier: sup2.idSupplier }, // Muebles PZ → Furniture
     ],
   });
 
