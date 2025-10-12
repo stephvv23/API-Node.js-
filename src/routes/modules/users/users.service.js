@@ -246,8 +246,11 @@ const UsersService = {
 
 
   // Updates only the user's status
-  updateStatus: (email, status) =>
-    UsersRepository.update(email, { status }),
+  updateStatus: async (email, status) => {
+    await UsersRepository.update(email, { status });
+    // Return the updated user with relations
+    return UsersRepository.findByEmailWithHeadquarters(email);
+  },
 
   // Updates only the user's password, hashes before saving
   updatePassword: async (email, password) => {

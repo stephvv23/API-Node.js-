@@ -16,6 +16,25 @@ const formatUserRelations = (user) => {
 };
 
 /**
+ * Helper function to compare arrays of objects by a key
+ * @param {Array} arr1 - First array to compare
+ * @param {Array} arr2 - Second array to compare
+ * @param {string} idKey - Key to use for comparison
+ * @returns {boolean} - True if arrays contain the same items by ID
+ */
+const arraysEqualById = (arr1, arr2, idKey) => {
+  if (!Array.isArray(arr1)) arr1 = [];
+  if (!Array.isArray(arr2)) arr2 = [];
+  const ids1 = arr1.map(item => item[idKey]).sort();
+  const ids2 = arr2.map(item => item[idKey]).sort();
+  if (ids1.length !== ids2.length) return false;
+  for (let i = 0; i < ids1.length; i++) {
+    if (ids1[i] !== ids2[i]) return false;
+  }
+  return true;
+};
+
+/**
  * UsersController handles HTTP requests for user operations.
  * Each method corresponds to a REST endpoint and delegates logic to UsersService.
  */
@@ -181,7 +200,10 @@ const UsersController = {
       const onlyStatusChange = 
         previousUser.status === 'inactive' &&
         updated.status === 'active' &&
-        previousUser.name === updated.name;
+        previousUser.name === updated.name &&
+        previousUser.password === updated.password &&
+        arraysEqualById(previousUser.headquarterUser, updated.headquarterUser, 'idHeadquarter') &&
+        arraysEqualById(previousUser.roles, updated.roles, 'idRole');
 
       if (onlyStatusChange) {
         await SecurityLogService.log({
@@ -239,7 +261,7 @@ const UsersController = {
         return res.status(404).json({ message: 'Usuario no encontrado' });
       }
 
-      const updated = await UsersService.updateStatus(email, status);
+      const updatedWithRelations = await UsersService.updateStatus(email, status);
       
       // Log the status change
       const userEmail = req.user?.sub;
@@ -251,10 +273,10 @@ const UsersController = {
           action: 'REACTIVATE',
           description:
             `Se reactivó el usuario con email "${email}". Datos completos:\n` +
-            `Email: "${updated.email}", ` +
-            `Nombre: "${updated.name}", ` +
-            `Estado: "${updated.status}". ` +
-            `${formatUserRelations(updated)}.`,
+            `Email: "${updatedWithRelations.email}", ` +
+            `Nombre: "${updatedWithRelations.name}", ` +
+            `Estado: "${updatedWithRelations.status}". ` +
+            `${formatUserRelations(updatedWithRelations)}.`,
           affectedTable: 'User',
         });
       } else {
@@ -265,13 +287,13 @@ const UsersController = {
             `Se actualizó el estado del usuario con email "${email}".\n` +
             `Estado previo: "${previousUser.status}" ` +
             `${formatUserRelations(previousUser)}.\n` +
-            `Nuevo estado: "${updated.status}" ` +
-            `${formatUserRelations(updated)}.`,
+            `Nuevo estado: "${updatedWithRelations.status}" ` +
+            `${formatUserRelations(updatedWithRelations)}.`,
           affectedTable: 'User',
         });
       }
 
-      res.json(updated);
+      res.json(updatedWithRelations);
     } catch (e) {
       // handle case when user is not found
       if (e && e.code === 'P2025')

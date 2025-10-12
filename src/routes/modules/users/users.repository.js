@@ -46,7 +46,17 @@ const UsersRepository = {
   assignRoles: (email, ids) => prisma.userRole.createMany({data: ids.map((id) => ({ email, idRole: id })),skipDuplicates: true}),
 
   // Finds a user by email (primary key)
-  findByEmailWithHeadquarters: (email) => prisma.user.findUnique({where: { email },include: {headquarterUser: { select: { idHeadquarter: true, headquarter: true } },roles: { select: { idRole: true, role: true } }}}),
+  findByEmailWithHeadquarters: (email) => prisma.user.findUnique({
+    where: { email },
+    include: {
+      headquarterUser: { 
+        select: { idHeadquarter: true, headquarter: true } 
+      },
+      roles: { 
+        select: { idRole: true, role: true } 
+      }
+    }
+  }),
    
   // Login roles and permitions the window
   findAuthWithRoles: (email) =>prisma.user.findUnique({where: { email }, select: {email: true, name: true, status: true, password: true, roles: {include: {role: {select: {idRole: true,rolName: true,status: true,windows: { include: { window: true }}}}}}}}),
