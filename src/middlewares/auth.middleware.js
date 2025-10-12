@@ -42,13 +42,16 @@ function authorize(...allowedRoles) {
 // Authorization by window and action permissions
 // windowName: string (e.g. 'Cancers' or 'Users')
 // actions: any of 'create','read','update','delete'
+// NOTE: This method fetches permissions from DB in real-time, ignoring JWT roles
+// This ensures that permission changes are applied immediately without requiring JWT refresh
 function authorizeWindow(windowName, ...actions) {
   return (handler) => {
     return async (req, res, next) => {
       if (!req.user) return next(ApiError.unauthorized('Usuario no autenticado'));
 
       try {
-        // JWT has roles as string array, need to fetch permissions from DB
+        // We only need from JWT to provide user identity (email/sub), actual permissions are fetched from DB
+        // This ensures real-time permission updates when roles change in the database
         const auth = await UsersRepository.findAuthWithRoles(req.user.sub || req.user.email);
         
         if (!auth || !Array.isArray(auth.roles)) {
