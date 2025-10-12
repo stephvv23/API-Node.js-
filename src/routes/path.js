@@ -8,7 +8,7 @@ Avoids writing RegExp by hand and ensures named params.
 */
 function compilePath(template) {
   const names = [];
-  // ensure no trailing slash (except root)
+  // ensure no trailing slash (except for the root)
   let t = template.replace(/\/+$/, '') || '/';
   const regexStr = '^' + t.replace(/:[^/]+/g, (m) => {
     names.push(m.slice(1));
@@ -17,7 +17,7 @@ function compilePath(template) {
   return { regex: new RegExp(regexStr), names };
 }
 
-// Heuristic for sorting: first more specific routes (fewer :params)
+// Heuristic to sort: put more specific routes first (fewer :params)
 function specificityScore(path) {
   const parts = path.split('/').filter(Boolean);
   const params = parts.filter(p => p.startsWith(':')).length;

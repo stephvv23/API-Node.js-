@@ -1,6 +1,5 @@
 // NOTE: This imports Prisma client from lib/prisma.js (not from ../../prisma/client or .ts)
 const prisma = require('../../../lib/prisma.js'); 
-
 // Fields to select for user queries (email, name, status)
 const baseSelect = { email: true, name: true, status: true };
 
@@ -31,7 +30,10 @@ const UsersRepository = {
   // Deletes a user by email
   remove: (email) => prisma.user.delete({ where: { email }, select: baseSelect }),
 
-  //relational tables with user (headquarters and roles)
+  // returns headquarters related to user by using email
+  getuserHeadquartersByEmail: (email) => prisma.headquarterUser.findMany({ where: { email }, include: { headquarter: true }, }),
+
+  //relational tables with user. (headquarters and roles)
 
   createHeadquarterRelation: (email, idHeadquarter) => prisma.headquarterUser.create({data: {email,idHeadquarter,},}),
 
@@ -44,8 +46,7 @@ const UsersRepository = {
   assignRoles: (email, ids) => prisma.userRole.createMany({data: ids.map((id) => ({ email, idRole: id })),skipDuplicates: true}),
 
   // Finds a user by email (primary key)
-  findByEmailWithHeadquarters: (email) => prisma.user.findUnique({where: { email },include: {headquarterUser: { select: { idHeadquarter: true, headquarter: true } },roles: { select: { idRole: true, role: true } }}}),
-   
+  findByEmailWithHeadquarters: (email) => prisma.user.findUnique({ where: { email },include: {headquarterUser: { select: { idHeadquarter: true, headquarter: true } },roles: { select: { idRole: true, role: true } }}}),
   // Login roles and permitions the window
   findAuthWithRoles: (email) =>prisma.user.findUnique({where: { email }, select: {email: true, name: true, status: true, password: true, roles: {include: {role: {select: {idRole: true,rolName: true,status: true,windows: { include: { window: true }}}}}}}}),
   
