@@ -18,6 +18,8 @@ const categoriesRoutes = require('./modules/Category/category.routes');
 const roleRoutes = require('./modules/Role/role.routes');
 const roleWindowsRoutes = require('./modules/RoleWindows/roleWindows.routes');
 const emergencyContactRoutes = require('./modules/emergencyContact/emergencyContact.routes');
+const permissionRoutes = require('./modules/auth/permission.routes');
+
 // const patientsRoutes = require('./modules/patients.routes');
 // 2) Concatenate and compile paths → { method, pattern, paramNames, handler }
 function buildRoutes() {
@@ -25,14 +27,12 @@ function buildRoutes() {
     ...usersRoutes,
     ...headquartersRoutes,
     ...assetsRoutes,
-
     ...cancerRoutes,  
     ...categoriesRoutes,
     ...roleRoutes,
     ...roleWindowsRoutes,
     ...emergencyContactRoutes,
-    // ...patientsRoutes,
-    // etc.
+    ...permissionRoutes,
   ];
 
   // Sort by specificity ("/login" before "/:email")

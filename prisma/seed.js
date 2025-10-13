@@ -15,8 +15,27 @@ async function main() {
   });
 
   const windows = await Promise.all(
-    ['Assets', 'Suppliers', 'Survivors', 'Activities', 'Users', 'Categories', 'headquarters', 'EmergencyContacts', 'Volunteers', 'GodParents', 'Cancers', 'Phones', 'Roles'].map((w) =>
-      prisma.window.create({ data: { windowName: w, status: 'active' } })
+    [
+      'Activos',
+      'Supervivientes',
+      'Proveedores',
+      'Actividades',
+      'PrincipalPage',
+      'Usuarios',
+      'Cancers',
+      'ContactosEmergencia',
+      'Sedes',
+      'Categorias',
+      'Voluntarios',
+      'Padrinos',
+      'Roles',
+    ].map((w) =>
+      prisma.window.create({
+        data: {
+          windowName: w,
+          status: 'active',
+        },
+      })
     )
   );
 
