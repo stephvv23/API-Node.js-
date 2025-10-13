@@ -1,9 +1,8 @@
-// src/routes/modules/auth/permission.repository.js
 const prisma = require("../../../lib/prisma.js");
 
 const PermissionRepository = {
   async getWindowsForUser(email) {
-    // 1️⃣ Buscar los roles del usuario
+    // search roles for that user
     const roles = await prisma.userRole.findMany({
       where: { email },
       select: { idRole: true },
@@ -12,7 +11,7 @@ const PermissionRepository = {
     const roleIds = roles.map((r) => r.idRole);
     if (roleIds.length === 0) return [];
 
-    // 2️⃣ Buscar las ventanas asociadas a esos roles
+    // search windows for those roles
     const rows = await prisma.roleWindow.findMany({
       where: { idRole: { in: roleIds } },
       select: {
@@ -30,12 +29,12 @@ const PermissionRepository = {
       },
     });
 
-    // 3️⃣ Agrupar por ventana (fusionar permisos si tiene varios roles)
+    // merge permissions for the same window
     const combined = new Map();
 
     for (const r of rows) {
       const w = r.window;
-      const key = w.idWindow.toString(); // Usar idWindow como clave única
+      const key = w.idWindow.toString();
 
       const prev = combined.get(key) || {
         idWindow: w.idWindow,
