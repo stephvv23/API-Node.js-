@@ -10,3 +10,4 @@ module.exports = [
   { method: 'PUT',    path: '/api/assets/:idAsset',    handler: authenticate(AssetsController.update) },
   { method: 'DELETE', path: '/api/assets/:idAsset',    handler: authenticate(AssetsController.delete) },
 ];
+//alackofbar
