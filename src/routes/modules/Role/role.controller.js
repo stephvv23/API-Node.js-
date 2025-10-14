@@ -1,6 +1,6 @@
 // Controller for Role entity. Handles HTTP requests, validation, and calls the service layer.
 const { roleService } = require('./role.service');
-const ApiError = require('../../../utils/apiError')
+const ApiError = require('../../../utils/apiResponse').ApiError;
 
 const roleController = {
     // List roles, with status filter and validation.

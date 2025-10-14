@@ -1,6 +1,6 @@
 // Controller for Category entity. Handles HTTP requests and responses, input validation, and calls the service layer.
 const { categoryService } = require('./category.service');
-const ApiError = require('../../../utils/apiError');
+const ApiError = require('../../../utils/apiResponse').ApiError;
 
 const categoryController = {
     // List categories, with status filter and validation.
