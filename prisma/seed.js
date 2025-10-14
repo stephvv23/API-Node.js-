@@ -15,8 +15,27 @@ async function main() {
   });
 
   const windows = await Promise.all(
-    ['Assets', 'Suppliers', 'Survivors', 'Activities', 'Users', 'PrincipalPage', 'Categories', 'headquarters', 'EmergencyContacts', 'Volunteers', 'GodParents', 'Cancers', 'Phones', 'Roles'].map((w) =>
-      prisma.window.create({ data: { windowName: w, status: 'active' } })
+    [
+      'Activos',
+      'Supervivientes',
+      'Proveedores',
+      'Actividades',
+      'PrincipalPage',
+      'Usuarios',
+      'Cancers',
+      'ContactosEmergencia',
+      'Sedes',
+      'Categorias',
+      'Voluntarios',
+      'Padrinos',
+      'Roles',
+    ].map((w) =>
+      prisma.window.create({
+        data: {
+          windowName: w,
+          status: 'active',
+        },
+      })
     )
   );
 
@@ -396,8 +415,8 @@ async function main() {
   // Suppliers by category / phones / headquarters
   await prisma.categorySupplier.createMany({
     data: [
-      { idCategory: cat1.idCategory, idSupplier: sup1.idSupplier }, // Meditech → Equipos médicos
-      { idCategory: cat2.idCategory, idSupplier: sup2.idSupplier }, // Muebles PZ → Mobiliario
+      { idCategory: cat1.idCategory, idSupplier: sup1.idSupplier }, // Meditech → Medical equipment
+      { idCategory: cat2.idCategory, idSupplier: sup2.idSupplier }, // Muebles PZ → Furniture
     ],
   });
 

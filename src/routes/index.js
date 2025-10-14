@@ -1,7 +1,7 @@
-// Used as a route aggregator. Imports routes from each module,
-// compiles them to RegExp (using path.js), sorts by specificity
-// (so "/login" wins over "/:email") and matches each request.
-// Passes parsed params, query and body to the handlers.
+// Will be used as Route Aggregator. Imports routes from each module, 
+// compiles them to RegExp (with path.js), sorts by specificity 
+// (so that /login beats /:email) and does the matching for each request. 
+// Passes to handlers params, query and body already parsed.
 
 const { URL } = require('url');
 const { readJsonBody } = require('../utils/body');
@@ -18,6 +18,8 @@ const categoriesRoutes = require('./modules/Category/category.routes');
 const roleRoutes = require('./modules/Role/role.routes');
 const roleWindowsRoutes = require('./modules/RoleWindows/roleWindows.routes');
 const emergencyContactRoutes = require('./modules/emergencyContact/emergencyContact.routes');
+const permissionRoutes = require('./modules/auth/permission.routes');
+
 // const patientsRoutes = require('./modules/patients.routes');
 // 2) Concatenate and compile paths → { method, pattern, paramNames, handler }
 function buildRoutes() {
@@ -25,14 +27,12 @@ function buildRoutes() {
     ...usersRoutes,
     ...headquartersRoutes,
     ...assetsRoutes,
-
     ...cancerRoutes,  
     ...categoriesRoutes,
     ...roleRoutes,
     ...roleWindowsRoutes,
     ...emergencyContactRoutes,
-    // ...patientsRoutes,
-    // etc.
+    ...permissionRoutes,
   ];
 
   // Sort by specificity ("/login" before "/:email")
