@@ -78,9 +78,12 @@ function authorizeWindow(windowName, ...actions) {
         }
 
         // collect all windows permissions from active roles only
-        const windows = auth.roles
-          .filter((r) => r.role?.status === 'active') // Only include active roles
-          .flatMap((r) => r.role?.windows || []);
+        const activeRoles = auth.roles
+          .filter((r) => r.role?.status === 'active'); // Only include active roles
+        if (!activeRoles || activeRoles.length === 0) {
+          return next(ApiError.forbidden('El usuario no tiene roles activos'));
+        }
+        const windows = activeRoles.flatMap((r) => r.role?.windows || []);
 
         // combine permissions across all roles for the same window (OR semantics)
         const matched = windows.filter((w) => {
