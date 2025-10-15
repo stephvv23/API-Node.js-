@@ -1,7 +1,7 @@
-// Entry point. Creates the native HTTP server, applies CORS/OPTIONS, 
-// captures errors and delegates everything to src/routes/index.js.
+//Punto de entrada. Crea el servidor HTTP nativo, aplica CORS/OPTIONS, 
+// captura errores y delega todo a src/routes/index.js.
 
-// CommonJS to avoid ESM issues in shared hosting
+// CommonJS para evitar líos ESM en hostings compartidos
 // src/server.js
 const http = require('http');
 const { router } = require('./routes');

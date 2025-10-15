@@ -27,11 +27,11 @@ function mapErrorToHttp(resShim, err) {
       details: err.details || undefined
     });
   }
-  // Common Prisma errors
+  // Errores Prisma comunes
   if (err && err.code === 'P2002')
-    return resShim.status(409).json({ ok: false, message: 'Duplicate record (unique constraint)' });
+    return resShim.status(409).json({ ok: false, message: 'Registro duplicado (constraint unique)' });
   if (err && err.code === 'P2025')
-    return resShim.status(404).json({ ok: false, message: 'Resource not found' });
+    return resShim.status(404).json({ ok: false, message: 'Recurso no encontrado' });
 
   // Fallback
   console.error('[UNHANDLED ERROR]', err);

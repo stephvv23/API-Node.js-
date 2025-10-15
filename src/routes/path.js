@@ -1,14 +1,14 @@
-/*index collaborator. 
-Routing utilities:
+/*colaborador de index. 
+Utilidades de ruteo:
 
 compilePath('/api/users/:email') → { regex: /^\/api\/users\/([^/]+)$/, names: ['email'] }
 
-specificityScore(path) to sort routes (more static > fewer parameters).
-Avoids writing RegExp by hand and ensures named params.
+specificityScore(path) para ordenar rutas (más estáticas > menos parámetros).
+Evita escribir RegExp a mano y asegura params nombrados.
 */
 function compilePath(template) {
   const names = [];
-  // ensure no trailing slash (except for the root)
+  // asegurar sin slash final (excepto la raíz)
   let t = template.replace(/\/+$/, '') || '/';
   const regexStr = '^' + t.replace(/:[^/]+/g, (m) => {
     names.push(m.slice(1));
@@ -17,12 +17,12 @@ function compilePath(template) {
   return { regex: new RegExp(regexStr), names };
 }
 
-// Heuristic to sort: put more specific routes first (fewer :params)
+// Heurística para ordenar: primero rutas más específicas (menos :params)
 function specificityScore(path) {
   const parts = path.split('/').filter(Boolean);
   const params = parts.filter(p => p.startsWith(':')).length;
   const statics = parts.length - params;
-  return (statics * 100) - params; // higher = more specific
+  return (statics * 100) - params; // mayor = más específica
 }
 
 module.exports = { compilePath, specificityScore };

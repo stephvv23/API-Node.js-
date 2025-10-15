@@ -25,7 +25,7 @@ model User {
   loginAccess   LoginAccess[] // Relation: User has many LoginAccess records
   securityLogs  SecurityLog[] // Relation: User has many SecurityLog records
   roles         UserRole[]    // Relation: User has many roles through UserRole join table
-  headquarterUser HeadquarterUser[] // NEW ADDITION: relational table with headquarters
+  headquarterUser HeadquarterUser[] // AGREGADO NUEVO: tabla relacional con sedes
 }
 
 model LoginAccess {
@@ -115,7 +115,7 @@ model Category {
   status     String  @db.VarChar(25)
 
   asset      Asset[]  // Relation: Category has many assets
-  categorySupplier CategorySupplier[] // relational table
+  categorySupplier CategorySupplier[] // tabla relacional
 }
 
 model Supplier {
@@ -129,14 +129,14 @@ model Supplier {
   description   String  @db.VarChar(750)
   status        String  @db.VarChar(25)
 
-  categorySupplier CategorySupplier[] // relational table
-  headquarterSupplier HeadquarterSupplier[] // relational table
-  phoneSupplier PhoneSupplier[] // relational table
+  categorySupplier CategorySupplier[] // tabla relacional
+  headquarterSupplier HeadquarterSupplier[] // tabla relacional
+  phoneSupplier PhoneSupplier[] // tabla relacional
 }
 
 model Activity {
   idActivity     Int @id @default(autoincrement())
-  idHeadquarter  Int //FK for headquarter
+  idHeadquarter  Int //FK de headquarter
   tittle         String @db.VarChar(150)
   description    String @db.VarChar(750)
   type           String @db.VarChar(50)
@@ -148,9 +148,9 @@ model Activity {
 
 
   headquarter Headquarter @relation(fields: [idHeadquarter], references: [idHeadquarter]) 
-  activityVolunteer ActivityVolunteer[] // relational table
-  activitySurvivor ActivitySurvivor[] // relational table
-  activityGodparent ActivityGodparent[] // relational table
+  activityVolunteer ActivityVolunteer[] // tabla relacional
+  activitySurvivor ActivitySurvivor[] // tabla relacional
+  activityGodparent ActivityGodparent[] // tabla relacional
 }
 
 model Volunteer {
@@ -171,16 +171,16 @@ model Volunteer {
   notes           String @db.VarChar(250)
   status        String @default("active") @db.VarChar(25)
 
-  phoneVolunteer PhoneVolunteer [] // relational table
-  headquarterVolunteer HeadquarterVolunteer [] // relational table
-  emergencyContactVolunteer EmergencyContactVolunteer [] // relational table
-  activityVolunteer ActivityVolunteer [] // relational table
+  phoneVolunteer PhoneVolunteer [] // tabla relacional
+  headquarterVolunteer HeadquarterVolunteer [] //tabla relacional
+  emergencyContactVolunteer EmergencyContactVolunteer [] // tabla relacional
+  activityVolunteer ActivityVolunteer [] // tabla relacional
 }
 
 model Godparent {
   idGodparent   Int    @id @default(autoincrement())
-  idSurvivor    Int?    // FK for survivors
-  idHeadquarter Int    // FK for headquarters
+  idSurvivor    Int?    // FK de supervivientes
+  idHeadquarter Int    // FK de headquarters
   name          String @db.VarChar(200)
   email         String @db.VarChar(150)
   paymentMethod String @db.VarChar(50)
@@ -189,11 +189,11 @@ model Godparent {
   description      String @db.VarChar(250)
   status       String @default("active") @db.VarChar(25)
 
-  godParentsPhone GodparentPhone[] // relational table
-  activityGodparent ActivityGodparent[] // relational table
+  godParentsPhone GodparentPhone[] // tabla relacional
+  activityGodparent ActivityGodparent[] // tabla relacional
 
-  survivor Survivor? @relation(fields: [idSurvivor], references: [idSurvivor]) // Optional relation with Survivor
-  headquarter Headquarter @relation(fields: [idHeadquarter], references: [idHeadquarter]) // Relation with Headquarters
+  survivor Survivor? @relation(fields: [idSurvivor], references: [idSurvivor]) // Relación opcional con Survivor
+  headquarter Headquarter @relation(fields: [idHeadquarter], references: [idHeadquarter]) // Relación con Headquarters
 }
 
 model EmergencyContact {
@@ -203,14 +203,14 @@ model EmergencyContact {
   relationship       String @db.VarChar(50)
   status             String @default("active") @db.VarChar(25)
 
-  emergencyContactVolunteer EmergencyContactVolunteer[] // relational table
-  emergencyContactPhone EmergencyContactPhone[] // relational table
-  emergencyContactSurvivor EmergencyContactSurvivor[] // relational table
+  emergencyContactVolunteer EmergencyContactVolunteer[] // tabla relacional
+  emergencyContactPhone EmergencyContactPhone[] // tabla relacional
+  emergencyContactSurvivor EmergencyContactSurvivor[] // tabla relacional
 }
 
 model Survivor {
   idSurvivor    Int    @id @default(autoincrement())
-  idHeadquarter Int    // FK for headquarters
+  idHeadquarter Int    // FK de headquarters
   survivorName  String @db.VarChar(200)
   documentNumber String @db.VarChar(30)
   country       String @db.VarChar(75)
@@ -229,13 +229,13 @@ model Survivor {
   notes          String? @db.VarChar(250)
   status       String @default("active") @db.VarChar(25)
 
-  emergencyContactSurvivor EmergencyContactSurvivor[] // relational table
-  phoneSurvivor PhoneSurvivor[] // relational table
-  activitySurvivor ActivitySurvivor[] // relational table
-  cancerSurvivor CancerSurvivor[] // relational table
-  godparent       Godparent[]       // relational table
+  emergencyContactSurvivor EmergencyContactSurvivor[] // tabla relacional
+  phoneSurvivor PhoneSurvivor[] // tabla relacional
+  activitySurvivor ActivitySurvivor[] // tabla relacional
+  cancerSurvivor CancerSurvivor[] // tabla relacional
+  godparent       Godparent[]       // tabla relacional
 
-  headquarter Headquarter @relation(fields: [idHeadquarter], references: [idHeadquarter]) // Relation with Headquarters
+  headquarter Headquarter @relation(fields: [idHeadquarter], references: [idHeadquarter]) // Relación con Headquarters
 }
 
 model Cancer {
@@ -244,19 +244,19 @@ model Cancer {
   description String @db.VarChar(300)
   status     String @default("active") @db.VarChar(25)
 
-  cancerSurvivor CancerSurvivor[] // relational table
+  cancerSurvivor CancerSurvivor[] // tabla relacional
 }
 
 model Phone {
   idPhone       Int @id @default(autoincrement())
   phone         Int
 
-  phoneVolunteers PhoneVolunteer[] // relational table
-  phoneSurvivor   PhoneSurvivor[]   // relational table
-  emergencyContactPhone EmergencyContactPhone[] // relational table
-  headquarterPhone HeadquarterPhone[] // relational table
-  godparentPhone GodparentPhone[] // relational table
-  phoneSupplier PhoneSupplier[] // relational table
+  phoneVolunteers PhoneVolunteer[] // tabla relacional
+  phoneSurvivor   PhoneSurvivor[]   // tabla relacional
+  emergencyContactPhone EmergencyContactPhone[] // tabla relacional
+  headquarterPhone HeadquarterPhone[] // tabla relacional
+  godparentPhone GodparentPhone[] // tabla relacional
+  phoneSupplier PhoneSupplier[] // tabla relacional
 
 }
 
@@ -269,17 +269,17 @@ model Headquarter {
   description    String @db.VarChar(750)
   status         String @default("active") @db.VarChar(25)
 
-  activities     Activity[] // NEW ADDITION: FK with activity
-  headquarterUser HeadquarterUser[] // NEW ADDITION: relational table with users
-  headquarterVolunteer HeadquarterVolunteer[] // relational table 
-  headquarterPhone HeadquarterPhone[] // relational table 
-  godparent Godparent[] // Relation with Godparent
-  survivor Survivor[] // Relation with Survivor
-  asset Asset[] // Relation with Asset
-  headquarterSupplier HeadquarterSupplier[] // relational table
+  activities     Activity[] // AGREGADO NUEVO: FK con actividad
+  headquarterUser HeadquarterUser[] // AGREGADO NUEVO: tabla relacional con usuarios
+  headquarterVolunteer HeadquarterVolunteer[] // tabla relacional 
+  headquarterPhone HeadquarterPhone[] // tabla relacional 
+  godparent Godparent[] // Relación con Godparent
+  survivor Survivor[] // Relación con Survivor
+  asset Asset[] // Relación con Asset
+  headquarterSupplier HeadquarterSupplier[] // tabla relacional
 }
 
-//RELATIONAL TABLES
+//TABLAS RELACIONALES
 model HeadquarterUser {
   idHeadquarter Int    // Foreign key: references Headquarters.idHeadquarters
   email          String @db.VarChar(150) // Foreign key: references User.email

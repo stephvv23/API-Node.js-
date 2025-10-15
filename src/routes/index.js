@@ -1,7 +1,7 @@
-// Will be used as Route Aggregator. Imports routes from each module, 
-// compiles them to RegExp (with path.js), sorts by specificity 
-// (so that /login beats /:email) and does the matching for each request. 
-// Passes to handlers params, query and body already parsed.
+// se usara como Agregador de rutas. Importa las rutas de cada módulo, 
+// las compila a RegExp (con path.js), ordena por especificidad 
+// (para que /login gane a /:email) y hace el matching de cada request. 
+// Pasa a los handlers params, query y body ya parseados.
 
 const { URL } = require('url');
 const { readJsonBody } = require('../utils/body');
@@ -9,33 +9,31 @@ const { sendJson } = require('../utils/response');
 const { wrapExpressHandler } = require('../utils/expressify');
 const { compilePath, specificityScore } = require('./path');
 
-// 1) Import routes from all modules
+// 1) Importa rutas de todos los módulos
 const usersRoutes = require('./modules/users/users.routes');
 const headquartersRoutes = require('./modules/headquarters/headquarter.routes');
-const assetsRoutes = require('./modules/assets/assets.routes');
 const cancerRoutes = require('./modules/cancer/cancer.routes');
 const categoriesRoutes = require('./modules/Category/category.routes');
 const roleRoutes = require('./modules/Role/role.routes');
 const roleWindowsRoutes = require('./modules/RoleWindows/roleWindows.routes');
 const emergencyContactRoutes = require('./modules/emergencyContact/emergencyContact.routes');
-const permissionRoutes = require('./modules/auth/permission.routes');
-
 // const patientsRoutes = require('./modules/patients.routes');
-// 2) Concatenate and compile paths → { method, pattern, paramNames, handler }
+
+// 2) Concatena y compila paths → { method, pattern, paramNames, handler }
 function buildRoutes() {
   const raw = [
     ...usersRoutes,
     ...headquartersRoutes,
-    ...assetsRoutes,
     ...cancerRoutes,  
     ...categoriesRoutes,
     ...roleRoutes,
     ...roleWindowsRoutes,
     ...emergencyContactRoutes,
-    ...permissionRoutes,
+    // ...patientsRoutes,
+    // etc.
   ];
 
-  // Sort by specificity ("/login" before "/:email")
+  // Ordena por especificidad ("/login" antes que "/:email")
   raw.sort((a, b) => specificityScore(b.path) - specificityScore(a.path));
 
   return raw.map(r => {

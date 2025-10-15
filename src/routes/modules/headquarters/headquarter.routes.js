@@ -1,12 +1,10 @@
-const { HeadquarterController } = require('../../modules/headquarters/headquarter.controller');
-const { authenticate, authorize } = require('../../../middlewares/auth.middleware');
+const { HeadquarterController } = require('./headquarter.controller');
 
 module.exports = [
-
-  { method: 'GET', path: '/api/headquarters', handler: authenticate(HeadquarterController.getAll) },
-  { method: 'GET', path: '/api/headquarters/active', handler: authenticate(HeadquarterController.getAllActive) },
-  { method: 'GET', path: '/api/headquarters/:id', handler: authenticate(HeadquarterController.getById) },
-  { method: 'POST', path: '/api/headquarters', handler: authenticate(authorize('ADMIN')(HeadquarterController.create)) },
-  { method: 'PUT', path: '/api/headquarters/:id', handler: authenticate(authorize('ADMIN')(HeadquarterController.update)) },
-  { method: 'DELETE', path: '/api/headquarters/:id', handler: authenticate(authorize('ADMIN')(HeadquarterController.delete)) },
+  { method: 'GET', path: '/api/headquarters/active', handler: HeadquarterController.getAllActive },
+  { method: 'GET', path: '/api/headquarters', handler: HeadquarterController.getAll },
+  { method: 'GET', path: '/api/headquarters/:id', handler: HeadquarterController.getById },
+  { method: 'POST', path: '/api/headquarters', handler: HeadquarterController.create },
+  { method: 'PUT', path: '/api/headquarters/:id', handler: HeadquarterController.update },
+  { method: 'DELETE', path: '/api/headquarters/:id', handler: HeadquarterController.delete }
 ];

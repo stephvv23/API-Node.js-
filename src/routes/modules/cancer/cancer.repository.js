@@ -24,11 +24,6 @@ const CancerRepository = {
     data: { status: 'inactive' },
   }),
 
-  reactivate: (idCancer) => prisma.cancer.update({
-    where: { idCancer: parseInt(idCancer) },
-    data: { status: 'active' },
-  }),
-  
 };
 
 module.exports = { CancerRepository };
