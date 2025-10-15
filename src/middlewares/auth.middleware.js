@@ -2,23 +2,53 @@
 const jwt = require('jsonwebtoken');
 const ApiError = require('../utils/apiError');
 const { UsersRepository } = require('../routes/modules/users/users.repository');
+const { UsersService } = require('../routes/modules/users/users.service');
 
 // authentication validate JWT and put the user in ctx
 // auth.middleware.js
+/**
+ * Middleware to authenticate JWT tokens and check blacklist
+ * @param {Function} handler - the controller to execute if authenticated
+ */
 function authenticate(handler) {
   return async (req, res, next) => {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-    if (!token) return next(ApiError.unauthorized('Token requerido'));
-
     try {
-      const payload = jwt.verify(token, process.env.JWT_SECRET);
-      req.user = payload; // now available in controllers
-    } catch (err) {
-      return next(ApiError.unauthorized('Token inválido o expirado'));
-    }
+      // obtain and validate token
+      const authHeader = req.headers['authorization'];
+      const token = authHeader && authHeader.split(' ')[1];
+      if (!token) {
+        return next(ApiError.unauthorized('Token requerido'));
+      }
+      console.log('🔎 Revisando token:', token.slice(0, 15), '...');
 
-    return handler(req, res, next);
+      // check if token is blacklisted 
+      const blacklisted = await UsersService.tokenExists(token);
+      console.log('🧱 Token en blacklist?', !!blacklisted);
+
+      if (blacklisted) {
+        return next(ApiError.unauthorized('Token inválido (logout realizado)'));
+      }
+
+      // check the token validity
+      const payload = jwt.verify(token, process.env.JWT_SECRET);
+      req.user = payload; // ← { sub, name, roles, iat, exp }
+
+      // continue to the handler
+      return handler(req, res, next);
+
+    } catch (error) {
+      console.error('❌ Error en authenticate middleware:', error);
+
+      // differentiate error types
+      if (error.name === 'TokenExpiredError') {
+        return next(ApiError.unauthorized('Token expirado'));
+      }
+      if (error.name === 'JsonWebTokenError') {
+        return next(ApiError.unauthorized('Token inválido'));
+      }
+      console.error('Error en authenticate middleware:', error);
+      return next(ApiError.internal('Error interno en autenticación'));
+    }
   };
 }
 

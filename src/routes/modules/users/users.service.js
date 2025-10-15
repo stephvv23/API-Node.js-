@@ -321,7 +321,21 @@ const UsersService = {
     const { name, status, roles } = user;
     return { email: user.email, name, status, roles };
 
+    
   },
+
+  invalidateToken: async (token) => {
+    return prisma.tokenBlacklist.create({
+      data: { token },
+    });
+  },
+
+  tokenExists: async (token) => {
+    return prisma.tokenBlacklist.findFirst({
+      where: { token },
+    });
+  },
+
 
   //get headquarters related to user by using email
   getuserHeadquartersByEmail: (email) => UsersRepository.getuserHeadquartersByEmail(email),
