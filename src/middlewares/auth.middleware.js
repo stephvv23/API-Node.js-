@@ -18,14 +18,6 @@ function authenticate(handler) {
       return next(ApiError.unauthorized('Token inválido o expirado'));
     }
 
-    // Check user status and roles from JWT payload
-    if (!req.user.status || req.user.status !== 'active') {
-      return next(ApiError.unauthorized('Usuario inactivo o sin estado'));
-    }
-    if (!req.user.roles || !Array.isArray(req.user.roles) || req.user.roles.length === 0) {
-      return next(ApiError.unauthorized('Usuario sin roles'));
-    }
-
     return handler(req, res, next);
   };
 }
@@ -65,18 +57,8 @@ function authorizeWindow(windowName, ...actions) {
           return next(ApiError.forbidden('No tienes acceso a esta ventana'));
         }
 
-        // Verify that the user is active
-        if (auth.status !== 'active') {
-          return next(ApiError.forbidden('Usuario inactivo'));
-        }
+        const windows = auth.roles.flatMap((r) => r.role?.windows || []);
 
-        // collect all windows permissions from active roles only
-        const activeRoles = auth.roles
-          .filter((r) => r.role?.status === 'active'); // Only include active roles
-        if (!activeRoles || activeRoles.length === 0) {
-          return next(ApiError.forbidden('El usuario no tiene roles activos'));
-        }
-        const windows = activeRoles.flatMap((r) => r.role?.windows || []);
 
         // combine permissions across all roles for the same window (OR semantics)
         const matched = windows.filter((w) => {
