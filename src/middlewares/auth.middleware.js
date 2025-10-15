@@ -19,11 +19,9 @@ function authenticate(handler) {
       if (!token) {
         return next(ApiError.unauthorized('Token requerido'));
       }
-      console.log('🔎 Revisando token:', token.slice(0, 15), '...');
 
       // check if token is blacklisted 
       const blacklisted = await UsersService.tokenExists(token);
-      console.log('🧱 Token en blacklist?', !!blacklisted);
 
       if (blacklisted) {
         return next(ApiError.unauthorized('Token inválido (logout realizado)'));
@@ -37,7 +35,6 @@ function authenticate(handler) {
       return handler(req, res, next);
 
     } catch (error) {
-      console.error('❌ Error en authenticate middleware:', error);
 
       // differentiate error types
       if (error.name === 'TokenExpiredError') {
