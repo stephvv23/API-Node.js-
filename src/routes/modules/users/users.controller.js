@@ -394,11 +394,7 @@ const UsersController = {
     }
   },
 
-  /**
-   * Logout a user (invalidate token client-side, and register event in SecurityLog)
-   * POST /users/logout
-   * Requires: Authorization header with Bearer token
-   */
+
   /**
  * Logout a user (invalidate token client-side and server-side)
  * POST /users/logout
