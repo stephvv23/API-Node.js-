@@ -220,7 +220,7 @@ const EntityValidators = {
     if (shouldValidateField(data.name)) {
       const nameValidator = validator.field('name', data.name);
       if (!options.partial) nameValidator.required();
-      nameValidator.string().maxLength(150).alphanumeric();
+      nameValidator.string().maxLength(150);
     }
       
     // Schedule validation
