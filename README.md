@@ -118,6 +118,9 @@ Validar y generar cliente Prisma:
     Migrar la base de datos:
         npx prisma migrate dev -n init_users_module
 
+    Reiniciar los seeders: 
+        npx prisma migrate reset
+
 se usa subir para subri cuando no hay datos  |       se usa para subir cuando ya hay datos    
     Correr datos base                        |       Actualiza la BD al vuelo sin crear migraciones.
     npx prisma db seed                       |       npx prisma db push

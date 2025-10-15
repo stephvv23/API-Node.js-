@@ -1,5 +1,6 @@
 // prisma/seed.js
 const { PrismaClient } = require('@prisma/client');
+const bcrypt = require('bcrypt');
 const prisma = new PrismaClient();
 
 async function main() {
@@ -14,18 +15,41 @@ async function main() {
   });
 
   const windows = await Promise.all(
-    ['Assets', 'Suppliers', 'Survivors', 'Activities', 'Users', 'Categories', 'headquarters', 'EmergencyContacts', 'Volunteers', 'GodParents', 'Cancers', 'Phones', 'Roles'].map((w) =>
-      prisma.window.create({ data: { windowName: w, status: 'active' } })
+    [
+      'Activos',
+      'Supervivientes',
+      'Proveedores',
+      'Actividades',
+      'PrincipalPage',
+      'Usuarios',
+      'Cancers',
+      'ContactosEmergencia',
+      'Sedes',
+      'Categorias',
+      'Voluntarios',
+      'Padrinos',
+      'Roles',
+    ].map((w) =>
+      prisma.window.create({
+        data: {
+          windowName: w,
+          status: 'active',
+        },
+      })
     )
   );
 
-  /* ===================== USUARIOS / ROLES ===================== */
+  /* ===================== Users / Roles ===================== */
+  // Hash the passwords before storing them
+  const adminPassword = await bcrypt.hash('Admin#123', 10);
+  const coordinatorPassword = await bcrypt.hash('Coord#123', 10);
+
   const admin = await prisma.user.create({
     data: {
       email: 'admin@funca.org',
       name: 'Admin Funca',
       status: 'active',
-      password: 'Admin#123', // solo demo
+      password: adminPassword,
     },
   });
 
@@ -34,7 +58,7 @@ async function main() {
       email: 'coordinator@funca.org',
       name: 'Coordinador Sede Central',
       status: 'active',
-      password: 'Coord#123', // solo demo
+      password: coordinatorPassword,
     },
   });
 
@@ -45,7 +69,7 @@ async function main() {
     ],
   });
 
-  // Permisos RoleWindow
+  // Permissions RoleWindow
   await Promise.all(
     windows.map((win) =>
       prisma.roleWindow.create({
@@ -117,24 +141,10 @@ async function main() {
     data: [
       {
         email: admin.email,
-        date: new Date('2025-08-30T09:00:05.000Z'),
-        action: 'LOGIN',
-        description: 'Inicio de sesión exitoso',
-        affectedTable: 'User',
-      },
-      {
-        email: admin.email,
         date: new Date('2025-08-30T09:05:00.000Z'),
         action: 'CREATE',
         description: 'Registro de sede y categorías iniciales',
         affectedTable: 'Headquarter',
-      },
-      {
-        email: coordinator.email,
-        date: new Date('2025-08-30T09:16:00.000Z'),
-        action: 'LOGIN',
-        description: 'Inicio de sesión exitoso',
-        affectedTable: 'User',
       },
     ],
   });
@@ -333,8 +343,8 @@ async function main() {
     },
   });
 
-  /* ===================== RELACIONES / PUENTES ===================== */
-  // Usuarios por sede
+  /* ===================== RELATIONS / BRIDGES ===================== */
+  // Users by headquarters
   await prisma.headquarterUser.createMany({
     data: [
       { idHeadquarter: hq1.idHeadquarter, email: admin.email },
@@ -343,12 +353,12 @@ async function main() {
     ],
   });
 
-  // Voluntarios por sede
+  // Volunteers by headquarters
   await prisma.headquarterVolunteer.create({
     data: { idHeadquarter: hq1.idHeadquarter, idVolunteer: volunteer.idVolunteer },
   });
 
-  // Teléfonos por sede
+  // Phones by headquarters
   await prisma.headquarterPhone.createMany({
     data: [
       { idHeadquarter: hq1.idHeadquarter, idPhone: phoneObjs[0].idPhone }, // 8888-1234
@@ -357,7 +367,7 @@ async function main() {
     ],
   });
 
-  // Teléfonos de personas
+  // Phones of people
   await prisma.phoneSurvivor.create({
     data: { idPhone: phoneObjs[3].idPhone, idSurvivor: survivor.idSurvivor }, // 6050-1234
   });
@@ -368,7 +378,7 @@ async function main() {
     data: { idGodparent: godparent.idGodparent, idPhone: phoneObjs[5].idPhone }, // 8911-2233
   });
 
-  // Contactos de emergencia
+  // Emergency contacts
   const [ec1, ec2] = await Promise.all([
     prisma.emergencyContact.create({
       data: {
@@ -402,11 +412,11 @@ async function main() {
     ],
   });
 
-  // Proveedores por categoría / teléfonos / sede
+  // Suppliers by category / phones / headquarters
   await prisma.categorySupplier.createMany({
     data: [
-      { idCategory: cat1.idCategory, idSupplier: sup1.idSupplier }, // Meditech → Equipos médicos
-      { idCategory: cat2.idCategory, idSupplier: sup2.idSupplier }, // Muebles PZ → Mobiliario
+      { idCategory: cat1.idCategory, idSupplier: sup1.idSupplier }, // Meditech → Medical equipment
+      { idCategory: cat2.idCategory, idSupplier: sup2.idSupplier }, // Muebles PZ → Furniture
     ],
   });
 
