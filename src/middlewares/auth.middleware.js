@@ -18,10 +18,20 @@ function authenticate(handler) {
       return next(ApiError.unauthorized('Token inválido o expirado'));
     }
 
-    // Check user status and roles from JWT payload
-    if (!req.user.status || req.user.status !== 'active') {
-      return next(ApiError.unauthorized('Usuario inactivo o sin estado'));
+    // Check user status from database (real-time verification)
+    try {
+      const userFromDB = await UsersRepository.findAuthWithRoles(req.user.sub || req.user.email);
+      if (!userFromDB) {
+        return next(ApiError.unauthorized('Usuario no encontrado'));
+      }
+      if (!userFromDB.status || userFromDB.status !== 'active') {
+        return next(ApiError.unauthorized('Usuario inactivo'));
+      }
+    } catch (err) {
+      return next(ApiError.unauthorized('Error verificando estado del usuario'));
     }
+
+    // Check user roles from JWT payload
     if (!req.user.roles || !Array.isArray(req.user.roles) || req.user.roles.length === 0) {
       return next(ApiError.unauthorized('Usuario sin roles'));
     }
