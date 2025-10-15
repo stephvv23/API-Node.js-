@@ -27,13 +27,13 @@ function authenticate(handler) {
       if (!userFromDB.status || userFromDB.status !== 'active') {
         return next(ApiError.unauthorized('Usuario inactivo'));
       }
+      
+      // Check that user has active roles in database (real-time verification)
+      if (!userFromDB.roles || userFromDB.roles.length === 0) {
+        return next(ApiError.unauthorized('Usuario sin roles activos'));
+      }
     } catch (err) {
       return next(ApiError.unauthorized('Error verificando estado del usuario'));
-    }
-
-    // Check user roles from JWT payload
-    if (!req.user.roles || !Array.isArray(req.user.roles) || req.user.roles.length === 0) {
-      return next(ApiError.unauthorized('Usuario sin roles'));
     }
 
     return handler(req, res, next);
@@ -75,8 +75,16 @@ function authorizeWindow(windowName, ...actions) {
           return next(ApiError.forbidden('No tienes acceso a esta ventana'));
         }
 
-        const windows = auth.roles.flatMap((r) => r.role?.windows || []);
+        // Verify that the user is active
+        if (auth.status !== 'active') {
+          return next(ApiError.forbidden('Usuario inactivo'));
+        }
 
+        // collect all windows permissions from roles (already filtered to active roles in DB query)
+        if (!auth.roles || auth.roles.length === 0) {
+          return next(ApiError.forbidden('El usuario no tiene roles activos'));
+        }
+        const windows = auth.roles.flatMap((r) => r.role?.windows || []);
 
         // combine permissions across all roles for the same window (OR semantics)
         const matched = windows.filter((w) => {
