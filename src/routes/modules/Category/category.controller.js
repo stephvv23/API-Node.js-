@@ -60,7 +60,7 @@ const categoryController = {
         if (!/^[0-9\s]+$/.test(id)) {
             return res.validationErrors(['El id solo puede ser números']);
         }
-        // Confirmar existencia antes de editar
+        
         const exists = await categoryService.getById(id);
         if (!exists) {
             return res.notFound('Categoría');
