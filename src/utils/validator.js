@@ -366,35 +366,35 @@ const EntityValidators = {
     if (shouldValidateField(data.name)) {
       const nameValidator = validator.field('name', data.name);
       if (!options.partial) nameValidator.required();
-      nameValidator.string().maxLength(150);
+      nameValidator.string().minLength(1).maxLength(150);
     }
       
     // Schedule validation
     if (shouldValidateField(data.schedule)) {
       const scheduleValidator = validator.field('schedule', data.schedule);
       if (!options.partial) scheduleValidator.required();
-      scheduleValidator.string().maxLength(300);
+      scheduleValidator.string().minLength(1).maxLength(300);
     }
       
     // Location validation
     if (shouldValidateField(data.location)) {
       const locationValidator = validator.field('location', data.location);
       if (!options.partial) locationValidator.required();
-      locationValidator.string().maxLength(300);
+      locationValidator.string().minLength(1).maxLength(300);
     }
       
     // Email validation with format checking
     if (shouldValidateField(data.email)) {
       const emailValidator = validator.field('email', data.email);
       if (!options.partial) emailValidator.required();
-      emailValidator.string().email().maxLength(150);
+      emailValidator.string().minLength(1).email().maxLength(150);
     }
       
     // Description validation
     if (shouldValidateField(data.description)) {
       const descriptionValidator = validator.field('description', data.description);
       if (!options.partial) descriptionValidator.required();
-      descriptionValidator.string().maxLength(750);
+      descriptionValidator.string().minLength(1).maxLength(750);
     }
       
     // Status validation (active/inactive)
@@ -424,23 +424,21 @@ const EntityValidators = {
     if (shouldValidateField(data.email)) {
       const emailValidator = validator.field('email', data.email);
       if (!options.partial) emailValidator.required();
-      emailValidator.string().email().maxLength(254); // RFC 5321 standard max email length
+      emailValidator.string().minLength(1).email().maxLength(254); // RFC 5321 standard max email length
     }
     
     // Name validation - matches DB VarChar(150)
     if (shouldValidateField(data.name)) {
       const nameValidator = validator.field('name', data.name);
       if (!options.partial) nameValidator.required();
-      nameValidator.string().internationalText().maxLength(150);
+      nameValidator.string().minLength(1).internationalText().maxLength(150);
     }
     
     // Password validation (plain text before hashing)
     if (shouldValidateField(data.password)) {
       const passwordValidator = validator.field('password', data.password);
       if (!options.partial) passwordValidator.required();
-      passwordValidator.string()
-        .minLength(6) // Minimum security requirement
-        .maxLength(128); // Reasonable limit for user input (bcrypt output will be 60 chars)
+      passwordValidator.string().minLength(6).maxLength(128); // Minimum security requirement and reasonable limit
     }
     
     // Status validation - matches DB VarChar(25)
@@ -532,14 +530,14 @@ const EntityValidators = {
     if (shouldValidateField(data.cancerName)) {
       const nameValidator = validator.field('cancerName', data.cancerName);
       if (!options.partial) nameValidator.required();
-      nameValidator.string().maxLength(100);
+      nameValidator.string().minLength(1).maxLength(100);
     }
       
     // Description validation
     if (shouldValidateField(data.description)) {
       const descriptionValidator = validator.field('description', data.description);
       if (!options.partial) descriptionValidator.required();
-      descriptionValidator.string().maxLength(300);
+      descriptionValidator.string().minLength(1).maxLength(300);
     }
     
     // Status validation
@@ -585,14 +583,14 @@ const EntityValidators = {
     if (shouldValidateField(data.name)) {
       const nameValidator = validator.field('name', data.name);
       if (!options.partial) nameValidator.required();
-      nameValidator.string().internationalText().maxLength(50);
+      nameValidator.string().minLength(1).internationalText().maxLength(50);
     }
 
     // Type validation
     if (shouldValidateField(data.type)) {
       const typeValidator = validator.field('type', data.type);
       if (!options.partial) typeValidator.required();
-      typeValidator.string().internationalText().maxLength(50);
+      typeValidator.string().minLength(1).internationalText().maxLength(50);
     }
 
     // Description validation
@@ -631,21 +629,21 @@ const EntityValidators = {
     if (shouldValidateField(data.nameEmergencyContact)) {
       const nameValidator = validator.field('nameEmergencyContact', data.nameEmergencyContact);
       if (!options.partial) nameValidator.required();
-      nameValidator.string().internationalText().maxLength(150);
+      nameValidator.string().minLength(1).internationalText().maxLength(150);
     }
 
     // Emergency contact email validation
     if (shouldValidateField(data.emailEmergencyContact)) {
       const emailValidator = validator.field('emailEmergencyContact', data.emailEmergencyContact);
       if (!options.partial) emailValidator.required();
-      emailValidator.string().email().maxLength(150);
+      emailValidator.string().minLength(1).email().maxLength(150);
     }
 
     // Relationship validation
     if (shouldValidateField(data.relationship)) {
       const relationshipValidator = validator.field('relationship', data.relationship);
       if (!options.partial) relationshipValidator.required();
-      relationshipValidator.string().internationalText().maxLength(50);
+      relationshipValidator.string().minLength(1).internationalText().maxLength(50);
     }
     
     // Status validation
@@ -677,7 +675,7 @@ const EntityValidators = {
     if (shouldValidateField(data.name)) {
       const nameValidator = validator.field('name', data.name);
       if (!options.partial) nameValidator.required();
-      nameValidator.string().internationalText().maxLength(150);
+      nameValidator.string().minLength(1).internationalText().maxLength(150);
     }
 
     // Tax ID validation (optional field)
@@ -689,28 +687,28 @@ const EntityValidators = {
     if (shouldValidateField(data.type)) {
       const typeValidator = validator.field('type', data.type);
       if (!options.partial) typeValidator.required();
-      typeValidator.string().internationalText().maxLength(50);
+      typeValidator.string().minLength(1).internationalText().maxLength(50);
     }
 
     // Email validation
     if (shouldValidateField(data.email)) {
       const emailValidator = validator.field('email', data.email);
       if (!options.partial) emailValidator.required();
-      emailValidator.string().email().maxLength(150);
+      emailValidator.string().minLength(1).email().maxLength(150);
     }
 
     // Address validation
     if (shouldValidateField(data.address)) {
       const addressValidator = validator.field('address', data.address);
       if (!options.partial) addressValidator.required();
-      addressValidator.string().internationalText().maxLength(150);
+      addressValidator.string().minLength(1).internationalText().maxLength(150);
     }
 
     // Payment terms validation
     if (shouldValidateField(data.paymentTerms)) {
       const paymentValidator = validator.field('paymentTerms', data.paymentTerms);
       if (!options.partial) paymentValidator.required();
-      paymentValidator.string().internationalText().maxLength(50);
+      paymentValidator.string().minLength(1).internationalText().maxLength(50);
     }
 
     // Description validation
@@ -751,21 +749,21 @@ const EntityValidators = {
     if (shouldValidateField(data.name)) {
       const nameValidator = validator.field('name', data.name);
       if (!options.partial) nameValidator.required();
-      nameValidator.string().internationalText().maxLength(200);
+      nameValidator.string().minLength(1).internationalText().maxLength(200);
     }
 
     // Identifier validation
     if (shouldValidateField(data.identifier)) {
       const idValidator = validator.field('identifier', data.identifier);
       if (!options.partial) idValidator.required();
-      idValidator.string().documentNumber().maxLength(30);
+      idValidator.string().minLength(1).documentNumber().maxLength(30);
     }
 
     // Country validation
     if (shouldValidateField(data.country)) {
       const countryValidator = validator.field('country', data.country);
       if (!options.partial) countryValidator.required();
-      countryValidator.string().locationText().maxLength(75);
+      countryValidator.string().minLength(1).locationText().maxLength(75);
     }
 
     // Birthday validation
@@ -786,28 +784,28 @@ const EntityValidators = {
     if (shouldValidateField(data.residence)) {
       const residenceValidator = validator.field('residence', data.residence);
       if (!options.partial) residenceValidator.required();
-      residenceValidator.string().internationalText().maxLength(300);
+      residenceValidator.string().minLength(1).internationalText().maxLength(300);
     }
 
     // Modality validation
     if (shouldValidateField(data.modality)) {
       const modalityValidator = validator.field('modality', data.modality);
       if (!options.partial) modalityValidator.required();
-      modalityValidator.string().internationalText().maxLength(20);
+      modalityValidator.string().minLength(1).internationalText().maxLength(20);
     }
 
     // Institution validation
     if (shouldValidateField(data.institution)) {
       const institutionValidator = validator.field('institution', data.institution);
       if (!options.partial) institutionValidator.required();
-      institutionValidator.string().internationalText().maxLength(100);
+      institutionValidator.string().minLength(1).internationalText().maxLength(100);
     }
 
     // Available schedule validation
     if (shouldValidateField(data.availableSchedule)) {
       const scheduleValidator = validator.field('availableSchedule', data.availableSchedule);
       if (!options.partial) scheduleValidator.required();
-      scheduleValidator.string().internationalText().maxLength(300);
+      scheduleValidator.string().minLength(1).internationalText().maxLength(300);
     }
 
     // Required hours validation (optional field)
@@ -899,28 +897,28 @@ const EntityValidators = {
     if (shouldValidateField(data.tittle)) {
       const titleValidator = validator.field('tittle', data.tittle);
       if (!options.partial) titleValidator.required();
-      titleValidator.string().internationalText().maxLength(150);
+      titleValidator.string().minLength(1).internationalText().maxLength(150);
     }
 
     // Description validation
     if (shouldValidateField(data.description)) {
       const descValidator = validator.field('description', data.description);
       if (!options.partial) descValidator.required();
-      descValidator.string().internationalText().maxLength(750);
+      descValidator.string().minLength(1).internationalText().maxLength(750);
     }
 
     // Type validation
     if (shouldValidateField(data.type)) {
       const typeValidator = validator.field('type', data.type);
       if (!options.partial) typeValidator.required();
-      typeValidator.string().internationalText().maxLength(50);
+      typeValidator.string().minLength(1).internationalText().maxLength(50);
     }
 
     // Modality validation
     if (shouldValidateField(data.modality)) {
       const modalityValidator = validator.field('modality', data.modality);
       if (!options.partial) modalityValidator.required();
-      modalityValidator.string().internationalText().maxLength(25);
+      modalityValidator.string().minLength(1).internationalText().maxLength(25);
     }
 
     // Capacity validation
@@ -934,7 +932,7 @@ const EntityValidators = {
     if (shouldValidateField(data.location)) {
       const locationValidator = validator.field('location', data.location);
       if (!options.partial) locationValidator.required();
-      locationValidator.string().locationText().maxLength(300);
+      locationValidator.string().minLength(1).locationText().maxLength(300);
     }
 
     // Date validation
@@ -984,21 +982,21 @@ const EntityValidators = {
     if (shouldValidateField(data.name)) {
       const nameValidator = validator.field('name', data.name);
       if (!options.partial) nameValidator.required();
-      nameValidator.string().internationalText().maxLength(200);
+      nameValidator.string().minLength(1).internationalText().maxLength(200);
     }
 
     // Email validation
     if (shouldValidateField(data.email)) {
       const emailValidator = validator.field('email', data.email);
       if (!options.partial) emailValidator.required();
-      emailValidator.string().email().maxLength(150);
+      emailValidator.string().minLength(1).email().maxLength(150);
     }
 
     // Payment method validation
     if (shouldValidateField(data.paymentMethod)) {
       const paymentValidator = validator.field('paymentMethod', data.paymentMethod);
       if (!options.partial) paymentValidator.required();
-      paymentValidator.string().internationalText().maxLength(50);
+      paymentValidator.string().minLength(1).internationalText().maxLength(50);
     }
 
     // Start date validation
@@ -1057,21 +1055,21 @@ const EntityValidators = {
     if (shouldValidateField(data.survivorName)) {
       const nameValidator = validator.field('survivorName', data.survivorName);
       if (!options.partial) nameValidator.required();
-      nameValidator.string().internationalText().maxLength(200);
+      nameValidator.string().minLength(1).internationalText().maxLength(200);
     }
 
     // Document number validation
     if (shouldValidateField(data.documentNumber)) {
       const docValidator = validator.field('documentNumber', data.documentNumber);
       if (!options.partial) docValidator.required();
-      docValidator.documentNumber().maxLength(30);
+      docValidator.string().minLength(1).documentNumber().maxLength(30);
     }
 
     // Country validation
     if (shouldValidateField(data.country)) {
       const countryValidator = validator.field('country', data.country);
       if (!options.partial) countryValidator.required();
-      countryValidator.string().internationalText().maxLength(75);
+      countryValidator.string().minLength(1).internationalText().maxLength(75);
     }
 
     // Birthday validation
@@ -1092,21 +1090,21 @@ const EntityValidators = {
     if (shouldValidateField(data.residence)) {
       const residenceValidator = validator.field('residence', data.residence);
       if (!options.partial) residenceValidator.required();
-      residenceValidator.string().locationText().maxLength(300);
+      residenceValidator.string().minLength(1).locationText().maxLength(300);
     }
 
     // Genre validation
     if (shouldValidateField(data.genre)) {
       const genreValidator = validator.field('genre', data.genre);
       if (!options.partial) genreValidator.required();
-      genreValidator.string().internationalText().maxLength(25);
+      genreValidator.string().minLength(1).internationalText().maxLength(25);
     }
 
     // Working condition validation
     if (shouldValidateField(data.workingCondition)) {
       const workingValidator = validator.field('workingCondition', data.workingCondition);
       if (!options.partial) workingValidator.required();
-      workingValidator.string().internationalText().maxLength(50);
+      workingValidator.string().minLength(1).internationalText().maxLength(50);
     }
 
     // CONAPDIS validation
@@ -1127,35 +1125,35 @@ const EntityValidators = {
     if (shouldValidateField(data.physicalFileStatus)) {
       const physicalValidator = validator.field('physicalFileStatus', data.physicalFileStatus);
       if (!options.partial) physicalValidator.required();
-      physicalValidator.string().internationalText().maxLength(25);
+      physicalValidator.string().minLength(1).internationalText().maxLength(25);
     }
 
     // Medical record validation
     if (shouldValidateField(data.medicalRecord)) {
       const medicalValidator = validator.field('medicalRecord', data.medicalRecord);
       if (!options.partial) medicalValidator.required();
-      medicalValidator.string().internationalText().maxLength(25);
+      medicalValidator.string().minLength(1).internationalText().maxLength(25);
     }
 
     // Date home SINRUBE validation
     if (shouldValidateField(data.dateHomeSINRUBE)) {
       const sinrubeValidator = validator.field('dateHomeSINRUBE', data.dateHomeSINRUBE);
       if (!options.partial) sinrubeValidator.required();
-      sinrubeValidator.string().internationalText().maxLength(25);
+      sinrubeValidator.string().minLength(1).internationalText().maxLength(25);
     }
 
     // Food bank validation
     if (shouldValidateField(data.foodBank)) {
       const foodBankValidator = validator.field('foodBank', data.foodBank);
       if (!options.partial) foodBankValidator.required();
-      foodBankValidator.string().internationalText().maxLength(25);
+      foodBankValidator.string().minLength(1).internationalText().maxLength(25);
     }
 
     // Socio economic study validation
     if (shouldValidateField(data.socioEconomicStudy)) {
       const socioValidator = validator.field('socioEconomicStudy', data.socioEconomicStudy);
       if (!options.partial) socioValidator.required();
-      socioValidator.string().internationalText().maxLength(25);
+      socioValidator.string().minLength(1).internationalText().maxLength(25);
     }
 
     // Notes validation (optional field)

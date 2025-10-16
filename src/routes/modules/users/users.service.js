@@ -119,19 +119,19 @@ const UsersService = {
     const headquarterIds = Array.isArray(data.idHeadquarter) ? data.idHeadquarter : [data.idHeadquarter];
     const roleIds = Array.isArray(data.idRole) ? data.idRole : [data.idRole];
 
-    // verify that all headquarters exist
+    // verify that all headquarters exist (regardless of status)
     for (const headquarterId of headquarterIds) {
       const headquarterCheck = await UsersRepository.checkHeadquarterExists(headquarterId);
       if (!headquarterCheck) {
-        throw ApiError.badRequest(`La sede con ID ${headquarterId} no existe`);
+        throw ApiError.notFound(`La sede con ID ${headquarterId} no existe`);
       }
     }
 
-    // verify that all roles exist
+    // verify that all roles exist (regardless of status)
     for (const roleId of roleIds) {
       const roleCheck = await UsersRepository.checkRoleExists(roleId);
       if (!roleCheck) {
-        throw ApiError.badRequest(`El rol con ID ${roleId} no existe`);
+        throw ApiError.notFound(`El rol con ID ${roleId} no existe`);
       }
     }
 
@@ -211,15 +211,13 @@ const UsersService = {
       if (data.sedes.length === 0) {
         throw ApiError.badRequest('El usuario debe tener al menos una sede asignada');
       }
-      
-      // verify that all the headquarters exist
+      // verify that all the headquarters exist (regardless of status)
       for (const sedeId of data.sedes) {
         const headquarterCheck = await UsersRepository.checkHeadquarterExists(sedeId);
         if (!headquarterCheck) {
-          throw ApiError.badRequest(`La sede con ID ${sedeId} no existe`);
+          throw ApiError.notFound(`La sede con ID ${sedeId} no existe`);
         }
       }
-      
       await UsersRepository.clearHeadquarters(email);
       await UsersRepository.assignHeadquarters(email, data.sedes);
     }
@@ -230,15 +228,13 @@ const UsersService = {
       if (data.roles.length === 0) {
         throw ApiError.badRequest('El usuario debe tener al menos un rol asignado');
       }
-      
-      // verify that all the roles exist
+      // verify that all the roles exist (regardless of status)
       for (const roleId of data.roles) {
         const roleCheck = await UsersRepository.checkRoleExists(roleId);
         if (!roleCheck) {
-          throw ApiError.badRequest(`El rol con ID ${roleId} no existe`);
+          throw ApiError.notFound(`El rol con ID ${roleId} no existe`);
         }
       }
-      
       await UsersRepository.clearRoles(email);
       await UsersRepository.assignRoles(email, data.roles);
     }
