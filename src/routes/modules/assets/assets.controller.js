@@ -3,6 +3,7 @@
 // Length limits and required fields come from Prisma schema.
 
 const { AssetsService } = require('./assets.service');
+const { SecurityLogService } = require('../../../services/securitylog.service');
 
 // ---- validation helpers ----
 const MAX = {
@@ -165,6 +166,24 @@ const AssetsController = {
       if (!ok) return badRequest(res, errors);
 
       const asset = await AssetsService.create(data);
+      
+      // Register security log for asset creation
+      const userEmail = req.user?.sub;
+      await SecurityLogService.log({
+        email: userEmail,
+        action: 'CREATE',
+        description: 
+          `Se creó el activo con los siguientes datos: ` +
+          `ID: "${asset.idAsset}", ` +
+          `Categoría ID: "${asset.idCategory}", ` +
+          `Sede ID: "${asset.idHeadquarter}", ` +
+          `Nombre: "${asset.name}", ` +
+          `Tipo: "${asset.type}", ` +
+          `Descripción: "${asset.description}", ` +
+          `Estado: "${asset.status}".`,
+        affectedTable: 'Assets',
+      });
+      
       res.status(201).json(asset);
     } catch (err) { 
       // Handle validation errors from service
@@ -187,7 +206,65 @@ const AssetsController = {
         return badRequest(res, [{ code: 'empty', message: 'No fields to update' }]);
       }
 
+      // Get previous asset data for logging
+      const previousAsset = await AssetsService.get(id);
+      if (!previousAsset) {
+        return res.status(404).json({ message: 'Asset no encontrado' });
+      }
+
       const asset = await AssetsService.update(id, data);
+      
+      // Register security log for asset update
+      const userEmail = req.user?.sub;
+
+      // Verify if only the status changed from inactive to active
+      const onlyStatusChange =
+        previousAsset.status === 'inactive' &&
+        asset.status === 'active' &&
+        previousAsset.idCategory === asset.idCategory &&
+        previousAsset.idHeadquarter === asset.idHeadquarter &&
+        previousAsset.name === asset.name &&
+        previousAsset.type === asset.type &&
+        previousAsset.description === asset.description;
+
+      if (onlyStatusChange) {
+        await SecurityLogService.log({
+          email: userEmail,
+          action: 'REACTIVATE',
+          description:
+            `Se reactivó el activo con ID "${id}". Datos completos:\n` +
+            `Categoría ID: "${asset.idCategory}", ` +
+            `Sede ID: "${asset.idHeadquarter}", ` +
+            `Nombre: "${asset.name}", ` +
+            `Tipo: "${asset.type}", ` +
+            `Descripción: "${asset.description}", ` +
+            `Estado: "${asset.status}".`,
+          affectedTable: 'Assets',
+        });
+      } else {
+        await SecurityLogService.log({
+          email: userEmail,
+          action: 'UPDATE',
+          description:
+            `Se actualizó el activo con ID "${id}".\n` +
+            `Versión previa: ` +
+            `Categoría ID: "${previousAsset.idCategory}", ` +
+            `Sede ID: "${previousAsset.idHeadquarter}", ` +
+            `Nombre: "${previousAsset.name}", ` +
+            `Tipo: "${previousAsset.type}", ` +
+            `Descripción: "${previousAsset.description}", ` +
+            `Estado: "${previousAsset.status}". \n` +
+            `Nueva versión: ` +
+            `Categoría ID: "${asset.idCategory}", ` +
+            `Sede ID: "${asset.idHeadquarter}", ` +
+            `Nombre: "${asset.name}", ` +
+            `Tipo: "${asset.type}", ` +
+            `Descripción: "${asset.description}", ` +
+            `Estado: "${asset.status}". \n`,
+          affectedTable: 'Assets',
+        });
+      }
+
       res.json(asset);
     } catch (err) { 
       // Handle validation errors from service
@@ -204,7 +281,31 @@ const AssetsController = {
       const id = parseIdParam(req.params?.idAsset);
       if (!id) return res.status(400).json({ message: 'idAsset must be a positive integer' });
 
+      // Get asset data before deletion for logging
+      const deletedAsset = await AssetsService.get(id);
+      if (!deletedAsset) {
+        return res.status(404).json({ message: 'Asset no encontrado' });
+      }
+
       await AssetsService.delete(id);
+      
+      // Register security log for asset deletion/inactivation
+      const userEmail = req.user?.sub;
+      await SecurityLogService.log({
+        email: userEmail,
+        action: 'INACTIVE',
+        description: 
+          `Se inactivó el activo: ` +
+          `ID "${id}", ` +
+          `Categoría ID: "${deletedAsset.idCategory}", ` +
+          `Sede ID: "${deletedAsset.idHeadquarter}", ` +
+          `Nombre: "${deletedAsset.name}", ` +
+          `Tipo: "${deletedAsset.type}", ` +
+          `Descripción: "${deletedAsset.description}", ` +
+          `Estado: "${deletedAsset.status}".`,
+        affectedTable: 'Assets',
+      });
+      
       res.status(204).end();
     } catch (err) { next(err); }
   },
