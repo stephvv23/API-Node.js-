@@ -138,7 +138,6 @@ const UsersController = {
     } catch (e) {
       if (e && e.code === 'P2002')
         return res.validationErrors(['Email already exists']);
-      // Manejo explícito de not found para sedes o roles
       if (typeof e?.message === 'string' && e.message.includes('no existe')) {
         return res.notFound(e.message);
       }
@@ -218,7 +217,6 @@ const UsersController = {
       if (e && e.code === 'P2025') {
         return res.notFound('User');
       }
-      // Manejo explícito de not found para sedes o roles
       if (typeof e?.message === 'string' && e.message.includes('no existe')) {
         return res.notFound(e.message);
       }
