@@ -201,7 +201,7 @@ const HeadquarterController = {
   // Removes a headquarter
   delete: async (req, res) => {
     const { id } = req.params;
-    // Confirmar existencia antes de eliminar
+    
     const exists = await HeadquarterService.findById(id);
     if (!exists) {
       return res.notFound('Sede');
