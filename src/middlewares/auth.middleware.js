@@ -9,7 +9,6 @@ function authenticate(handler) {
   return async (req, res, next) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
-
     if (!token) return next(ApiError.unauthorized('Token requerido'));
 
     try {
@@ -58,8 +57,8 @@ function authorizeWindow(windowName, ...actions) {
           return next(ApiError.forbidden('No tienes acceso a esta ventana'));
         }
 
-        // collect all windows permissions from all roles
         const windows = auth.roles.flatMap((r) => r.role?.windows || []);
+
 
         // combine permissions across all roles for the same window (OR semantics)
         const matched = windows.filter((w) => {
