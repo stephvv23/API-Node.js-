@@ -1,6 +1,6 @@
 // src/middlewares/auth.middleware.js
 const jwt = require('jsonwebtoken');
-const ApiError = require('../utils/apiError');
+const ApiError = require('../utils/apiResponse').ApiError;
 const { UsersRepository } = require('../routes/modules/users/users.repository');
 
 // authentication validate JWT and put the user in ctx

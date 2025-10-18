@@ -1,7 +1,7 @@
 const bcrypt = require('bcrypt');
 const { UsersRepository } = require('./users.repository');
 const jwt  = require('jsonwebtoken');
-const ApiError = require('../../../utils/apiError');
+const ApiError = require('../../../utils/apiResponse').ApiError;
 
 /**
  * validate the format of an email

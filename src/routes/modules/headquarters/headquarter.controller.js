@@ -1,15 +1,16 @@
 const { HeadquarterService } = require('./headquarter.service');
 const { SecurityLogService } = require('../../../services/securitylog.service');
+const { EntityValidators } = require('../../../utils/validator');
 
 const HeadquarterController = {
   // Lists all active headquarters
   getAllActive: async (_req, res) => {
     try {
       const headquarters = await HeadquarterService.listActive();
-      res.json({ ok: true, data: headquarters });
+      return res.success(headquarters);
     } catch (error) {
       console.error('[HEADQUARTERS] getAllActive error:', error);
-      res.status(500).json({ ok: false, message: 'Error al obtener las sedes activas' });
+      return res.error('Error al obtener las sedes activas');
     }
   },
 
@@ -19,13 +20,14 @@ const HeadquarterController = {
       const status = (req.query.status || 'active').toLowerCase();
       const allowed = ['active', 'inactive', 'all'];
       if (!allowed.includes(status)) {
-        return next(ApiError.badRequest('El estado debe ser "active", "inactive" o "all"'));
+        return res.validationErrors(['El estado debe ser "active", "inactive" o "all"']);
       }
 
       const headquarters = await HeadquarterService.list({ status });
-      return res.status(200).json({ ok: true, data: headquarters });
+      return res.success(headquarters);
     } catch (error) {
-      return next(error);
+      console.error('[HEADQUARTERS] getAll error:', error);
+      return res.error('Error al obtener las sedes');
     }
   },
 
@@ -35,52 +37,46 @@ const HeadquarterController = {
     try {
       const headquarter = await HeadquarterService.findById(id);
       if (!headquarter) {
-        return res.status(404).json({ ok: false, message: 'Sede no encontrada' });
+        return res.notFound('Sede');
       }
-      res.json({ ok: true, data: headquarter });
+      return res.success(headquarter);
     } catch (error) {
       console.error('[HEADQUARTERS] getById error:', error);
-      res.status(500).json({ ok: false, message: 'Error al obtener la sede' });
+      return res.error('Error al obtener la sede');
     }
   },
 
   // Creates a new headquarter
   create: async (req, res) => {
     const { name, schedule, location, email, description, status } = req.body;
-    const errores = [];
-
-    if (!name) errores.push('El campo "nombre" es obligatorio.');
-    else if (name.length > 150) errores.push('El campo "nombre" no puede tener más de 150 caracteres.');
-
-    if (!schedule) errores.push('El campo "horario" es obligatorio.');
-    else if (schedule.length > 300) errores.push('El campo "horario" no puede tener más de 300 caracteres.');
-
-    if (!location) errores.push('El campo "ubicación" es obligatorio.');
-    else if (location.length > 300) errores.push('El campo "ubicación" no puede tener más de 300 caracteres.');
-
-    if (!email) errores.push('El campo "email" es obligatorio.');
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errores.push('El campo "email" no es válido.');
-    else if (email.length > 150) errores.push('El campo "email" no puede tener más de 150 caracteres.');
-
-    if (!description) errores.push('El campo "descripción" es obligatorio.');
-    else if (description.length > 750) errores.push('El campo "descripción" no puede tener más de 750 caracteres.');
-
-    if (status && status.length > 25) errores.push('El campo "estado" no puede tener más de 25 caracteres.');
-
-    const allHeadquarters = await HeadquarterService.list({ status: 'all' });
-    if (allHeadquarters.some(h => h.name === name)) {
-      errores.push('Ya existe una sede con ese nombre.');
-    }
-    if (allHeadquarters.some(h => h.email === email)) {
-      errores.push('Ya existe una sede con ese email.');
-    }
-
-    if (errores.length > 0) {
-      return res.status(400).json({ ok: false, errores });
+    
+    // Validation for CREATE - all fields required
+    const validation = EntityValidators.headquarters({
+      name, schedule, location, email, description, status
+    }, { partial: false });
+    
+    if (!validation.isValid) {
+      return res.validationErrors(validation.errors);
     }
 
     try {
+      // Check duplicates
+      const allHeadquarters = await HeadquarterService.list({ status: 'all' });
+      const duplicateErrors = [];
+      
+      if (allHeadquarters.some(h => h.name === name)) {
+        duplicateErrors.push('Ya existe una sede con ese nombre');
+      }
+      if (allHeadquarters.some(h => h.email === email)) {
+        duplicateErrors.push('Ya existe una sede con ese email');
+      }
+
+      if (duplicateErrors.length > 0) {
+        return res.validationErrors(duplicateErrors);
+      }
+
       const newHeadquarter = await HeadquarterService.create({ name, schedule, location, email, description, status });
+      
       const userEmail = req.user?.sub; 
       await SecurityLogService.log({
         email: userEmail,
@@ -97,61 +93,53 @@ const HeadquarterController = {
         affectedTable: 'Headquarter',
       });
 
-      res.status(201).json({ ok: true, data: newHeadquarter });
+      return res.status(201).success(newHeadquarter, 'Sede creada exitosamente');
     } catch (error) {
       console.error('[HEADQUARTERS] create error:', error);
-      res.status(500).json({ ok: false, message: 'Error al crear la sede' });
+      return res.error('Error al crear la sede');
     }
   },
 
   // Updates an existing headquarter
   update: async (req, res) => {
     const { id } = req.params;
-    const { name, schedule, location, email, description, status } = req.body;
-    const errores = [];
+    const updateData = req.body;
 
-    if (!name) errores.push('El campo "nombre" es obligatorio.');
-    else if (!/^[a-zA-Z0-9\s]+$/.test(name)) errores.push('El campo "nombre" contiene caracteres inválidos.');
-    else if (name.length > 150) errores.push('El campo "nombre" no puede tener más de 150 caracteres.');
-
-    if (!schedule) errores.push('El campo "horario" es obligatorio.');
-    else if (schedule.length > 300) errores.push('El campo "horario" no puede tener más de 300 caracteres.');
-
-    if (!location) errores.push('El campo "ubicación" es obligatorio.');
-    else if (location.length > 300) errores.push('El campo "ubicación" no puede tener más de 300 caracteres.');
-
-    if (!email) errores.push('El campo "email" es obligatorio.');
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errores.push('El campo "email" no es válido.');
-    else if (email.length > 150) errores.push('El campo "email" no puede tener más de 150 caracteres.');
-
-    if (!description) errores.push('El campo "descripción" es obligatorio.');
-    else if (description.length > 750) errores.push('El campo "descripción" no puede tener más de 750 caracteres.');
-
-    if (!status) errores.push('El campo "estado" es obligatorio.');
-    else if (!['active', 'inactive'].includes(status)) errores.push('El campo "estado" debe ser "active" o "inactive".');
-    else if (status.length > 25) errores.push('El campo "estado" no puede tener más de 25 caracteres.');
-
-    if (name) {
-      const existsName = await HeadquarterService.findbyname(name);
-      if (existsName && existsName.idHeadquarter != id) errores.push('Ya existe una sede con ese nombre.');
-    }
-    if (email) {
-      const existsEmail = await HeadquarterService.findbyemail(email);
-      if (existsEmail && existsEmail.idHeadquarter != id) errores.push('Ya existe una sede con ese email.');
-    }
-
-    if (errores.length > 0) {
-      return res.status(400).json({ ok: false, errores });
+    // Validation for UPDATE - only validate provided fields
+    const validation = EntityValidators.headquarters(updateData, { partial: true });
+    
+    if (!validation.isValid) {
+      return res.validationErrors(validation.errors);
     }
 
     try {
+      // Check duplicates (excluding current record)
+      const duplicateErrors = [];
+      
+      if (updateData.name) {
+        const existsName = await HeadquarterService.findbyname(updateData.name);
+        if (existsName && existsName.idHeadquarter != id) {
+          duplicateErrors.push('Ya existe una sede con ese nombre');
+        }
+      }
+      if (updateData.email) {
+        const existsEmail = await HeadquarterService.findbyemail(updateData.email);
+        if (existsEmail && existsEmail.idHeadquarter != id) {
+          duplicateErrors.push('Ya existe una sede con ese email');
+        }
+      }
+
+      if (duplicateErrors.length > 0) {
+        return res.validationErrors(duplicateErrors);
+      }
+
       // gets the previous headquarter data
       const previousHeadquarter = await HeadquarterService.findById(id);
-
-      const updatedHeadquarter = await HeadquarterService.update(id, { name, schedule, location, email, description, status });
-      if (!updatedHeadquarter) {
-        return res.status(404).json({ ok: false, message: `No se encontró la sede con el ID ${id}` });
+      if (!previousHeadquarter) {
+        return res.notFound('Sede');
       }
+
+      const updatedHeadquarter = await HeadquarterService.update(id, updateData);
 
       // Register in the log the changes (previous and new)
       const userEmail = req.user?.sub;
@@ -203,11 +191,10 @@ const HeadquarterController = {
           affectedTable: 'Headquarter',
         });
       }
-      res.json({ ok: true, data: updatedHeadquarter });
+      return res.success(updatedHeadquarter, 'Sede actualizada exitosamente');
     } catch (error) {
       console.error('[HEADQUARTERS] update error:', error);
-      const message = error.message || 'Error al actualizar la sede';
-      res.status(500).json({ ok: false, message: `No se pudo actualizar la sede: ${message}` });
+      return res.error('Error al actualizar la sede');
     }
   },
 
@@ -217,7 +204,7 @@ const HeadquarterController = {
     try {
       const deletedHeadquarter = await HeadquarterService.remove(id);
       if (!deletedHeadquarter) {
-        return res.status(404).json({ ok: false, message: 'Sede no encontrada' });
+        return res.notFound('Sede');
       }
       const userEmail = req.user?.sub; 
       await SecurityLogService.log({
@@ -233,9 +220,10 @@ const HeadquarterController = {
         `Estado: "${deletedHeadquarter.status}".`,
         affectedTable: 'Headquarter',
       });
-      res.json({ ok: true, data: deletedHeadquarter });
+      return res.success(deletedHeadquarter, 'Sede inactivada exitosamente');
     } catch (error) {
-      res.status(500).json({ ok: false, message: 'Error al eliminar la sede' });
+      console.error('[HEADQUARTERS] delete error:', error);
+      return res.error('Error al inactivar la sede');
     }
   }
 };

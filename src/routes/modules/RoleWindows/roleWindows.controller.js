@@ -1,6 +1,6 @@
 // Controller for RoleWindow entity. Handles HTTP requests, validation, and calls the service layer.
 const { roleWindowService } = require('./roleWindows.service');
-const ApiError = require('../../../utils/apiError');
+const ApiError = require('../../../utils/apiResponse').ApiError;
 
 const roleWindowController = {
     // List windows, with status filter and validation.

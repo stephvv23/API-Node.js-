@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const { UsersService } = require('./users.service');
-const ApiError = require('../../../utils/apiError'); 
+const ApiError = require('../../../utils/apiResponse').ApiError; 
 const { LoginAccessService  } = require('./loginAccess.service');
 const { SecurityLogService } = require('../../../services/securitylog.service');
 
