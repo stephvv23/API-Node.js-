@@ -25,10 +25,10 @@ const AssetsService = {
     if (data.idCategory) {
       const categoryStatus = await AssetsRepository.categoryExists(data.idCategory);
       if (!categoryStatus.exists) {
-        throw new ValidationError('Category does not exist');
+        throw new ValidationError('La categoría no existe');
       }
       if (!categoryStatus.active) {
-        throw new ValidationError('Category is inactive');
+        throw new ValidationError('La categoría está inactiva');
       }
     }
 
@@ -36,10 +36,10 @@ const AssetsService = {
     if (data.idHeadquarter) {
       const headquarterStatus = await AssetsRepository.headquarterExists(data.idHeadquarter);
       if (!headquarterStatus.exists) {
-        throw new ValidationError('Headquarter does not exist');
+        throw new ValidationError('La sede no existe');
       }
       if (!headquarterStatus.active) {
-        throw new ValidationError('Headquarter is inactive');
+        throw new ValidationError('La sede está inactiva');
       }
     }
 
@@ -52,10 +52,10 @@ const AssetsService = {
     if (data.idCategory) {
       const categoryStatus = await AssetsRepository.categoryExists(data.idCategory);
       if (!categoryStatus.exists) {
-        throw new ValidationError('Category does not exist');
+        throw new ValidationError('La categoría no existe');
       }
       if (!categoryStatus.active) {
-        throw new ValidationError('Category is inactive');
+        throw new ValidationError('La categoría está inactiva');
       }
     }
 
@@ -63,10 +63,10 @@ const AssetsService = {
     if (data.idHeadquarter) {
       const headquarterStatus = await AssetsRepository.headquarterExists(data.idHeadquarter);
       if (!headquarterStatus.exists) {
-        throw new ValidationError('Headquarter does not exist');
+        throw new ValidationError('La sede no existe');
       }
       if (!headquarterStatus.active) {
-        throw new ValidationError('Headquarter is inactive');
+        throw new ValidationError('La sede está inactiva');
       }
     }
 

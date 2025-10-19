@@ -5,13 +5,13 @@ const PermissionController = {
   getMyWindows: async (req, res) => {
     try {
       const email = req.user?.sub;
-      if (!email) return res.status(401).json({ message: 'Unauthorized' });
+      if (!email) return res.error('No autorizado', 401);
 
       const windows = await PermissionService.getMyWindows(email);
-      res.json(windows);
-    } catch (e) {
-      console.error('[PERMISSIONS] getMyWindows error:', e);
-      res.status(500).json({ message: 'Error al obtener permisos' });
+      return res.success(windows);
+    } catch (error) {
+      
+      return res.error('Error al obtener permisos');
     }
   },
 };
