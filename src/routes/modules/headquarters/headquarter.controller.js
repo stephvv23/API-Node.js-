@@ -95,7 +95,7 @@ const HeadquarterController = {
 
       return res.status(201).success(newHeadquarter, 'Sede creada exitosamente');
     } catch (error) {
-      console.error('[HEADQUARTERS] create error:', error);
+      
       return res.error('Error al crear la sede');
     }
   },
@@ -193,7 +193,7 @@ const HeadquarterController = {
       }
       return res.success(updatedHeadquarter, 'Sede actualizada exitosamente');
     } catch (error) {
-      console.error('[HEADQUARTERS] update error:', error);
+      
       return res.error('Error al actualizar la sede');
     }
   },
@@ -201,11 +201,13 @@ const HeadquarterController = {
   // Removes a headquarter
   delete: async (req, res) => {
     const { id } = req.params;
+    
+    const exists = await HeadquarterService.findById(id);
+    if (!exists) {
+      return res.notFound('Sede');
+    }
     try {
       const deletedHeadquarter = await HeadquarterService.remove(id);
-      if (!deletedHeadquarter) {
-        return res.notFound('Sede');
-      }
       const userEmail = req.user?.sub; 
       await SecurityLogService.log({
         email: userEmail,
@@ -222,7 +224,6 @@ const HeadquarterController = {
       });
       return res.success(deletedHeadquarter, 'Sede inactivada exitosamente');
     } catch (error) {
-      console.error('[HEADQUARTERS] delete error:', error);
       return res.error('Error al inactivar la sede');
     }
   }

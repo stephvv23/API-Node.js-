@@ -3,6 +3,7 @@
 // Length limits and required fields come from Prisma schema.
 
 const { AssetsService } = require('./assets.service');
+const { EntityValidators } = require('../../../utils/validator');
 
 // ---- validation helpers ----
 const MAX = {
@@ -29,198 +30,105 @@ function badRequest(res, errors, message = 'Invalid payload') {
  * @param {boolean} options.partial - When true, only validate provided fields (PUT partial update)
  * @returns {{ok:boolean, errors:Array, data:Object}}
  */
-function validateAssetBody(body = {}, { partial = false } = {}) {
-  const errors = [];
-  const data = {};
-  const has = (k) => Object.prototype.hasOwnProperty.call(body, k);
-  
-  // Define allowed fields for asset creation/update
-  const allowedFields = ['idCategory', 'idHeadquarter', 'name', 'type', 'description', 'status'];
-  
-  // Check for unexpected fields and warn (but don't reject)
-  const bodyKeys = Object.keys(body);
-  const unexpectedFields = bodyKeys.filter(key => !allowedFields.includes(key));
-  if (unexpectedFields.length > 0) {
-    // Log unexpected fields but continue processing
-    console.warn('Unexpected fields in request body:', unexpectedFields);
-  }
 
-  // idCategory (required on create)
-  if (!partial || has('idCategory')) {
-    const v = body.idCategory;
-    if (v === undefined || v === null || v === '') {
-      if (!partial) errors.push({ field: 'idCategory', code: 'required' });
-    } else if (!Number.isInteger(Number(v)) || Number(v) <= 0) {
-      errors.push({ field: 'idCategory', code: 'type', message: 'must be a positive integer' });
-    } else {
-      data.idCategory = Number(v);
-    }
-  }
-
-  // idHeadquarter (required on create)
-  if (!partial || has('idHeadquarter')) {
-    const v = body.idHeadquarter;
-    if (v === undefined || v === null || v === '') {
-      if (!partial) errors.push({ field: 'idHeadquarter', code: 'required' });
-    } else if (!Number.isInteger(Number(v)) || Number(v) <= 0) {
-      errors.push({ field: 'idHeadquarter', code: 'type', message: 'must be a positive integer' });
-    } else {
-      data.idHeadquarter = Number(v);
-    }
-  }
-
-  // name (required on create, string, 1..50)
-  if (!partial || has('name')) {
-    const v = body.name;
-    if (typeof v !== 'string' || !v.trim()) {
-      if (!partial) errors.push({ field: 'name', code: 'required' });
-    } else if (v.trim().length > MAX.name) {
-      errors.push({ field: 'name', code: 'maxLength', max: MAX.name });
-    } else {
-      data.name = v.trim();
-    }
-  }
-
-  // type (required on create, string, 1..50)
-  if (!partial || has('type')) {
-    const v = body.type;
-    if (typeof v !== 'string' || !v.trim()) {
-      if (!partial) errors.push({ field: 'type', code: 'required' });
-    } else if (v.trim().length > MAX.type) {
-      errors.push({ field: 'type', code: 'maxLength', max: MAX.type });
-    } else {
-      data.type = v.trim();
-    }
-  }
-
-  // description (optional, string, 0..750)
-  if (has('description')) {
-    const v = body.description;
-    // If provided, description must be a string and not an empty string
-    if (v != null && typeof v !== 'string') {
-      errors.push({ field: 'description', code: 'type', message: 'must be a string' });
-    } else if (v == null) {
-      // treat null/undefined as empty string for storage
-      data.description = '';
-    } else if (v.trim().length === 0) {
-      // reject explicitly empty descriptions when provided
-      errors.push({ field: 'description', code: 'empty', message: 'description must not be empty' });
-    } else if (v.length > MAX.description) {
-      errors.push({ field: 'description', code: 'maxLength', max: MAX.description });
-    } else {
-      data.description = v;
-    }
-  } else if (!partial) {
-    // For create operations, set default empty description if not provided
-    data.description = '';
-  }
-
-  // status (required on create, 'active' | 'inactive', max 25)
-  if (!partial || has('status')) {
-    const raw = body.status;
-    if (typeof raw !== 'string' || !raw.trim()) {
-      if (!partial) errors.push({ field: 'status', code: 'required' });
-    } else {
-      const v = raw.trim().toLowerCase();
-      if (!ALLOWED_STATUS.has(v)) {
-        errors.push({ field: 'status', code: 'enum', allowed: Array.from(ALLOWED_STATUS) });
-      } else if (v.length > MAX.status) {
-        errors.push({ field: 'status', code: 'maxLength', max: MAX.status });
-      } else {
-        data.status = v;
-      }
-    }
-  }
-
-  return { ok: errors.length === 0, errors, data };
-}
 
 // ---- controller ----
 const AssetsController = {
   /** GET /assets */
-  list: async (req, res, next) => {
+  list: async (req, res) => {
     try {
-      // (Optional) accept pagination/filter query here if your service supports it
       const assets = await AssetsService.list(req?.query);
-      res.json(assets);
-    } catch (err) { next(err); }
+      return res.success(assets);
+    } catch (error) {
+      
+      return res.error('Error al obtener los activos');
+    }
   },
 
   /** GET /assets/:idAsset */
-  get: async (req, res, next) => {
+  get: async (req, res) => {
     try {
       const id = parseIdParam(req.params?.idAsset);
-      if (!id) return res.status(400).json({ message: 'idAsset must be a positive integer' });
+      if (!id) return res.validationErrors(['idAsset debe ser un entero positivo']);
 
       const asset = await AssetsService.get(id);
-      if (!asset) return res.status(404).json({ message: 'Asset no encontrado' });
-      res.json(asset);
-    } catch (err) { next(err); }
+      if (!asset) return res.notFound('Activo');
+      return res.success(asset);
+    } catch (error) {
+      
+      return res.error('Error al obtener el activo');
+    }
   },
 
   /** POST /assets */
-  create: async (req, res, next) => {
+  create: async (req, res) => {
     try {
-      const { ok, errors, data } = validateAssetBody(req.body, { partial: false });
-      if (!ok) return badRequest(res, errors);
-
-      const asset = await AssetsService.create(data);
-      res.status(201).json(asset);
-    } catch (err) { 
-      // Handle validation errors from service
-      if (err.name === 'ValidationError') {
-        return res.status(err.statusCode || 400).json({ message: err.message });
+      const validation = EntityValidators.asset(req.body, { partial: false });
+      if (!validation.isValid) {
+        return res.validationErrors(validation.errors);
       }
-      next(err); 
+      const asset = await AssetsService.create(req.body);
+      return res.status(201).success(asset, 'Activo creado exitosamente');
+    } catch (error) {
+      if (error.name === 'ValidationError') {
+        return res.validationErrors([error.message]);
+      }
+      
+      return res.error('Error al crear el activo');
     }
   },
 
   /** PUT /assets/:idAsset */
-  update: async (req, res, next) => {
+  update: async (req, res) => {
     try {
       const id = parseIdParam(req.params?.idAsset);
-      if (!id) return res.status(400).json({ message: 'idAsset must be a positive integer' });
-
-      const { ok, errors, data } = validateAssetBody(req.body, { partial: true });
-      if (!ok) return badRequest(res, errors);
-      if (!Object.keys(data).length) {
-        return badRequest(res, [{ code: 'empty', message: 'No fields to update' }]);
+      if (!id) return res.validationErrors(['idAsset debe ser un entero positivo']);
+      const exists = await AssetsService.get(id);
+      if (!exists) return res.notFound('Activo');
+      const validation = EntityValidators.asset(req.body, { partial: true });
+      if (!validation.isValid) {
+        return res.validationErrors(validation.errors);
       }
-
-      const asset = await AssetsService.update(id, data);
-      res.json(asset);
-    } catch (err) { 
-      // Handle validation errors from service
-      if (err.name === 'ValidationError') {
-        return res.status(err.statusCode || 400).json({ message: err.message });
+      if (!Object.keys(req.body).length) {
+        return res.validationErrors(['No hay campos para actualizar']);
       }
-      next(err); 
+      const asset = await AssetsService.update(id, req.body);
+      return res.success(asset, 'Activo actualizado exitosamente');
+    } catch (error) {
+      if (error.name === 'ValidationError') {
+        return res.validationErrors([error.message]);
+      }
+      return res.error('Error al actualizar el activo');
     }
   },
 
   /** DELETE /assets/:idAsset */
-  delete: async (req, res, next) => {
+  delete: async (req, res) => {
     try {
       const id = parseIdParam(req.params?.idAsset);
-      if (!id) return res.status(400).json({ message: 'idAsset must be a positive integer' });
-
-      await AssetsService.delete(id);
-      res.status(204).end();
-    } catch (err) { next(err); }
+      if (!id) return res.validationErrors(['idAsset debe ser un entero positivo']);
+      // Confirmar existencia antes de eliminar
+      const exists = await AssetsService.get(id);
+      if (!exists) return res.notFound('Activo');
+      const deleted = await AssetsService.delete(id);
+      return res.success(deleted, 'Activo eliminado exitosamente');
+    } catch (error) {
+      return res.error('Error al eliminar el activo');
+    }
   },
 
   /** GET /assets/user/:email */
-  listByUserEmail: async (req, res, next) => {
+  listByUserEmail: async (req, res) => {
     try {
       const email = String(req.params?.email || '').trim();
-      if (!email) return res.status(400).json({ message: 'Email is required' });
-      // very light email format check
+      if (!email) return res.validationErrors(['El email es requerido']);
       const simpleEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!simpleEmail.test(email)) return res.status(400).json({ message: 'Invalid email' });
-
+      if (!simpleEmail.test(email)) return res.validationErrors(['Email inválido']);
       const assets = await AssetsService.listByUserEmail(email);
-      res.json(assets);
-    } catch (err) { next(err); }
+      return res.success(assets);
+    } catch (error) {
+      return res.error('Error al obtener los activos del usuario');
+    }
   },
 };
 

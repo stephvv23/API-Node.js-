@@ -24,16 +24,21 @@ const categoryService = {
     },
     // Update an existing category by ID.
     update: async (id, data) => {
-        return categoryRepository.update(id, {
+        return await categoryRepository.update(id, {
             name: data.name,
             status: data.status 
-        })
+        });
     }, 
     // Soft-delete a category (set status to 'inactive').
     delete: async (id) => {
-        return categoryRepository.update(id, {
-            status: 'inactive'
-        })
+        try {
+            return await categoryRepository.update(id, {
+                status: 'inactive'
+            });
+        } catch (e) {
+            if (e?.code === 'P2025') return null;
+            throw e;
+        }
     }
 };
 

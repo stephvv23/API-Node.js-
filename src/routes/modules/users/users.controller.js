@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const { UsersService } = require('./users.service');
-const ApiError = require('../../../utils/apiResponse').ApiError; 
+const { EntityValidators } = require('../../../utils/validator');
 const { LoginAccessService  } = require('./loginAccess.service');
 const { SecurityLogService } = require('../../../services/securitylog.service');
 
@@ -44,23 +44,26 @@ const UsersController = {
    * GET /users
    */
   list: async (_req, res) => {
-    const users = await UsersService.list();
-
-    const mapped = users.map(u => ({
-      email: u.email,
-      name: u.name,
-      status: u.status,
-      roles: u.roles.map(r => ({
-        idRole: r.role.idRole,
-        rolName: r.role.rolName
-      })),
-      sedes: u.headquarterUser.map(h => ({
-        idHeadquarter: h.headquarter.idHeadquarter,
-        name: h.headquarter.name
-      }))
-    }));
-
-  res.json(mapped);
+    try {
+      const users = await UsersService.list();
+      const mapped = users.map(u => ({
+        email: u.email,
+        name: u.name,
+        status: u.status,
+        roles: u.roles.map(r => ({
+          idRole: r.role.idRole,
+          rolName: r.role.rolName
+        })),
+        sedes: u.headquarterUser.map(h => ({
+          idHeadquarter: h.headquarter.idHeadquarter,
+          name: h.headquarter.name
+        }))
+      }));
+      return res.success(mapped);
+    } catch (error) {
+      console.error('[USERS] list error:', error);
+      return res.error('Error retrieving users');
+    }
   },
 
 
@@ -70,23 +73,26 @@ const UsersController = {
    */
   get: async (req, res) => {
     const { email } = req.params;
-    const user = await UsersService.get(email);
-
-    if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
-
-    res.json({
-      email: user.email,
-      name: user.name,
-      status: user.status,
-      sedes: user.headquarterUser.map(h => ({
-        idHeadquarter: h.idHeadquarter,
-        name: h.headquarter.name
-      })),
-      roles: user.roles.map(r => ({
-        idRole: r.role.idRole,
-        name: r.role.rolName
-      }))
-    });
+    try {
+      const user = await UsersService.get(email);
+      if (!user) return res.notFound('User');
+      return res.success({
+        email: user.email,
+        name: user.name,
+        status: user.status,
+        sedes: user.headquarterUser.map(h => ({
+          idHeadquarter: h.idHeadquarter,
+          name: h.headquarter.name
+        })),
+        roles: user.roles.map(r => ({
+          idRole: r.role.idRole,
+          name: r.role.rolName
+        }))
+      });
+    } catch (error) {
+      console.error('[USERS] get error:', error);
+      return res.error('Error retrieving user');
+    }
   },
 
 
@@ -97,58 +103,30 @@ const UsersController = {
    */
   create: async (req, res) => {
     const body = req.body || {};
-    
-    // verify that the body is a valid JSON
     if (body.__jsonError) {
-      return res
-        .status(400)
-        .json({ message: 'JSON inválido. Verifique la sintaxis del request body.' });
+      return res.validationErrors(['Invalid JSON. Check request body syntax.']);
     }
-    
-    const { email, name, password, status, idHeadquarter, idRole} = body;
-    
-    // validate the required fields (including empty strings)
-    if (!email || email.trim() === '') {
-      return res
-        .status(400)
-        .json({ message: 'El email es obligatorio' });
-    }
-    
-    if (!name || name.trim() === '') {
-      return res
-        .status(400)
-        .json({ message: 'El nombre es obligatorio' });
-    }
-    
-    if (!password || password.trim() === '') {
-      return res
-        .status(400)
-        .json({ message: 'La contraseña es obligatoria' });
-    }
-
-    // validate that a headquarter is provided and not empty
+    const { email, name, password, status, idHeadquarter, idRole } = body;
+    // Centralized validation
+    const validation = EntityValidators.user({ email, name, password, status }, { partial: false });
+    const errors = [...validation.errors];
     if (!idHeadquarter || (Array.isArray(idHeadquarter) && idHeadquarter.length === 0)) {
-      return res
-        .status(400)
-        .json({ message: 'El usuario debe tener al menos una sede asignada' });
+      errors.push('User must have at least one headquarter assigned');
     }
-
-    // validate that a role is provided and not empty
     if (!idRole || (Array.isArray(idRole) && idRole.length === 0)) {
-      return res
-        .status(400)
-        .json({ message: 'El usuario debe tener al menos un rol asignado' });
+      errors.push('User must have at least one role assigned');
     }
-    
+    if (errors.length > 0) {
+      return res.validationErrors(errors);
+    }
     try {
       const created = await UsersService.create({ email, name, password, status, idHeadquarter, idRole });
-      
       // Log the user creation
       const userEmail = req.user?.sub;
       await SecurityLogService.log({
         email: userEmail,
         action: 'CREATE',
-        description: 
+        description:
           `Se creó el usuario con los siguientes datos: ` +
           `Email: "${created.email}", ` +
           `Nombre: "${created.name}", ` +
@@ -156,12 +134,15 @@ const UsersController = {
           `${formatUserRelations(created)}.`,
         affectedTable: 'User',
       });
-
-      res.status(201).json(created);
+      return res.status(201).success(created, 'User created successfully');
     } catch (e) {
       if (e && e.code === 'P2002')
-        return res.status(409).json({ message: 'El email ya existe' });
-      throw e;
+        return res.validationErrors(['Email already exists']);
+      if (typeof e?.message === 'string' && e.message.includes('no existe')) {
+        return res.notFound(e.message);
+      }
+      console.error('[USERS] create error:', e);
+      return res.error('Error creating user');
     }
   },
 
@@ -173,37 +154,33 @@ const UsersController = {
   update: async (req, res) => {
     const { email } = req.params;
     const body = req.body || {};
-    
-    // verify that the body is a valid JSON
     if (body.__jsonError) {
-      return res
-        .status(400)
-        .json({ message: 'JSON inválido. Verifique la sintaxis del request body.' });
+      return res.validationErrors(['Invalid JSON. Check request body syntax.']);
     }
-    
+    // Check existence before update
+    const previousUser = await UsersService.get(email);
+    if (!previousUser) {
+      return res.notFound('User');
+    }
     const { name, status, password, sedes, roles } = body;
-
+    // Centralized validation (partial)
+    const validation = EntityValidators.user({ email, name, password, status }, { partial: true });
+    const errors = [...validation.errors];
+    if (errors.length > 0) {
+      return res.validationErrors(errors);
+    }
     try {
-      // Get the previous user data for comparison
-      const previousUser = await UsersService.get(email);
-      if (!previousUser) {
-        return res.status(404).json({ message: 'Usuario no encontrado' });
-      }
-
       const updated = await UsersService.update(email, { name, status, password, sedes, roles });
-      
       // Log the user update
       const userEmail = req.user?.sub;
-      
       // Check if only status changed from inactive to active (reactivation)
-      const onlyStatusChange = 
+      const onlyStatusChange =
         previousUser.status === 'inactive' &&
         updated.status === 'active' &&
         previousUser.name === updated.name &&
         previousUser.password === updated.password &&
         arraysEqualById(previousUser.headquarterUser, updated.headquarterUser, 'idHeadquarter') &&
         arraysEqualById(previousUser.roles, updated.roles, 'idRole');
-
       if (onlyStatusChange) {
         await SecurityLogService.log({
           email: userEmail,
@@ -235,13 +212,16 @@ const UsersController = {
           affectedTable: 'User',
         });
       }
-
-      res.json(updated);
+      return res.success(updated, 'User updated successfully');
     } catch (e) {
       if (e && e.code === 'P2025') {
-        return res.status(404).json({ message: 'Usuario no encontrado' });
+        return res.notFound('User');
       }
-      throw e;
+      if (typeof e?.message === 'string' && e.message.includes('no existe')) {
+        return res.notFound(e.message);
+      }
+      console.error('[USERS] update error:', e);
+      return res.error('Error updating user');
     }
   },
 
@@ -252,20 +232,16 @@ const UsersController = {
   updateStatus: async (req, res) => {
     const { email } = req.params;
     const { status } = req.body || {};
-    if (!status) return res.status(400).json({ message: 'status es obligatorio' });
+    if (!status) return res.validationErrors(['status is required']);
+    // Check existence before update
+    const previousUser = await UsersService.get(email);
+    if (!previousUser) {
+      return res.notFound('User');
+    }
     try {
-      // Get the previous user data for comparison
-      const previousUser = await UsersService.get(email);
-      if (!previousUser) {
-        return res.status(404).json({ message: 'Usuario no encontrado' });
-      }
-
       const updatedWithRelations = await UsersService.updateStatus(email, status);
-      
       // Log the status change
       const userEmail = req.user?.sub;
-      
-      // Check if user was reactivated (from inactive to active)
       if (previousUser.status === 'inactive' && status === 'active') {
         await SecurityLogService.log({
           email: userEmail,
@@ -291,13 +267,12 @@ const UsersController = {
           affectedTable: 'User',
         });
       }
-
-      res.json(updatedWithRelations);
+      return res.success(updatedWithRelations, 'User status updated successfully');
     } catch (e) {
-      // handle case when user is not found
       if (e && e.code === 'P2025')
-        return res.status(404).json({ message: 'Usuario no encontrado' });
-      throw e;
+        return res.notFound('User');
+      console.error('[USERS] updateStatus error:', e);
+      return res.error('Error updating user status');
     }
   },
 
@@ -308,15 +283,20 @@ const UsersController = {
   updatePassword: async (req, res) => {
     const { email } = req.params;
     const { password } = req.body || {};
-    if (!password) return res.status(400).json({ message: 'password es obligatorio' });
+    if (!password) return res.validationErrors(['password is required']);
+    // Check existence before update
+    const previousUser = await UsersService.get(email);
+    if (!previousUser) {
+      return res.notFound('User');
+    }
     try {
       const updated = await UsersService.updatePassword(email, password);
-      res.json(updated);
+      return res.success(updated, 'User password updated successfully');
     } catch (e) {
-      // handle case when user is not found
       if (e && e.code === 'P2025')
-        return res.status(404).json({ message: 'Usuario no encontrado' });
-      throw e;
+        return res.notFound('User');
+      console.error('[USERS] updatePassword error:', e);
+      return res.error('Error updating user password');
     }
   },
 
@@ -326,15 +306,13 @@ const UsersController = {
    */
   remove: async (req, res) => {
     const { email } = req.params;
+    // Check existence before delete
+    const userToDelete = await UsersService.get(email);
+    if (!userToDelete) {
+      return res.notFound('User');
+    }
     try {
-      // Get the user data before deletion for logging
-      const userToDelete = await UsersService.get(email);
-      if (!userToDelete) {
-        return res.status(404).json({ message: 'Usuario no encontrado' });
-      }
-
       const updatedUser = await UsersService.delete(email);
-      
       // Log the user deactivation
       const userEmail = req.user?.sub;
       await SecurityLogService.log({
@@ -347,16 +325,15 @@ const UsersController = {
           `${formatUserRelations(userToDelete)}.`,
         affectedTable: 'User',
       });
-
-      res.json({ 
-        message: 'Usuario desactivado exitosamente',
-        user: updatedUser 
+      return res.success({
+        message: 'User deactivated successfully',
+        user: updatedUser
       });
     } catch (e) {
-      // Handles case when user is not found
       if (e && e.code === 'P2025')
-        return res.status(404).json({ message: 'Usuario no encontrado' });
-      throw e;
+        return res.notFound('User');
+      console.error('[USERS] remove error:', e);
+      return res.error('Error deactivating user');
     }
   },
 
@@ -397,9 +374,14 @@ const UsersController = {
   //get headquarters related to user by using email
   getuserHeadquartersByEmail: async (req, res) => {
     const { email } = req.params;
-    const userHeadquarters = await UsersService.getuserHeadquartersByEmail(email);
-    if (!userHeadquarters) return res.status(404).json({ message: 'Usuario no encontrado' });
-    res.json(userHeadquarters);
+    try {
+      const userHeadquarters = await UsersService.getuserHeadquartersByEmail(email);
+      if (!userHeadquarters) return res.notFound('User');
+      return res.success(userHeadquarters);
+    } catch (error) {
+      console.error('[USERS] getuserHeadquartersByEmail error:', error);
+      return res.error('Error retrieving user headquarters');
+    }
   },
 
 
