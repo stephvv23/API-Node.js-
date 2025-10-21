@@ -1,96 +1,104 @@
-// Controller for RoleWindow entity. Handles HTTP requests, validation, and calls the service layer.
 const { roleWindowService } = require('./roleWindows.service');
-const ApiError = require('../../../utils/apiError');
+const { ValidationRules } = require('../../../utils/validator');
 
 const roleWindowController = {
-    // List windows, with status filter and validation.
-    listWindows: async(req, res, next) => {
+    // List all windows with status filter
+    listWindows: async (req, res) => {
         try {
             const status = (req.query.status || 'active').toLowerCase();
             const allowed = ['active', 'inactive', 'all'];
-            if (!allowed.includes(status)){
-                return next(ApiError.badRequest('El estado debe ser active, inactive o all'));
+            if (!allowed.includes(status)) {
+                return res.validationErrors(['Status must be "active", "inactive" or "all"']);
             }
-
-            const data = await roleWindowService.listWindows({status});
-            return res.status(200).json({ok: true, data});
+            const data = await roleWindowService.listWindows({ status });
+            return res.success(data);
         } catch (error) {
-            return next(error);
+            console.error('[ROLEWINDOWS] listWindows error:', error);
+            return res.error('Error retrieving windows');
         }
     },
-    // List role-window permissions, with permission filters.
-    list: async (req, res, next) => {
+
+    // List role-window permissions with permission filters
+    list: async (req, res) => {
         try {
             const create = (Number(req.query.create) || 0);
             const update = (Number(req.query.update) || 0);
             const read = (Number(req.query.read) || 0);
             const remove = (Number(req.query.delete) || 0);
-
-            const allowed = [1,0];
-
-            if(!allowed.includes(create) || !allowed.includes(read) || !allowed.includes(update) || !allowed.includes(remove)) {
-                return next(ApiError.badRequest('Los permisos no estan correctos'));
+            const allowed = [1, 0];
+            if (!allowed.includes(create) || !allowed.includes(read) || !allowed.includes(update) || !allowed.includes(remove)) {
+                return res.validationErrors(['Permissions must be 0 or 1']);
             }
-
-            const data = await roleWindowService.list({create, read, update, remove});
-            return res.status(200).json({ok: true, data});
-            
+            const data = await roleWindowService.list({ create, read, update, remove });
+            return res.success(data);
         } catch (error) {
-            return next(error);
+            console.error('[ROLEWINDOWS] list error:', error);
+            return res.error('Error retrieving role-window permissions');
         }
     },
-    // Get a role-window permission by composite IDs.
+
+    // Get a role-window permission by composite IDs
     getByIds: async (req, res) => {
         const { idRole, idWindow } = req.params;
-        if (!/^[0-9\s]+$/.test(idRole)) return res.status(400).json({ok: false, error: 'el idde rol solo puede ser numeros'});
-        if (!/^[0-9\s]+$/.test(idWindow)) return res.status(400).json({ok: false, error: 'el idde ventana solo puede ser numeros'});
+        if (!ValidationRules.onlyNumbers(idRole) === true) {
+            return res.validationErrors(['idRole must be a number']);
+        }
+        if (!ValidationRules.onlyNumbers(idWindow) === true) {
+            return res.validationErrors(['idWindow must be a number']);
+        }
         try {
             const roleWindow = await roleWindowService.getByIds(idRole, idWindow);
-            if(!roleWindow) {
-                return res.status(404).json({
-                    ok: false, error: 'rol ventana no encontrado'
-                });
+            if (!roleWindow) {
+                return res.notFound('Role-Window');
             }
-            return res.status(200).json(
-                result
-            );
-        } catch(error) {
-            return res.status(500).json({
-                ok: false,
-                error: 'Error interno del servidor'
-            });
+            return res.success(roleWindow);
+        } catch (error) {
+            console.error('[ROLEWINDOWS] getByIds error:', error);
+            return res.error('Error retrieving role-window');
         }
     },
+
+    // Get all role-windows by role ID
     getByIdRole: async (req, res) => {
         const { idRole } = req.params;
-        if (!/^[0-9\s]+$/.test(idRole)) return res.status(400).json({ok: false, error: 'el id solo puede ser numeros'});
+        if (!ValidationRules.onlyNumbers(idRole) === true) {
+            return res.validationErrors(['idRole must be a number']);
+        }
         try {
             const roleWindow = await roleWindowService.getByIdRole(idRole);
-            if(!roleWindow) {
-                return res.status(404).json({
-                    ok: false, error: 'rol ventana no encontrado'
-                });
+            if (!roleWindow) {
+                return res.notFound('Role-Window');
             }
-            return res.status(200).json({
-                ok: true,
-                data: roleWindow
-            });
-        } catch(error) {
-            return res.status(500).json({
-                ok: false,
-                error: 'Error interno del servidor'
-            });
+            return res.success(roleWindow);
+        } catch (error) {
+            console.error('[ROLEWINDOWS] getByIdRole error:', error);
+            return res.error('Error retrieving role-window by role');
         }
     },
 
-
-    // Create a new role-window permission.
+    // Create a new role-window permission
     create: async (req, res) => {
         const { idRole, idWindow, create, read, update, remove } = req.body;
-        try {
-            if ([idRole, idWindow].some(v => v === undefined)) {
-                return res.status(400).json({ ok:false, error: 'idRole y idWindow son requeridos' });
+        const errors = [];
+        if (idRole === undefined || idWindow === undefined) {
+            errors.push('idRole and idWindow are required');
+        }
+        if (!ValidationRules.onlyNumbers(idRole) === true) {
+            errors.push('idRole must be a number');
+        }
+        if (!ValidationRules.onlyNumbers(idWindow) === true) {
+            errors.push('idWindow must be a number');
+        }
+        const allowed = [1, 0];
+        ['create', 'read', 'update', 'remove'].forEach(flag => {
+            if (![0, 1, '0', '1', true, false].includes(req.body[flag])) {
+                errors.push(`${flag} must be 0 or 1`);
             }
+        });
+        if (errors.length > 0) {
+            return res.validationErrors(errors);
+        }
+        try {
             const newRoleWindow = await roleWindowService.create({
                 idRole: Number(idRole),
                 idWindow: Number(idWindow),
@@ -99,80 +107,73 @@ const roleWindowController = {
                 update: Number(update),
                 remove: Number(remove),
             });
-            res.status(201).json({
-                ok: true, 
-                data: newRoleWindow
-            })
+            return res.status(201).success(newRoleWindow, 'Role-Window created successfully');
         } catch (error) {
-            console.log['[ROLEWINDOWS]'];
-
-            return res.status(500).json({
-                ok: false,
-                error: 'Error interno del servidor'
-            })
-        } 
-    },
-
-    // Update a role-window permission by composite IDs.
-    update: async (req, res) => {
-        const { idRole, idWindow } = req.params;
-        if (!/^[0-9\s]+$/.test(idRole)) return res.status(400).json({ok: false, error: 'el id de rol solo puede ser numeros'});
-        if (!/^[0-9\s]+$/.test(idWindow)) return res.status(400).json({ok: false, error: 'el id de ventana solo puede ser numeros'});
-
-        const asBool = v => v === true || v === 1 || v === '1' || v === 'true';
-        
-            
-
-        const flags = {
-            create: asBool(req.body.create),
-            read:   asBool(req.body.read),
-            update: asBool(req.body.update),
-            remove: asBool(req.body.remove ?? req.body.delete), 
-        };
-
-        try {
-            const updated = await roleWindowService.update(idRole, idWindow, flags);
-            if(!updated) {
-                return res.status(404).json({
-                    ok: false, 
-                    error: 'rol ventana no encontrado'
-                });
-            }
-            return res.json({ ok: true, data: updated });
-        } catch (error) {
-            console.error('[RoleWindow] update error', error);
-            return res.status(500).json({ ok: false, error: error.message || 'Error al actualizar' });
+            console.error('[ROLEWINDOWS] create error:', error);
+            return res.error('Error creating role-window');
         }
     },
 
-    // Delete a role-window permission by composite IDs.
-    delete: async (req, res) => {
-        const { idRole, idWindow } = req.params;
+            // Update a role-window permission by composite IDs
+            update: async (req, res) => {
+                const { idRole, idWindow } = req.params;
+                // Validate IDs before any logic
+                if (!ValidationRules.onlyNumbers(idRole) === true) {
+                    return res.validationErrors(['idRole must be a number']);
+                }
+                if (!ValidationRules.onlyNumbers(idWindow) === true) {
+                    return res.validationErrors(['idWindow must be a number']);
+                }
+                // Check existence before update
+                const exists = await roleWindowService.getByIds(idRole, idWindow);
+                if (!exists) {
+                    return res.notFound('Role-Window');
+                }
+                const asBool = v => v === true || v === 1 || v === '1' || v === 'true';
+                const flags = {
+                    create: asBool(req.body.create),
+                    read: asBool(req.body.read),
+                    update: asBool(req.body.update),
+                    remove: asBool(req.body.remove ?? req.body.delete),
+                };
+                try {
+                    const updated = await roleWindowService.update(idRole, idWindow, flags);
+                    return res.success(updated, 'Role-Window updated successfully');
+                } catch (error) {
+                    if (error.code === 'P2025') {
+                        return res.notFound('Role-Window');
+                    }
+                    console.error('[ROLEWINDOWS] update error:', error);
+                    return res.error('Error updating role-window');
+                }
+            },
 
-        if (!/^[0-9\s]+$/.test(idRole)) return res.status(400).json({ok: false, error: 'el id de rol solo puede ser numeros'});
-        if (!/^[0-9\s]+$/.test(idWindow)) return res.status(400).json({ok: false, error: 'el id de ventana solo puede ser numeros'});
-
-        try {
-            const deletedRoleWindow = await roleWindowService.delete(idRole, idWindow);
-            if(!deletedRoleWindow) {
-                return res.status(404).json({
-                    ok: false, 
-                    error: 'rol ventana no encontrado'
-                });
-            }
-            res.json({
-                ok: true,
-                data: deletedRoleWindow
-            });
-        } catch (error) {
-            console.log('[RoleWindow] delete error');
-            const message = error.message || 'Error al eliminar roleWindow';
-            return res.status(500).json({
-                ok: false,
-                error: message
-            });
-        }
-    }
-}
+            // Delete a role-window permission by composite IDs
+            delete: async (req, res) => {
+                const { idRole, idWindow } = req.params;
+                // Validate IDs before any logic
+                if (!ValidationRules.onlyNumbers(idRole) === true) {
+                    return res.validationErrors(['idRole must be a number']);
+                }
+                if (!ValidationRules.onlyNumbers(idWindow) === true) {
+                    return res.validationErrors(['idWindow must be a number']);
+                }
+                // Check existence before delete
+                const exists = await roleWindowService.getByIds(idRole, idWindow);
+                if (!exists) {
+                    return res.notFound('Role-Window');
+                }
+                try {
+                    const deletedRoleWindow = await roleWindowService.delete(idRole, idWindow);
+                    return res.success(deletedRoleWindow, 'Role-Window deleted successfully');
+                } catch (error) {
+                    if (error.code === 'P2025') {
+                        return res.notFound('Role-Window');
+                    }
+                    console.error('[ROLEWINDOWS] delete error:', error);
+                    return res.error('Error deleting role-window');
+                }
+            },
+};
 
 module.exports = { roleWindowController };

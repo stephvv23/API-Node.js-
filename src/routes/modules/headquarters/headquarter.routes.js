@@ -1,12 +1,12 @@
 const { HeadquarterController } = require('../../modules/headquarters/headquarter.controller');
-const { authenticate, authorize } = require('../../../middlewares/auth.middleware');
+const { authenticate, authorizeWindow } = require('../../../middlewares/auth.middleware');
 
 module.exports = [
 
-  { method: 'GET', path: '/api/headquarters', handler: authenticate(HeadquarterController.getAll) },
-  { method: 'GET', path: '/api/headquarters/active', handler: authenticate(HeadquarterController.getAllActive) },
-  { method: 'GET', path: '/api/headquarters/:id', handler: authenticate(HeadquarterController.getById) },
-  { method: 'POST', path: '/api/headquarters', handler: authenticate(authorize('ADMIN')(HeadquarterController.create)) },
-  { method: 'PUT', path: '/api/headquarters/:id', handler: authenticate(authorize('ADMIN')(HeadquarterController.update)) },
-  { method: 'DELETE', path: '/api/headquarters/:id', handler: authenticate(authorize('ADMIN')(HeadquarterController.delete)) },
+  { method: 'GET', path: '/api/headquarters', handler: authenticate(authorizeWindow('Sedes','read')(HeadquarterController.getAll)) },
+  { method: 'GET', path: '/api/headquarters/active', handler: authenticate(authorizeWindow('Sedes','read')(HeadquarterController.getAllActive)) },
+  { method: 'GET', path: '/api/headquarters/:id', handler: authenticate(authorizeWindow('Sedes','read')(HeadquarterController.getById)) },
+  { method: 'POST', path: '/api/headquarters', handler: authenticate(authorizeWindow('Sedes','create')(HeadquarterController.create)) },
+  { method: 'PUT', path: '/api/headquarters/:id', handler: authenticate(authorizeWindow('Sedes','read','update')(HeadquarterController.update)) },
+  { method: 'DELETE', path: '/api/headquarters/:id', handler: authenticate(authorizeWindow('Sedes','read','delete')(HeadquarterController.delete)) },
 ];

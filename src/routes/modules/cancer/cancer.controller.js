@@ -1,7 +1,36 @@
+
 const { CancerService } = require('./cancer.service');
 const { SecurityLogService } = require('../../../services/securitylog.service');
+const { EntityValidators } = require('../../../utils/validator');
 
 const CancerController = {
+  update: async (req, res) => {
+    const { idCancer } = req.params;
+    const exists = await CancerService.get(idCancer);
+    if (!exists) {
+      return res.notFound('Cáncer');
+    }
+    const validation = EntityValidators.cancer(req.body, { partial: true });
+    if (!validation.isValid) {
+      return res.validationErrors(validation.errors);
+    }
+    try {
+      const updated = await CancerService.update(idCancer, req.body);
+      const userEmail = req.user?.sub;
+      await SecurityLogService.log({
+        email: userEmail,
+        action: 'UPDATE',
+        description: `Se actualizó el cáncer "${updated.cancerName}"`,
+        affectedTable: 'cancer',
+      });
+      return res.success(updated, 'Cáncer actualizado exitosamente');
+    } catch (e) {
+      if (e.code === 'P2002') {
+        return res.validationErrors(['Registro duplicado: ya existe un cáncer con ese nombre.']);
+      }
+      return res.error('Error al actualizar cáncer');
+    }
+  },
 
   list: async (_req, res) => {
     const cancers = await CancerService.list();
@@ -17,97 +46,49 @@ const CancerController = {
 
   //create with status active by default and log the action
   create: async (req, res) => {
-  const { cancerName, description, status } = req.body || {};
-
-  if (!cancerName) {
-    return res.status(400).json({ message: 'cancerName are required' });
-  } else if (!description) {
-    return res.status(400).json({ message: 'description are required' });
-  }
-
-  try {
-    // Create the cancer entry
-    const created = await CancerService.create({ cancerName, description, status });
-
-    // Create a security log entry
-    const userEmail = req.user?.sub; // The user cannot create a cancer without an email address. Otherwise, they wouldn't have a token and would simply go directly to the page, so it would be unnecessary to provide an option in case they don't have an email address.
-    await SecurityLogService.log({
-      email: userEmail,
-      action: 'CREATE',
-      description: `Se creó el cáncer "${created.cancerName}"`,
-      affectedTable: 'cancer',
-    });
-
-    res.status(201).json(created);
-  } catch (e) {
-    if (e.code === 'P2002') {
-      console.warn('[CANCER] create warning: registro duplicado');
-      return res.status(400).json({ message: 'Registro duplicado: ya existe un cáncer con ese nombre.' });
-    }
-    console.error('[CANCER] create error:', e.message);
-    return res.status(500).json({ message: 'Error al crear cáncer' });
-  }
-},
-
-  //update and log the action
-  update: async (req, res) => {
-    const { idCancer } = req.params;
-    const { cancerName, description, status } = req.body || {};
-    if (!cancerName) {
-      return res
-        .status(400)
-        .json({ message: 'cancerName are required'});
-    }else if (!description){
-      return res
-        .status(400)
-        .json({ message: 'description are required'});
-    }else if (!status){
-      return res
-        .status(400)
-        .json({ message: 'status are required'});
+    const validation = EntityValidators.cancer(req.body, { partial: false });
+    if (!validation.isValid) {
+      return res.validationErrors(validation.errors);
     }
     try {
-      const updated = await CancerService.update(idCancer, { cancerName, description, status });
-      const userEmail = req.user?.sub; 
+      const created = await CancerService.create(req.body);
+      const userEmail = req.user?.sub;
       await SecurityLogService.log({
         email: userEmail,
-        action: 'UPDATE',
-        description: `Se actualizó el cáncer "${updated.cancerName}"`,
+        action: 'CREATE',
+        description: `Se creó el cáncer "${created.cancerName}"`,
         affectedTable: 'cancer',
       });
-
-      
-      res.json(updated);
-      
-    }catch (e) {
+      return res.status(201).success(created, 'Cáncer creado exitosamente');
+    } catch (e) {
       if (e.code === 'P2002') {
-        console.warn('[CANCER] update warning: registro duplicado');
-        return res.status(400).json({ message: 'Registro duplicado: ya existe un cáncer con ese nombre.' });
+        return res.validationErrors(['Registro duplicado: ya existe un cáncer con ese nombre.']);
       }
-      console.error('[CANCER] update error:', e.message);
-      return res.status(500).json({ message: 'Error al actualizar cáncer' });
+      return res.error('Error al crear cáncer');
     }
   },
   //soft delete and log the action
   remove: async (req, res) => {
     const { idCancer } = req.params;
+    const exists = await CancerService.get(idCancer);
+    if (!exists) {
+      return res.notFound('Cáncer');
+    }
     try {
       const updated = await CancerService.delete(idCancer);
-      
-      const userEmail = req.user?.sub; 
+      const userEmail = req.user?.sub;
       await SecurityLogService.log({
         email: userEmail,
         action: 'INACTIVE',
         description: `Se inactivó el cáncer "${updated.cancerName}"`,
         affectedTable: 'cancer',
       });
-
-      res.json({ message: 'Cancer marked as inactive (soft delete)', data: updated });
+      return res.success(updated, 'Cáncer inactivado exitosamente');
     } catch (e) {
       if (e && e.code === 'P2025') {
-        return res.status(404).json({ message: 'Cancer not found' });
+        return res.notFound('Cáncer');
       }
-      throw e;
+      return res.error('Error al inactivar cáncer');
     }
   },
 
@@ -116,21 +97,19 @@ const CancerController = {
     const { idCancer } = req.params;
     try {
       const updated = await CancerService.reactivate(idCancer);
-      
-      const userEmail = req.user?.sub; 
+      const userEmail = req.user?.sub;
       await SecurityLogService.log({
         email: userEmail,
         action: 'REACTIVATE',
         description: `Se reactivó el cáncer "${updated.cancerName}"`,
         affectedTable: 'cancer',
       });
-      
-      res.json(updated);
+      return res.success(updated, 'Cáncer reactivado exitosamente');
     } catch (e) {
       if (e && e.code === 'P2025') {
-        return res.status(404).json({ message: 'Cancer not found' });
+        return res.notFound('Cáncer');
       }
-      throw e;
+      return res.error('Error al reactivar cáncer');
     }
   },
 

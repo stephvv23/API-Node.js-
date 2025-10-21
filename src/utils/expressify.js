@@ -1,41 +1,81 @@
 /*
-Adaptador Express-like. Envuelve tus controllers actuales (hechos para Express) y les da un req/res/next simulado:
+Express-like adapter. Wraps your current controllers (made for Express) and gives them a simulated req/res/next:
 
-res.status(...).json(...) funciona.
+res.status(...).json(...) works.
 
-Mapea errores (ApiError, Prisma P2002/P2025, etc.) a respuestas HTTP.
+Maps errors (ApiError, Prisma P2002/P2025, etc.) to HTTP responses.
 */
 
 const { sendJson } = require('./response');
-const ApiError = require('./apiError');
+const { success, error, validationErrors, notFound, unauthorized, ApiResponse } = require('./apiResponse');
 class ResShim {
-  constructor(res) { this.res = res; this._status = 200; }
-  status(code) { this._status = code; return this; }
-  json(obj) { sendJson(this.res, this._status, obj); }
+  constructor(res) { 
+    this.res = res; 
+    this._status = 200; 
+  }
+  
+  status(code) { 
+    this._status = code; 
+    return this; 
+  }
+  
+  json(obj) { 
+    sendJson(this.res, this._status, obj); 
+  }
+  
   send(body = '') {
     this.res.writeHead(this._status, { 'Content-Type': 'text/plain; charset=utf-8' });
     this.res.end(body);
   }
+
+  // Standard response methods using centralized utilities
+  success(data, message) {
+    const response = success(data, message);
+    return this.json(response);
+  }
+
+  error(message, statusCode = 500) {
+    const response = error(message, statusCode);
+    this._status = response.statusCode;
+    return this.json(response);
+  }
+
+  validationErrors(errors, message) {
+    const response = validationErrors(errors, message);
+    this._status = 400;
+    return this.json(response);
+  }
+
+  notFound(resource) {
+    const response = notFound(resource);
+    this._status = response.statusCode;
+    return this.json(response);
+  }
+
+  unauthorized(message) {
+    const response = unauthorized(message);
+    this._status = response.statusCode;
+    return this.json(response);
+  }
 }
 
 function mapErrorToHttp(resShim, err) {
-  // ApiError propio
-  if (err && typeof err.code === 'number') {   
-    return resShim.status(err.code).json({
-      ok: false,
-      message: err.message,
-      details: err.details || undefined
-    });
+  // ApiResponse/ApiError with custom status code
+  if (err && (err instanceof ApiResponse || typeof err.code === 'number')) {   
+    return resShim.error(err.message, err.code || err.statusCode);
   }
+  
   // Common Prisma errors
-  if (err && err.code === 'P2002')
-    return resShim.status(409).json({ ok: false, message: 'Duplicate record (unique constraint)' });
-  if (err && err.code === 'P2025')
-    return resShim.status(404).json({ ok: false, message: 'Resource not found' });
+  if (err && err.code === 'P2002') {
+    return resShim.error('Registro duplicado (restricción única)', 409);
+  }
+  if (err && err.code === 'P2025') {
+    return resShim.notFound('Recurso');
+  }
 
   // Fallback
   console.error('[UNHANDLED ERROR]', err);
-  return resShim.status(500).json({ ok: false, message: 'Internal Server Error' });
+  return resShim.error('Error interno del servidor', 500);
 }
 
 /**
