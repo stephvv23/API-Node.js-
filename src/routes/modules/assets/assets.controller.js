@@ -71,6 +71,7 @@ const AssetsController = {
       }
       const asset = await AssetsService.create(req.body);
 
+      const userEmail = req.user?.sub;
       await SecurityLogService.log({
         email: userEmail,
         action: 'CREATE',
@@ -102,8 +103,7 @@ const AssetsController = {
     try {
       const id = parseIdParam(req.params?.idAsset);
       if (!id) return res.validationErrors(['idAsset debe ser un entero positivo']);
-      const exists = await AssetsService.get(id);
-      if (!exists) return res.notFound('Activo');
+      
       const validation = EntityValidators.asset(req.body, { partial: true });
       if (!validation.isValid) {
         return res.validationErrors(validation.errors);
@@ -111,7 +111,64 @@ const AssetsController = {
       if (!Object.keys(req.body).length) {
         return res.validationErrors(['No hay campos para actualizar']);
       }
+
+      // Obtener datos previos del activo
+      const previousAsset = await AssetsService.get(id);
+      if (!previousAsset) return res.notFound('Activo');
+
       const asset = await AssetsService.update(id, req.body);
+
+      // Registrar en el log los cambios
+      const userEmail = req.user?.sub;
+
+      // Verificar si solo cambió el estado de inactive a active
+      const onlyStatusChange =
+        previousAsset.status === 'inactive' &&
+        asset.status === 'active' &&
+        previousAsset.name === asset.name &&
+        previousAsset.type === asset.type &&
+        previousAsset.description === asset.description &&
+        previousAsset.idCategory === asset.idCategory &&
+        previousAsset.idHeadquarter === asset.idHeadquarter;
+
+      if (onlyStatusChange) {
+        await SecurityLogService.log({
+          email: userEmail,
+          action: 'REACTIVATE',
+          description:
+            `Se reactivó el activo con ID "${id}". Datos completos:\n` +
+            `Nombre: "${asset.name}", ` +
+            `Tipo: "${asset.type}", ` +
+            `Descripción: "${asset.description}", ` +
+            `Categoría ID: "${asset.idCategory}", ` +
+            `Sede ID: "${asset.idHeadquarter}", ` +
+            `Estado: "${asset.status}".`,
+          affectedTable: 'Assets',
+        });
+      } else {
+        await SecurityLogService.log({
+          email: userEmail,
+          action: 'UPDATE',
+          description:
+            `Se actualizó el activo con ID "${id}".\n` +
+            `Versión previa: ` +
+            `Nombre: "${previousAsset.name}", ` +
+            `Tipo: "${previousAsset.type}", ` +
+            `Descripción: "${previousAsset.description}", ` +
+            `Categoría ID: "${previousAsset.idCategory}", ` +
+            `Sede ID: "${previousAsset.idHeadquarter}", ` +
+            `Estado: "${previousAsset.status}". \n` +
+            `Nueva versión: ` +
+            `Nombre: "${asset.name}", ` +
+            `Tipo: "${asset.type}", ` +
+            `Descripción: "${asset.description}", ` +
+            `Categoría ID: "${asset.idCategory}", ` +
+            `Sede ID: "${asset.idHeadquarter}", ` +
+            `Estado: "${asset.status}". \n`,
+          affectedTable: 'Assets',
+        });
+      }
+
       return res.success(asset, 'Activo actualizado exitosamente');
     } catch (error) {
       if (error.name === 'ValidationError') {
@@ -126,10 +183,29 @@ const AssetsController = {
     try {
       const id = parseIdParam(req.params?.idAsset);
       if (!id) return res.validationErrors(['idAsset debe ser un entero positivo']);
+      
       // Confirmar existencia antes de eliminar
       const exists = await AssetsService.get(id);
       if (!exists) return res.notFound('Activo');
+      
       const deleted = await AssetsService.delete(id);
+
+      const userEmail = req.user?.sub;
+      await SecurityLogService.log({
+        email: userEmail,
+        action: 'INACTIVE',
+        description:
+          `Se inactivó el activo: ` +
+          `ID "${id}", ` +
+          `Nombre: "${deleted.name}", ` +
+          `Tipo: "${deleted.type}", ` +
+          `Descripción: "${deleted.description}", ` +
+          `Categoría ID: "${deleted.idCategory}", ` +
+          `Sede ID: "${deleted.idHeadquarter}", ` +
+          `Estado: "${deleted.status}".`,
+        affectedTable: 'Assets',
+      });
+
       return res.success(deleted, 'Activo eliminado exitosamente');
     } catch (error) {
       return res.error('Error al eliminar el activo');
