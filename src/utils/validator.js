@@ -99,6 +99,29 @@ const ValidationRules = {
     return !isNaN(date.getTime()) || 'Fecha inválida';
   },
 
+  // Date not in future validation (birthday, etc.)
+  dateNotInFuture: (value) => {
+    if (value === undefined || value === null) return true; // Skip if value is not provided
+    const date = new Date(value);
+    const now = new Date();
+    return date <= now || 'La fecha no puede ser en el futuro';
+  },
+
+  // Positive number validation (for hours, quantities, etc.)
+  positiveNumber: (value) => {
+    if (value === undefined || value === null) return true; // Skip if value is not provided
+    const num = Number(value);
+    return num >= 0 || 'El valor debe ser mayor o igual a cero';
+  },
+
+  // Compare two dates: first date must be before second date
+  dateBefore: (firstDate, secondDate, firstFieldName = 'Fecha de inicio', secondFieldName = 'Fecha de finalización') => {
+    if (firstDate === undefined || firstDate === null || secondDate === undefined || secondDate === null) return true;
+    const date1 = new Date(firstDate);
+    const date2 = new Date(secondDate);
+    return date1 < date2 || `${firstFieldName} debe ser anterior a ${secondFieldName}`;
+  },
+
   // Boolean validation
   isBoolean: (value) => {
     if (value === undefined || value === null) return true; // Skip if value is not provided
@@ -267,6 +290,16 @@ class FieldValidator {
 
   date() {
     this.rules.push(ValidationRules.isValidDate);
+    return this;
+  }
+
+  dateNotInFuture() {
+    this.rules.push(ValidationRules.dateNotInFuture);
+    return this;
+  }
+
+  positiveNumber() {
+    this.rules.push(ValidationRules.positiveNumber);
     return this;
   }
 
@@ -770,7 +803,7 @@ const EntityValidators = {
     if (shouldValidateField(data.birthday)) {
       const birthdayValidator = validator.field('birthday', data.birthday);
       if (!options.partial) birthdayValidator.required();
-      birthdayValidator.date();
+      birthdayValidator.date().dateNotInFuture();
     }
 
     // Email validation
@@ -808,9 +841,9 @@ const EntityValidators = {
       scheduleValidator.string().minLength(1).internationalText().maxLength(300);
     }
 
-    // Required hours validation (optional field)
+    // Required hours validation (optional field, must be non-negative)
     if (shouldValidateField(data.requiredHours)) {
-      validator.field('requiredHours', data.requiredHours).integer();
+      validator.field('requiredHours', data.requiredHours).integer().positiveNumber();
     }
 
     // Start date validation
@@ -840,6 +873,15 @@ const EntityValidators = {
     // Status validation
     if (shouldValidateField(data.status)) {
       validator.field('status', data.status).validStatus();
+    }
+
+    // Cross-field validation: startDate must be before finishDate
+    // Only validate if both dates are provided
+    if (data.startDate && data.finishDate) {
+      const dateComparisonResult = ValidationRules.dateBefore(data.startDate, data.finishDate, 'Fecha de inicio', 'Fecha de finalización');
+      if (dateComparisonResult !== true) {
+        validator.field('startDate/finishDate', null).custom(() => dateComparisonResult);
+      }
     }
     
     return validator.validate();

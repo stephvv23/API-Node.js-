@@ -2,6 +2,35 @@ const { VolunteerService } = require('./volunteer.service');
 const { SecurityLogService } = require('../../../services/securitylog.service');
 const { EntityValidators } = require('../../../utils/validator');
 
+// Helper function to parse and validate ID parameter
+function parseIdParam(id) {
+  const n = Number(id);
+  return Number.isInteger(n) && n > 0 ? n : null;
+}
+
+// Helper function to convert date strings to ISO format for Prisma
+function parseDate(dateValue) {
+  if (!dateValue) return dateValue;
+  if (dateValue instanceof Date) return dateValue;
+  
+  try {
+    // If it's already in ISO format, return as is
+    if (typeof dateValue === 'string' && dateValue.includes('T')) {
+      return new Date(dateValue);
+    }
+    // If it's a date string like "2025-09-01", convert to ISO
+    if (typeof dateValue === 'string') {
+      const date = new Date(dateValue);
+      if (!isNaN(date.getTime())) {
+        return date;
+      }
+    }
+    return dateValue;
+  } catch (error) {
+    return dateValue;
+  }
+}
+
 const VolunteerController = {
   // Lists all active volunteers
   getAllActive: async (_req, res) => {
@@ -34,8 +63,15 @@ const VolunteerController = {
   // Finds a volunteer by id
   getById: async (req, res) => {
     const { id } = req.params;
+    
+    // Validate ID format
+    const validId = parseIdParam(id);
+    if (!validId) {
+      return res.validationErrors(['idVolunteer debe ser un entero positivo']);
+    }
+    
     try {
-      const volunteer = await VolunteerService.findById(id);
+      const volunteer = await VolunteerService.findById(validId);
       if (!volunteer) {
         return res.notFound('Voluntario');
       }
@@ -54,11 +90,16 @@ const VolunteerController = {
       startDate, finishDate, imageAuthorization, notes, status 
     } = req.body;
     
+    // Parse dates to proper format
+    const parsedBirthday = parseDate(birthday);
+    const parsedStartDate = parseDate(startDate);
+    const parsedFinishDate = parseDate(finishDate);
+    
     // Validation for CREATE - all fields required
     const validation = EntityValidators.volunteer({
-      name, identifier, country, birthday, email, residence, 
+      name, identifier, country, birthday: parsedBirthday, email, residence, 
       modality, institution, availableSchedule, requiredHours, 
-      startDate, finishDate, imageAuthorization, notes, status
+      startDate: parsedStartDate, finishDate: parsedFinishDate, imageAuthorization, notes, status
     }, { partial: false });
     
     if (!validation.isValid) {
@@ -82,9 +123,9 @@ const VolunteerController = {
       }
 
       const newVolunteer = await VolunteerService.create({ 
-        name, identifier, country, birthday, email, residence, 
+        name, identifier, country, birthday: parsedBirthday, email, residence, 
         modality, institution, availableSchedule, requiredHours, 
-        startDate, finishDate, imageAuthorization, notes, status 
+        startDate: parsedStartDate, finishDate: parsedFinishDate, imageAuthorization, notes, status 
       });
       
       const userEmail = req.user?.sub; 
@@ -122,7 +163,25 @@ const VolunteerController = {
   // Updates an existing volunteer
   update: async (req, res) => {
     const { id } = req.params;
+    
+    // Validate ID format
+    const validId = parseIdParam(id);
+    if (!validId) {
+      return res.validationErrors(['idVolunteer debe ser un entero positivo']);
+    }
+    
     const updateData = req.body;
+
+    // Parse dates if present in updateData
+    if (updateData.birthday) {
+      updateData.birthday = parseDate(updateData.birthday);
+    }
+    if (updateData.startDate) {
+      updateData.startDate = parseDate(updateData.startDate);
+    }
+    if (updateData.finishDate) {
+      updateData.finishDate = parseDate(updateData.finishDate);
+    }
 
     // Validation for UPDATE - only validate provided fields
     const validation = EntityValidators.volunteer(updateData, { partial: true });
@@ -137,13 +196,13 @@ const VolunteerController = {
       
       if (updateData.identifier) {
         const existsIdentifier = await VolunteerService.findByIdentifier(updateData.identifier);
-        if (existsIdentifier && existsIdentifier.idVolunteer != id) {
+        if (existsIdentifier && existsIdentifier.idVolunteer != validId) {
           duplicateErrors.push('Ya existe un voluntario con ese identificador');
         }
       }
       if (updateData.email) {
         const existsEmail = await VolunteerService.findByEmail(updateData.email);
-        if (existsEmail && existsEmail.idVolunteer != id) {
+        if (existsEmail && existsEmail.idVolunteer != validId) {
           duplicateErrors.push('Ya existe un voluntario con ese email');
         }
       }
@@ -153,12 +212,12 @@ const VolunteerController = {
       }
 
       // gets the previous volunteer data
-      const previousVolunteer = await VolunteerService.findById(id);
+      const previousVolunteer = await VolunteerService.findById(validId);
       if (!previousVolunteer) {
         return res.notFound('Voluntario');
       }
 
-      const updatedVolunteer = await VolunteerService.update(id, updateData);
+      const updatedVolunteer = await VolunteerService.update(validId, updateData);
 
       // Register in the log the changes (previous and new)
       const userEmail = req.user?.sub;
@@ -187,7 +246,7 @@ const VolunteerController = {
           email: userEmail,
           action: 'REACTIVATE',
           description:
-        `Se reactivó el voluntario con ID "${id}". Datos completos:\n` +
+        `Se reactivó el voluntario con ID "${validId}". Datos completos:\n` +
         `Nombre: "${updatedVolunteer.name}", ` +
         `Identificador: "${updatedVolunteer.identifier}", ` +
         `País: "${updatedVolunteer.country}", ` +
@@ -210,7 +269,7 @@ const VolunteerController = {
           email: userEmail,
           action: 'UPDATE',
           description:
-        `Se actualizó el voluntario con ID "${id}".\n` +
+        `Se actualizó el voluntario con ID "${validId}".\n` +
         `Versión previa: ` +
         `Nombre: "${previousVolunteer.name}", ` +
         `Identificador: "${previousVolunteer.identifier}", ` +
@@ -257,18 +316,24 @@ const VolunteerController = {
   delete: async (req, res) => {
     const { id } = req.params;
     
-    const exists = await VolunteerService.findById(id);
+    // Validate ID format
+    const validId = parseIdParam(id);
+    if (!validId) {
+      return res.validationErrors(['idVolunteer debe ser un entero positivo']);
+    }
+    
+    const exists = await VolunteerService.findById(validId);
     if (!exists) {
       return res.notFound('Voluntario');
     }
     try {
-      const deletedVolunteer = await VolunteerService.remove(id);
+      const deletedVolunteer = await VolunteerService.remove(validId);
       const userEmail = req.user?.sub; 
       await SecurityLogService.log({
         email: userEmail,
         action: 'INACTIVE',
         description: `Se inactivó el voluntario: `+
-        `ID "${id}", `+
+        `ID "${validId}", `+
         `Nombre: "${deletedVolunteer.name}", ` +
         `Identificador: "${deletedVolunteer.identifier}", ` +
         `País: "${deletedVolunteer.country}", ` +
