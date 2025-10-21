@@ -123,6 +123,37 @@ const isValidStatus = (status) => {
   return status && status.length >= 1 && status.length <= 25;
 };
 
+/**
+ * Helper function to parse date string and apply timezone compensation
+ * @param {string} dateString - Date string in DD/MM/YYYY format
+ * @returns {Date} - Date object with timezone compensation applied
+ */
+const parseDateWithTimezoneCompensation = (dateString) => {
+  const dateMatch = dateString.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+  if (!dateMatch) {
+    throw new Error('Invalid date format');
+  }
+  
+  const [, day, month, year] = dateMatch;
+  
+  // Support both formats: "DD/MM/YYYY HH:MM" and "DD/MM/YYYY:HH:MM"
+  let timePart = '00:00';
+  if (dateString.includes(' ')) {
+    timePart = dateString.split(' ')[1] || '00:00';
+  } else if (dateString.includes(':')) {
+    const parts = dateString.split(':');
+    if (parts.length >= 3) {
+      timePart = `${parts[parts.length - 2]}:${parts[parts.length - 1]}`;
+    }
+  }
+  
+  // Create date and subtract 6 hours to compensate for timezone difference
+  const [hours, minutes] = timePart.split(':');
+  const localDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hours), parseInt(minutes), 0);
+  // Subtract 6 hours (6 * 60 * 60 * 1000 milliseconds)
+  return new Date(localDate.getTime() - (6 * 60 * 60 * 1000));
+};
+
 // ActivityService contains business logic for activity operations.
 // It interacts with ActivityRepository for database actions and handles validations.
 const ActivityService = {
@@ -214,7 +245,7 @@ const ActivityService = {
       throw ApiError.badRequest('La fecha es obligatoria');
     }
     if (!isValidDate(data.date)) {
-      throw ApiError.badRequest('La fecha debe ser válida. Formato esperado: Mes/Día/Año HH:MM o Año-Mes-Día HH:MM (ejemplo: 15/01/2024 14:30 o 2024-01-15 14:30)');
+      throw ApiError.badRequest('La fecha debe ser válida. Formato esperado: Día/Mes/Año HH:MM o Año-Mes-Día HH:MM (ejemplo: 15/01/2024 14:30 o 2024-01-15 14:30)');
     }
     
     // Check if the date is not in the past
@@ -256,26 +287,7 @@ const ActivityService = {
     // Convert date to proper format for database
     let dateToSave = data.date;
     if (typeof data.date === 'string') {
-      // Try to convert DD/MM/YYYY format to YYYY-MM-DD for better parsing
-      const dateMatch = data.date.match(/(\d{2})\/(\d{2})\/(\d{4})/);
-      if (dateMatch) {
-        const [, day, month, year] = dateMatch;
-        // Support both formats: "DD/MM/YYYY HH:MM" and "DD/MM/YYYY:HH:MM"
-        let timePart = '00:00';
-        if (data.date.includes(' ')) {
-          timePart = data.date.split(' ')[1] || '00:00';
-        } else if (data.date.includes(':')) {
-          const parts = data.date.split(':');
-          if (parts.length >= 3) {
-            timePart = `${parts[parts.length - 2]}:${parts[parts.length - 1]}`;
-          }
-        }
-        // Create date and subtract 6 hours to compensate for timezone difference
-        const [hours, minutes] = timePart.split(':');
-        const localDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hours), parseInt(minutes), 0);
-        // Subtract 6 hours (6 * 60 * 60 * 1000 milliseconds)
-        dateToSave = new Date(localDate.getTime() - (6 * 60 * 60 * 1000));
-      }
+      dateToSave = parseDateWithTimezoneCompensation(data.date);
     }
 
     const activity = await ActivityRepository.create({ 
@@ -377,7 +389,7 @@ const ActivityService = {
     // validate date if provided
     if (data.date) {
       if (!isValidDate(data.date)) {
-        throw ApiError.badRequest('La fecha debe ser válida. Formato esperado: Mes/Día/Año HH:MM o Año-Mes-Día HH:MM (ejemplo: 15/01/2024 14:30 o 2024-01-15 14:30)');
+        throw ApiError.badRequest('La fecha debe ser válida. Formato esperado: Día/Mes/Año HH:MM o Año-Mes-Día HH:MM (ejemplo: 15/01/2024 14:30 o 2024-01-15 14:30)');
       }
       
       // Check if the date is not in the past
@@ -408,26 +420,7 @@ const ActivityService = {
       // Convert date to proper format for database
       let dateToSave = data.date;
       if (typeof data.date === 'string') {
-        // Try to convert DD/MM/YYYY format to YYYY-MM-DD for better parsing
-        const dateMatch = data.date.match(/(\d{2})\/(\d{2})\/(\d{4})/);
-        if (dateMatch) {
-          const [, day, month, year] = dateMatch;
-          // Support both formats: "DD/MM/YYYY HH:MM" and "DD/MM/YYYY:HH:MM"
-          let timePart = '00:00';
-          if (data.date.includes(' ')) {
-            timePart = data.date.split(' ')[1] || '00:00';
-          } else if (data.date.includes(':')) {
-            const parts = data.date.split(':');
-            if (parts.length >= 3) {
-              timePart = `${parts[parts.length - 2]}:${parts[parts.length - 1]}`;
-            }
-          }
-          // Create date and subtract 6 hours to compensate for timezone difference
-          const [hours, minutes] = timePart.split(':');
-          const localDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hours), parseInt(minutes), 0);
-          // Subtract 6 hours (6 * 60 * 60 * 1000 milliseconds)
-          dateToSave = new Date(localDate.getTime() - (6 * 60 * 60 * 1000));
-        }
+        dateToSave = parseDateWithTimezoneCompensation(data.date);
       }
       
       updateData.date = new Date(dateToSave);
@@ -474,10 +467,10 @@ const ActivityService = {
   // Get activities by date range
   getByDateRange: async (startDate, endDate) => {
     if (!isValidDate(startDate)) {
-      throw ApiError.badRequest('La fecha de inicio debe ser válida. Formato esperado: Mes/Día/Año HH:MM o Año-Mes-Día HH:MM (ejemplo: 15/01/2024 14:30 o 2024-01-15 14:30)');
+      throw ApiError.badRequest('La fecha de inicio debe ser válida. Formato esperado: Día/Mes/Año HH:MM o Año-Mes-Día HH:MM (ejemplo: 15/01/2024 14:30 o 2024-01-15 14:30)');
     }
     if (!isValidDate(endDate)) {
-      throw ApiError.badRequest('La fecha de fin debe ser válida. Formato esperado: Mes/Día/Año HH:MM o Año-Mes-Día HH:MM (ejemplo: 15/01/2024 14:30 o 2024-01-15 14:30)');
+      throw ApiError.badRequest('La fecha de fin debe ser válida. Formato esperado: Día/Mes/Año HH:MM o Año-Mes-Día HH:MM (ejemplo: 15/01/2024 14:30 o 2024-01-15 14:30)');
     }
     return ActivityRepository.findByDateRange(startDate, endDate);
   },
