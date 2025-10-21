@@ -3,7 +3,7 @@ const ApiError = require('../../../utils/apiResponse').ApiError;
 
 /**
  * validate the format of a title
- * @param {string} tittle - The title to validate
+ * @param {string} title - The title to validate
  * @returns {boolean} - true if the format is valid, false if not
  */
 const isValidTitle = (tittle) => {
