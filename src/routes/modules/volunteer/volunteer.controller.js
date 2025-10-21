@@ -196,13 +196,13 @@ const VolunteerController = {
       
       if (updateData.identifier) {
         const existsIdentifier = await VolunteerService.findByIdentifier(updateData.identifier);
-        if (existsIdentifier && existsIdentifier.idVolunteer != validId) {
+        if (existsIdentifier && existsIdentifier.idVolunteer !== validId) {
           duplicateErrors.push('Ya existe un voluntario con ese identificador');
         }
       }
       if (updateData.email) {
         const existsEmail = await VolunteerService.findByEmail(updateData.email);
-        if (existsEmail && existsEmail.idVolunteer != validId) {
+        if (existsEmail && existsEmail.idVolunteer !== validId) {
           duplicateErrors.push('Ya existe un voluntario con ese email');
         }
       }
