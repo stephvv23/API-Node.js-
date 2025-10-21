@@ -254,6 +254,30 @@ const ActivityRepository = {
         }
       }
     }
+  }),
+
+  // Find an activity by tittle
+  findByTitle: (tittle) => prisma.activity.findFirst({
+    where: { tittle: tittle },
+    select: {
+      idActivity: true,
+      idHeadquarter: true,
+      tittle: true,
+      description: true,
+      type: true,
+      modality: true,
+      capacity: true,
+      location: true,
+      date: true,
+      status: true,
+      headquarter: {
+        select: {
+          idHeadquarter: true,
+          name: true,
+          status: true
+        }
+      }
+    }
   })
 };
 
