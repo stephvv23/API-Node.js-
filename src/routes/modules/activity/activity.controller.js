@@ -113,7 +113,11 @@ const ActivityController = {
       return res.status(201).success(created, 'Activity created successfully');
     } catch (e) {
       if (typeof e?.message === 'string' && e.message.includes('no existe')) {
-        return res.notFound(e.message);
+        return res.status(404).json({
+          ok: false,
+          message: e.message,
+          statusCode: 404
+        });
       }
       if (e && e.statusCode === 400) {
         return res.status(400).json({
@@ -192,7 +196,11 @@ const ActivityController = {
         return res.notFound('Activity');
       }
       if (typeof e?.message === 'string' && e.message.includes('no existe')) {
-        return res.notFound(e.message);
+        return res.status(404).json({
+          ok: false,
+          message: e.message,
+          statusCode: 404
+        });
       }
       if (e && e.statusCode === 400) {
         return res.status(400).json({

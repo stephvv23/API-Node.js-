@@ -216,6 +216,31 @@ const ActivityService = {
     if (!isValidDate(data.date)) {
       throw ApiError.badRequest('La fecha debe ser válida. Formato esperado: Mes/Día/Año HH:MM o Año-Mes-Día HH:MM (ejemplo: 15/01/2024 14:30 o 2024-01-15 14:30)');
     }
+    
+    // Check if the date is not in the past
+    let dateToCheck = data.date;
+    if (typeof data.date === 'string') {
+      const dateMatch = data.date.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+      if (dateMatch) {
+        const [, day, month, year] = dateMatch;
+        let timePart = '00:00';
+        if (data.date.includes(' ')) {
+          timePart = data.date.split(' ')[1] || '00:00';
+        } else if (data.date.includes(':')) {
+          const parts = data.date.split(':');
+          if (parts.length >= 3) {
+            timePart = `${parts[parts.length - 2]}:${parts[parts.length - 1]}`;
+          }
+        }
+        const [hours, minutes] = timePart.split(':');
+        dateToCheck = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hours), parseInt(minutes), 0);
+      }
+    }
+    
+    const now = new Date();
+    if (dateToCheck < now) {
+      throw ApiError.badRequest('No se pueden crear actividades en fechas que ya pasaron. La fecha debe ser igual o posterior al día actual.');
+    }
 
     // validate the status if provided
     if (data.status && !isValidStatus(data.status)) {
@@ -353,6 +378,31 @@ const ActivityService = {
     if (data.date) {
       if (!isValidDate(data.date)) {
         throw ApiError.badRequest('La fecha debe ser válida. Formato esperado: Mes/Día/Año HH:MM o Año-Mes-Día HH:MM (ejemplo: 15/01/2024 14:30 o 2024-01-15 14:30)');
+      }
+      
+      // Check if the date is not in the past
+      let dateToCheck = data.date;
+      if (typeof data.date === 'string') {
+        const dateMatch = data.date.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+        if (dateMatch) {
+          const [, day, month, year] = dateMatch;
+          let timePart = '00:00';
+          if (data.date.includes(' ')) {
+            timePart = data.date.split(' ')[1] || '00:00';
+          } else if (data.date.includes(':')) {
+            const parts = data.date.split(':');
+            if (parts.length >= 3) {
+              timePart = `${parts[parts.length - 2]}:${parts[parts.length - 1]}`;
+            }
+          }
+          const [hours, minutes] = timePart.split(':');
+          dateToCheck = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hours), parseInt(minutes), 0);
+        }
+      }
+      
+      const now = new Date();
+      if (dateToCheck < now) {
+        throw ApiError.badRequest('No se pueden actualizar actividades a fechas que ya pasaron. La fecha debe ser igual o posterior al día actual.');
       }
       
       // Convert date to proper format for database
