@@ -278,15 +278,9 @@ const UsersService = {
     const ok = await bcrypt.compare(password, user.password);
     if (!ok) throw ApiError.unauthorized('Credenciales inválidas');
 
-    // verify rol
+    // verify rol (roles are already filtered to active in findAuthWithRoles)
     if (!user.roles || user.roles.length === 0) {
-      throw ApiError.forbidden('El usuario no tiene roles asignados');
-    }
-
-    // filters the roles actives
-    const activeRoles = user.roles.filter(ur => ur.role.status === 'active');
-    if (activeRoles.length === 0) {
-      throw ApiError.forbidden('El rol del usuario está inactivo');
+      throw ApiError.forbidden('El usuario no tiene roles activos asignados');
     }
 
     // First, verify if the window exists
@@ -299,9 +293,9 @@ const UsersService = {
       throw ApiError.forbidden('La página está inactiva');
     }
 
-    // Then verify permissions to the window
+    // Then verify permissions to the window (using roles already filtered to active)
     let hasAccess = false;
-    for (const ur of activeRoles) {
+    for (const ur of user.roles) {
       for (const rw of ur.role.windows) {   
         if (rw.window.windowName === windowName && rw.read === true) {
           hasAccess = true;
