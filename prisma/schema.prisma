@@ -214,7 +214,7 @@ model Survivor {
   survivorName  String @db.VarChar(200)
   documentNumber String @db.VarChar(30)
   country       String @db.VarChar(75)
-  birthday      DateTime
+  birthday      DateTime @db.Date
   email         String @db.VarChar(150)
   residence     String @db.VarChar(300)
   genre         String @db.VarChar(25)

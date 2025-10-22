@@ -23,7 +23,7 @@ CREATE TABLE `SecurityLog` (
     `email` VARCHAR(150) NOT NULL,
     `date` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `action` VARCHAR(25) NOT NULL,
-    `description` VARCHAR(700) NOT NULL,
+    `description` VARCHAR(4000) NOT NULL,
     `affectedTable` VARCHAR(50) NOT NULL,
 
     PRIMARY KEY (`securityIdLog`)
@@ -179,7 +179,7 @@ CREATE TABLE `Survivor` (
     `survivorName` VARCHAR(200) NOT NULL,
     `documentNumber` VARCHAR(30) NOT NULL,
     `country` VARCHAR(75) NOT NULL,
-    `birthday` DATETIME(3) NOT NULL,
+    `birthday` DATE NOT NULL,
     `email` VARCHAR(150) NOT NULL,
     `residence` VARCHAR(300) NOT NULL,
     `genre` VARCHAR(25) NOT NULL,
