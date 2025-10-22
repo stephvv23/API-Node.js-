@@ -78,6 +78,11 @@ const ActivityService = {
   // Get activity with all relations
   getWithRelations: (idActivity) => {
     return ActivityRepository.findByIdWithRelations(idActivity);
+  },
+
+  // Check if headquarter exists
+  checkHeadquarterExists: (idHeadquarter) => {
+    return ActivityRepository.checkHeadquarterExists(idHeadquarter);
   }
 };
 
