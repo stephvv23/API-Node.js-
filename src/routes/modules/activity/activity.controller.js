@@ -70,11 +70,11 @@ const ActivityController = {
    * Required fields: idHeadquarter, title, description, type, modality, capacity, location, date
    */
   create: async (req, res) => {
-    const { idHeadquarter, tittle, description, type, modality, capacity, location, date, status } = req.body;
+    const { idHeadquarter, title, description, type, modality, capacity, location, date, status } = req.body;
     
     // Validation for CREATE - all fields required
     const validation = EntityValidators.activity({
-      idHeadquarter, tittle, description, type, modality, capacity, location, date, status
+      idHeadquarter, title, description, type, modality, capacity, location, date, status
     }, { partial: false });
     
     if (!validation.isValid) {
@@ -86,7 +86,7 @@ const ActivityController = {
       const allActivities = await ActivityService.list();
       const duplicateErrors = [];
       
-      if (allActivities.some(a => a.tittle === tittle)) {
+      if (allActivities.some(a => a.title === title)) {
         duplicateErrors.push('Ya existe una actividad con ese título');
       }
 
@@ -96,7 +96,7 @@ const ActivityController = {
 
       const newActivity = await ActivityService.create({ 
         idHeadquarter: parseInt(idHeadquarter),
-        tittle: tittle.trim(),
+        title: title.trim(),
         description: description.trim(),
         type: type.trim(),
         modality: modality.trim(),
@@ -113,7 +113,7 @@ const ActivityController = {
         description: 
           `Se creó la actividad con los siguientes datos: ` +
           `ID: "${newActivity.idActivity}", ` +
-          `Título: "${newActivity.tittle}", ` +
+          `Título: "${newActivity.title}", ` +
           `Tipo: "${newActivity.type}", ` +
           `Modalidad: "${newActivity.modality}", ` +
           `Capacidad: ${newActivity.capacity}, ` +
@@ -150,8 +150,8 @@ const ActivityController = {
       // Check duplicates (excluding current record)
       const duplicateErrors = [];
       
-      if (updateData.tittle) {
-        const existsTitle = await ActivityService.findByTitle(updateData.tittle);
+      if (updateData.title) {
+        const existsTitle = await ActivityService.findByTitle(updateData.title);
         if (existsTitle && existsTitle.idActivity != idActivity) {
           duplicateErrors.push('Ya existe una actividad con ese título');
         }
@@ -185,8 +185,8 @@ const ActivityController = {
       if (updateData.idHeadquarter) {
         updateData.idHeadquarter = parseInt(updateData.idHeadquarter);
       }
-      if (updateData.tittle) {
-        updateData.tittle = updateData.tittle.trim();
+      if (updateData.title) {
+        updateData.title = updateData.title.trim();
       }
       if (updateData.description) {
         updateData.description = updateData.description.trim();
@@ -213,7 +213,7 @@ const ActivityController = {
       const onlyStatusChange =
         previousActivity.status === 'inactive' &&
         updatedActivity.status === 'active' &&
-        previousActivity.tittle === updatedActivity.tittle &&
+        previousActivity.title === updatedActivity.title &&
         previousActivity.description === updatedActivity.description &&
         previousActivity.type === updatedActivity.type &&
         previousActivity.modality === updatedActivity.modality &&
@@ -226,7 +226,7 @@ const ActivityController = {
           action: 'REACTIVATE',
           description:
         `Se reactivó la actividad con ID "${idActivity}". Datos completos:\n` +
-        `Título: "${updatedActivity.tittle}", ` +
+        `Título: "${updatedActivity.title}", ` +
         `Tipo: "${updatedActivity.type}", ` +
         `Modalidad: "${updatedActivity.modality}", ` +
         `Capacidad: ${updatedActivity.capacity}, ` +
@@ -243,7 +243,7 @@ const ActivityController = {
           description:
         `Se actualizó la actividad con ID "${idActivity}".\n` +
         `Versión previa: ` +
-        `Título: "${previousActivity.tittle}", ` +
+        `Título: "${previousActivity.title}", ` +
         `Tipo: "${previousActivity.type}", ` +
         `Modalidad: "${previousActivity.modality}", ` +
         `Capacidad: ${previousActivity.capacity}, ` +
@@ -252,7 +252,7 @@ const ActivityController = {
         `Estado: "${previousActivity.status}". ` +
         `Sede: "${previousActivity.headquarter?.name || 'N/A'}" (ID: ${previousActivity.idHeadquarter}).\n` +
         `Nueva versión: ` +
-        `Título: "${updatedActivity.tittle}", ` +
+        `Título: "${updatedActivity.title}", ` +
         `Tipo: "${updatedActivity.type}", ` +
         `Modalidad: "${updatedActivity.modality}", ` +
         `Capacidad: ${updatedActivity.capacity}, ` +
@@ -346,7 +346,7 @@ const ActivityController = {
         action: 'INACTIVE',
         description: `Se inactivó la actividad: `+
         `ID "${idActivity}", `+
-        `Título: "${deletedActivity.tittle}", ` +
+        `Título: "${deletedActivity.title}", ` +
         `Tipo: "${deletedActivity.type}", ` +
         `Modalidad: "${deletedActivity.modality}", ` +
         `Capacidad: ${deletedActivity.capacity}, ` +

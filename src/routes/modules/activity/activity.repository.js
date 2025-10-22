@@ -1,11 +1,11 @@
 // NOTE: This imports Prisma client from lib/prisma.js (not from ../../prisma/client or .ts)
 const prisma = require('../../../lib/prisma.js'); 
 
-// Fields to select for activity queries (idActivity, tittle, description, type, modality, capacity, location, date, status)
+// Fields to select for activity queries (idActivity, title, description, type, modality, capacity, location, date, status)
 const baseSelect = { 
   idActivity: true, 
   idHeadquarter: true,
-  tittle: true, 
+  title: true, 
   description: true, 
   type: true, 
   modality: true, 
@@ -26,7 +26,7 @@ const ActivityRepository = {
     select: {
       idActivity: true,
       idHeadquarter: true,
-      tittle: true,
+      title: true,
       description: true,
       type: true,
       modality: true,
@@ -73,7 +73,7 @@ const ActivityRepository = {
     select: {
       idActivity: true,
       idHeadquarter: true,
-      tittle: true,
+      title: true,
       description: true,
       type: true,
       modality: true,
@@ -161,7 +161,7 @@ const ActivityRepository = {
     select: {
       idActivity: true,
       idHeadquarter: true,
-      tittle: true,
+      title: true,
       description: true,
       type: true,
       modality: true,
@@ -190,7 +190,7 @@ const ActivityRepository = {
     select: {
       idActivity: true,
       idHeadquarter: true,
-      tittle: true,
+      title: true,
       description: true,
       type: true,
       modality: true,
@@ -214,7 +214,7 @@ const ActivityRepository = {
     select: {
       idActivity: true,
       idHeadquarter: true,
-      tittle: true,
+      title: true,
       description: true,
       type: true,
       modality: true,
@@ -238,7 +238,7 @@ const ActivityRepository = {
     select: {
       idActivity: true,
       idHeadquarter: true,
-      tittle: true,
+      title: true,
       description: true,
       type: true,
       modality: true,
@@ -256,13 +256,13 @@ const ActivityRepository = {
     }
   }),
 
-  // Find an activity by tittle
-  findByTitle: (tittle) => prisma.activity.findFirst({
-    where: { tittle: tittle },
+  // Find an activity by title
+  findByTitle: (title) => prisma.activity.findFirst({
+    where: { title: title },
     select: {
       idActivity: true,
       idHeadquarter: true,
-      tittle: true,
+      title: true,
       description: true,
       type: true,
       modality: true,

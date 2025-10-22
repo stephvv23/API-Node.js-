@@ -22,7 +22,7 @@ const ActivityService = {
   create: (data) => {
     return ActivityRepository.create({
       idHeadquarter: data.idHeadquarter,
-      tittle: data.tittle,
+      title: data.title,
       description: data.description,
       type: data.type,
       modality: data.modality,
@@ -37,7 +37,7 @@ const ActivityService = {
   update: (idActivity, data) => {
     return ActivityRepository.update(idActivity, {
       idHeadquarter: data.idHeadquarter,
-      tittle: data.tittle,
+      title: data.title,
       description: data.description,
       type: data.type,
       modality: data.modality,
