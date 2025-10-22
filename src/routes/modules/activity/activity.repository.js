@@ -210,7 +210,7 @@ const ActivityRepository = {
 
   // Get activities by type
   findByType: (type) => prisma.activity.findMany({
-    where: { type: type },
+    where: { type },
     select: {
       idActivity: true,
       idHeadquarter: true,
@@ -234,7 +234,7 @@ const ActivityRepository = {
 
   // Get activities by modality
   findByModality: (modality) => prisma.activity.findMany({
-    where: { modality: modality },
+    where: { modality },
     select: {
       idActivity: true,
       idHeadquarter: true,
@@ -258,7 +258,7 @@ const ActivityRepository = {
 
   // Find an activity by title
   findByTitle: (title) => prisma.activity.findFirst({
-    where: { title: title },
+    where: { title },
     select: {
       idActivity: true,
       idHeadquarter: true,

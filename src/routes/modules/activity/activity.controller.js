@@ -2,24 +2,20 @@ const { ActivityService } = require('./activity.service');
 const { EntityValidators, ValidationRules } = require('../../../utils/validator');
 const { SecurityLogService } = require('../../../services/securitylog.service');
 
-// Custom error class for validation errors
-class ValidationError extends Error {
-  constructor(message, statusCode = 400) {
-    super(message);
-    this.name = 'ValidationError';
-    this.statusCode = statusCode;
-  }
-}
+// Helper function to format activity data for logging
+const formatActivityData = (activity) => {
+  return `Título: "${activity.title}", ` +
+         `Tipo: "${activity.type}", ` +
+         `Modalidad: "${activity.modality}", ` +
+         `Capacidad: ${activity.capacity}, ` +
+         `Ubicación: "${activity.location}", ` +
+         `Fecha: "${activity.date}", ` +
+         `Estado: "${activity.status}"`;
+};
 
-/**
- * ActivityController handles HTTP requests for activity operations.
- * Each method corresponds to a REST endpoint and delegates logic to ActivityService.
- */
+// ActivityController handles HTTP requests for activity operations
 const ActivityController = {
-  /**
-   * List all activities.
-   * GET /activities
-   */
+  // List all activities
   list: async (req, res) => {
     try {
       const status = (req.query.status || 'active').toLowerCase();
@@ -42,10 +38,7 @@ const ActivityController = {
     }
   },
 
-  /**
-   * Get an activity by idActivity.
-   * GET /activities/:idActivity
-   */
+  // Get an activity by idActivity
   get: async (req, res) => {
     const { idActivity } = req.params;
     const validId = ValidationRules.parseIdParam(idActivity);
@@ -64,11 +57,7 @@ const ActivityController = {
     }
   },
 
-  /**
-   * Create a new activity.
-   * POST /activities
-   * Required fields: idHeadquarter, title, description, type, modality, capacity, location, date
-   */
+  // Create a new activity
   create: async (req, res) => {
     const { idHeadquarter, title, description, type, modality, capacity, location, date, status } = req.body;
     
@@ -131,10 +120,7 @@ const ActivityController = {
     }
   },
 
-  /**
-   * Update activity data by idActivity.
-   * PUT /activities/:idActivity
-   */
+  // Update activity data by idActivity
   update: async (req, res) => {
     const { idActivity } = req.params;
     const updateData = req.body;
@@ -152,7 +138,7 @@ const ActivityController = {
       
       if (updateData.title) {
         const existsTitle = await ActivityService.findByTitle(updateData.title);
-        if (existsTitle && existsTitle.idActivity != idActivity) {
+        if (existsTitle && existsTitle.idActivity !== idActivity) {
           duplicateErrors.push('Ya existe una actividad con ese título');
         }
       }
@@ -270,10 +256,7 @@ const ActivityController = {
     }
   },
 
-  /**
-   * Update only the activity's status.
-   * PATCH /activities/:idActivity/status
-   */
+  // Update only the activity's status
   updateStatus: async (req, res) => {
     const { idActivity } = req.params;
     
@@ -293,7 +276,7 @@ const ActivityController = {
     }
     
     try {
-      const updatedWithRelations = await ActivityService.updateStatus(validId, status);
+      const updatedWithRelations = await ActivityService.update(validId, { status });
       
       // Log the status change
       const userEmail = req.user?.sub;
@@ -327,10 +310,7 @@ const ActivityController = {
     }
   },
 
-  /**
-   * Soft delete an activity by idActivity (change status to inactive).
-   * DELETE /activities/:idActivity
-   */
+  // Soft delete an activity by idActivity (change status to inactive)
   remove: async (req, res) => {
     const { idActivity } = req.params;
     
@@ -363,10 +343,7 @@ const ActivityController = {
     }
   },
 
-  /**
-   * Get activities by headquarter.
-   * GET /activities/headquarter/:idHeadquarter
-   */
+  // Get activities by headquarter
   getByHeadquarter: async (req, res) => {
     const { idHeadquarter } = req.params;
     const validId = ValidationRules.parseIdParam(idHeadquarter);
@@ -382,10 +359,7 @@ const ActivityController = {
     }
   },
 
-  /**
-   * Get activities by date range.
-   * GET /activities/date-range?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
-   */
+  // Get activities by date range
   getByDateRange: async (req, res) => {
     const { startDate, endDate } = req.query;
     if (!startDate || !endDate) {
@@ -400,10 +374,7 @@ const ActivityController = {
     }
   },
 
-  /**
-   * Get activities by type.
-   * GET /activities/type/:type
-   */
+  // Get activities by type
   getByType: async (req, res) => {
     const { type } = req.params;
     try {
@@ -415,10 +386,7 @@ const ActivityController = {
     }
   },
 
-  /**
-   * Get activities by modality.
-   * GET /activities/modality/:modality
-   */
+  // Get activities by modality
   getByModality: async (req, res) => {
     const { modality } = req.params;
     try {
@@ -430,10 +398,7 @@ const ActivityController = {
     }
   },
 
-  /**
-   * Get activity with all relations (volunteers, survivors, godparents).
-   * GET /activities/:idActivity/relations
-   */
+  // Get activity with all relations (volunteers, survivors, godparents)
   getWithRelations: async (req, res) => {
     const { idActivity } = req.params;
     
