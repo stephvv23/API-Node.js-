@@ -1,5 +1,5 @@
 const { ActivityService } = require('./activity.service');
-const { EntityValidators } = require('../../../utils/validator');
+const { EntityValidators, ValidationRules } = require('../../../utils/validator');
 const { SecurityLogService } = require('../../../services/securitylog.service');
 
 // Custom error class for validation errors
