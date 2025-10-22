@@ -152,7 +152,7 @@ const ActivityController = {
       
       if (updateData.tittle) {
         const existsTitle = await ActivityService.findByTitle(updateData.tittle);
-        if (existsTitle && existsTitle.idActivity != parseInt(idActivity)) {
+        if (existsTitle && existsTitle.idActivity != idActivity) {
           duplicateErrors.push('Ya existe una actividad con ese título');
         }
       }
@@ -175,22 +175,16 @@ const ActivityController = {
         return res.notFound('Activity');
       }
 
-      // Process date if provided
+      // Process data before update
       if (updateData.date) {
         updateData.date = new Date(updateData.date);
       }
-
-      // Process capacity if provided (convert string to int)
       if (updateData.capacity) {
         updateData.capacity = parseInt(updateData.capacity);
       }
-
-      // Process idHeadquarter if provided (convert string to int)
       if (updateData.idHeadquarter) {
         updateData.idHeadquarter = parseInt(updateData.idHeadquarter);
       }
-
-      // Process string fields (trim whitespace)
       if (updateData.tittle) {
         updateData.tittle = updateData.tittle.trim();
       }
@@ -231,15 +225,15 @@ const ActivityController = {
           email: userEmail,
           action: 'REACTIVATE',
           description:
-          `Se reactivó la actividad con ID "${idActivity}". Datos completos:\n` +
-          `Título: "${updatedActivity.tittle}", ` +
-          `Tipo: "${updatedActivity.type}", ` +
-          `Modalidad: "${updatedActivity.modality}", ` +
-          `Capacidad: ${updatedActivity.capacity}, ` +
-          `Ubicación: "${updatedActivity.location}", ` +
-          `Fecha: "${updatedActivity.date}", ` +
-          `Estado: "${updatedActivity.status}". ` +
-          `Sede: "${updatedActivity.headquarter?.name || 'N/A'}" (ID: ${updatedActivity.idHeadquarter}).`,
+        `Se reactivó la actividad con ID "${idActivity}". Datos completos:\n` +
+        `Título: "${updatedActivity.tittle}", ` +
+        `Tipo: "${updatedActivity.type}", ` +
+        `Modalidad: "${updatedActivity.modality}", ` +
+        `Capacidad: ${updatedActivity.capacity}, ` +
+        `Ubicación: "${updatedActivity.location}", ` +
+        `Fecha: "${updatedActivity.date}", ` +
+        `Estado: "${updatedActivity.status}". ` +
+        `Sede: "${updatedActivity.headquarter?.name || 'N/A'}" (ID: ${updatedActivity.idHeadquarter}).`,
           affectedTable: 'Activity',
         });
       } else {
@@ -247,25 +241,25 @@ const ActivityController = {
           email: userEmail,
           action: 'UPDATE',
           description:
-          `Se actualizó la actividad con ID "${idActivity}".\n` +
-          `Versión previa: ` +
-          `Título: "${previousActivity.tittle}", ` +
-          `Tipo: "${previousActivity.type}", ` +
-          `Modalidad: "${previousActivity.modality}", ` +
-          `Capacidad: ${previousActivity.capacity}, ` +
-          `Ubicación: "${previousActivity.location}", ` +
-          `Fecha: "${previousActivity.date}", ` +
-          `Estado: "${previousActivity.status}". ` +
-          `Sede: "${previousActivity.headquarter?.name || 'N/A'}" (ID: ${previousActivity.idHeadquarter}).\n` +
-          `Nueva versión: ` +
-          `Título: "${updatedActivity.tittle}", ` +
-          `Tipo: "${updatedActivity.type}", ` +
-          `Modalidad: "${updatedActivity.modality}", ` +
-          `Capacidad: ${updatedActivity.capacity}, ` +
-          `Ubicación: "${updatedActivity.location}", ` +
-          `Fecha: "${updatedActivity.date}", ` +
-          `Estado: "${updatedActivity.status}". ` +
-          `Sede: "${updatedActivity.headquarter?.name || 'N/A'}" (ID: ${updatedActivity.idHeadquarter}).`,
+        `Se actualizó la actividad con ID "${idActivity}".\n` +
+        `Versión previa: ` +
+        `Título: "${previousActivity.tittle}", ` +
+        `Tipo: "${previousActivity.type}", ` +
+        `Modalidad: "${previousActivity.modality}", ` +
+        `Capacidad: ${previousActivity.capacity}, ` +
+        `Ubicación: "${previousActivity.location}", ` +
+        `Fecha: "${previousActivity.date}", ` +
+        `Estado: "${previousActivity.status}". ` +
+        `Sede: "${previousActivity.headquarter?.name || 'N/A'}" (ID: ${previousActivity.idHeadquarter}).\n` +
+        `Nueva versión: ` +
+        `Título: "${updatedActivity.tittle}", ` +
+        `Tipo: "${updatedActivity.type}", ` +
+        `Modalidad: "${updatedActivity.modality}", ` +
+        `Capacidad: ${updatedActivity.capacity}, ` +
+        `Ubicación: "${updatedActivity.location}", ` +
+        `Fecha: "${updatedActivity.date}", ` +
+        `Estado: "${updatedActivity.status}". ` +
+        `Sede: "${updatedActivity.headquarter?.name || 'N/A'}" (ID: ${updatedActivity.idHeadquarter}).`,
           affectedTable: 'Activity',
         });
       }
