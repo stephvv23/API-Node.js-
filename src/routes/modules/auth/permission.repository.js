@@ -2,14 +2,12 @@ const prisma = require("../../../lib/prisma.js");
 
 const PermissionRepository = {
   async getWindowsForUser(email) {
-    console.log(`[DEBUG] Getting windows for user: ${email}`);
     
     // First, let's check ALL roles for this user (without filtering by status)
     const allUserRoles = await prisma.userRole.findMany({
       where: { email },
       include: { role: true }
     });
-    console.log(`[DEBUG] ALL roles for user (no filter):`, JSON.stringify(allUserRoles, null, 2));
     
     // search active roles for that user
     const roles = await prisma.userRole.findMany({
@@ -22,11 +20,9 @@ const PermissionRepository = {
       select: { idRole: true, role: { select: { idRole: true, rolName: true, status: true } } },
     });
 
-    console.log(`[DEBUG] Roles query result (filtered by active):`, JSON.stringify(roles, null, 2));
 
     const roleIds = roles.map((r) => r.idRole);
     if (roleIds.length === 0) {
-      console.log(`[DEBUG] No active roles found for user ${email}`);
       return [];
     }
 
@@ -52,8 +48,6 @@ const PermissionRepository = {
         },
       },
     });
-
-    console.log(`[DEBUG] Windows query result:`, JSON.stringify(rows, null, 2));
 
     // merge permissions for the same window
     const combined = new Map();
@@ -82,7 +76,6 @@ const PermissionRepository = {
     }
 
     const result = Array.from(combined.values());
-    console.log(`[DEBUG] Final result for user ${email}:`, JSON.stringify(result, null, 2));
     return result;
   },
 };
