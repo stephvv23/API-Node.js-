@@ -1087,10 +1087,15 @@ const EntityValidators = {
 
     // Cross-field validation: startDate must be before finishDate
     // Only validate if both dates are provided
-    if (data.startDate && data.finishDate) {
-      const dateComparisonResult = ValidationRules.dateBefore(data.startDate, data.finishDate, 'Fecha de inicio', 'Fecha de finalización');
-      if (dateComparisonResult !== true) {
-        validator.field('startDate/finishDate', null).custom(() => dateComparisonResult);
+    if (shouldValidateField(data.startDate) && shouldValidateField(data.finishDate)) {
+      const startDate = ValidationRules.parseDate(data.startDate);
+      const finishDate = ValidationRules.parseDate(data.finishDate);
+
+      if (startDate && finishDate) {
+        if (startDate > finishDate) {
+          const congruenceValidator = validator.field('dateCongruence', null);
+          congruenceValidator.custom(() => 'La fecha de inicio no puede ser posterior a la fecha de finalización');
+        }
       }
     }
     
