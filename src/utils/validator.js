@@ -92,11 +92,95 @@ const ValidationRules = {
     return regex.test(value) || 'Solo se permiten letras, números, espacios, apostrofes, guiones, puntos y comas';
   },
 
-  // Date validation
+  // Date validation with strict day/month checking
   isValidDate: (value) => {
     if (value === undefined || value === null) return true; // Skip if value is not provided
+    
+    // First check if it's a valid date object
     const date = new Date(value);
-    return !isNaN(date.getTime()) || 'Fecha inválida';
+    if (isNaN(date.getTime())) return 'Fecha inválida';
+    
+    // For string inputs, validate the components (day, month, year)
+    if (typeof value === 'string') {
+      const dateStr = value.trim();
+      
+      // Reject incomplete date formats (year only or year-month only)
+      // Must have at least year, month, and day
+      if (!/^\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(dateStr) && !/^\d{1,2}[-/]\d{1,2}[-/]\d{4}/.test(dateStr)) {
+        return 'La fecha debe incluir año, mes y día completos (ej: 2024-01-15 o 15/01/2024)';
+      }
+      
+      let day, month, year;
+      
+      // Try ISO format (YYYY-MM-DD or YYYY/MM/DD)
+      if (/^\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(dateStr)) {
+        const parts = dateStr.split(/[-/T]/);
+        year = parseInt(parts[0]);
+        month = parseInt(parts[1]);
+        day = parseInt(parts[2]);
+      }
+      // Try DD-MM-YYYY or DD/MM/YYYY format
+      else if (/^\d{1,2}[-/]\d{1,2}[-/]\d{4}/.test(dateStr)) {
+        const parts = dateStr.split(/[-/]/);
+        day = parseInt(parts[0]);
+        month = parseInt(parts[1]);
+        year = parseInt(parts[2]);
+      }
+      
+      // Validate month is between 1-12
+      if (month && (month < 1 || month > 12)) {
+        return 'El mes debe estar entre 1 y 12';
+      }
+      
+      // Validate day is valid for the given month/year
+      if (day && month && year) {
+        const maxDays = new Date(year, month, 0).getDate(); // Get max days in that month
+        if (day < 1 || day > maxDays) {
+          return `El día debe estar entre 1 y ${maxDays} para el mes especificado`;
+        }
+      }
+      
+      // Additional check: verify the parsed date matches the input
+      // This catches cases like "2024-02-30" which JavaScript converts to "2024-03-01"
+      if (day && month && year) {
+        const reconstructed = new Date(year, month - 1, day);
+        if (reconstructed.getDate() !== day || 
+            reconstructed.getMonth() !== month - 1 || 
+            reconstructed.getFullYear() !== year) {
+          return 'Fecha inválida para el mes especificado';
+        }
+      }
+    }
+    
+    return true;
+  },
+
+  // Date not in future validation (birthday, etc.)
+  dateNotInFuture: (value) => {
+    if (value === undefined || value === null) return true; // Skip if value is not provided
+    
+    // First validate it's a valid date
+    const validDateResult = ValidationRules.isValidDate(value);
+    if (validDateResult !== true) return validDateResult;
+    
+    const date = new Date(value);
+    const now = new Date();
+    return date <= now || 'La fecha no puede ser en el futuro';
+  },
+
+  // Positive number validation (for hours, quantities, etc.)
+  positiveNumber: (value) => {
+    if (value === undefined || value === null) return true; // Skip if value is not provided
+    const num = Number(value);
+    return num >= 0 || 'El valor debe ser mayor o igual a cero';
+  },
+
+  // Compare two dates: first date must be before second date
+  dateBefore: (firstDate, secondDate, firstFieldName = 'Fecha de inicio', secondFieldName = 'Fecha de finalización') => {
+    if (firstDate === undefined || firstDate === null || secondDate === undefined || secondDate === null) return true;
+    const date1 = new Date(firstDate);
+    const date2 = new Date(secondDate);
+    return date1 < date2 || `${firstFieldName} debe ser anterior a ${secondFieldName}`;
   },
 
   // Boolean validation
@@ -114,11 +198,42 @@ const ValidationRules = {
 
   // Required field validation (skipped in partial mode)
   required: (value) => {
-    return (value !== undefined && value !== null && value !== '') || 'Este campo es obligatorio';
+    if (value === undefined || value === null) return 'Este campo es obligatorio';
+    if (typeof value === 'string') {
+      return value.trim() !== '' || 'Este campo es obligatorio';
+    }
+    return true; // For non-string values, just check that they're not null/undefined
   },
 
   // ---- CONTROLLER HELPER FUNCTIONS ----
   
+  /**
+   * Trims all string fields in an object and normalizes multiple spaces to single space
+   * Useful for cleaning user input before validation
+   * Examples:
+   * - "  alberto  " → "alberto"
+   * - "alberto                gomes    gonzales            " → "alberto gomes gonzales"
+   * @param {Object} data - The object with fields to trim
+   * @returns {Object} New object with trimmed and normalized string values
+   */
+  trimStringFields: (data) => {
+    if (!data || typeof data !== 'object') return data;
+    
+    const trimmedData = {};
+    for (const key in data) {
+      if (data.hasOwnProperty(key)) {
+        const value = data[key];
+        // Only process if it's a string and not null/undefined
+        if (typeof value === 'string') {
+          // Trim leading/trailing spaces and replace multiple spaces with single space
+          trimmedData[key] = value.trim().replace(/\s+/g, ' ');
+        } else {
+          trimmedData[key] = value;
+        }
+      }
+    }
+    return trimmedData;
+  },
  
   parseIdParam: (id) => {
     if (!id || typeof id !== 'string') return null;
@@ -267,6 +382,16 @@ class FieldValidator {
 
   date() {
     this.rules.push(ValidationRules.isValidDate);
+    return this;
+  }
+
+  dateNotInFuture() {
+    this.rules.push(ValidationRules.dateNotInFuture);
+    return this;
+  }
+
+  positiveNumber() {
+    this.rules.push(ValidationRules.positiveNumber);
     return this;
   }
 
@@ -770,7 +895,7 @@ const EntityValidators = {
     if (shouldValidateField(data.birthday)) {
       const birthdayValidator = validator.field('birthday', data.birthday);
       if (!options.partial) birthdayValidator.required();
-      birthdayValidator.date();
+      birthdayValidator.date().dateNotInFuture();
     }
 
     // Email validation
@@ -808,9 +933,9 @@ const EntityValidators = {
       scheduleValidator.string().minLength(1).internationalText().maxLength(300);
     }
 
-    // Required hours validation (optional field)
+    // Required hours validation (optional field, must be non-negative)
     if (shouldValidateField(data.requiredHours)) {
-      validator.field('requiredHours', data.requiredHours).integer();
+      validator.field('requiredHours', data.requiredHours).integer().positiveNumber();
     }
 
     // Start date validation
@@ -840,6 +965,15 @@ const EntityValidators = {
     // Status validation
     if (shouldValidateField(data.status)) {
       validator.field('status', data.status).validStatus();
+    }
+
+    // Cross-field validation: startDate must be before finishDate
+    // Only validate if both dates are provided
+    if (data.startDate && data.finishDate) {
+      const dateComparisonResult = ValidationRules.dateBefore(data.startDate, data.finishDate, 'Fecha de inicio', 'Fecha de finalización');
+      if (dateComparisonResult !== true) {
+        validator.field('startDate/finishDate', null).custom(() => dateComparisonResult);
+      }
     }
     
     return validator.validate();
@@ -1009,6 +1143,19 @@ const EntityValidators = {
     // Finish date validation (optional field)
     if (shouldValidateField(data.finishDate)) {
       validator.field('finishDate', data.finishDate).date();
+    }
+
+    // Date congruence validation: startDate should be before or equal to finishDate
+    if (shouldValidateField(data.startDate) && shouldValidateField(data.finishDate)) {
+      const startDate = new Date(data.startDate);
+      const finishDate = new Date(data.finishDate);
+      
+      if (!isNaN(startDate.getTime()) && !isNaN(finishDate.getTime())) {
+        if (startDate > finishDate) {
+          const congruenceValidator = validator.field('dateCongruence', null);
+          congruenceValidator.custom(() => 'La fecha de inicio no puede ser posterior a la fecha de finalización');
+        }
+      }
     }
 
     // Description validation
