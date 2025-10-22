@@ -4,7 +4,7 @@
 
 const { AssetsService } = require('./assets.service');
 const { SecurityLogService } = require('../../../services/securitylog.service');
-const { EntityValidators } = require('../../../utils/validator');
+const { EntityValidators, ValidationRules } = require('../../../utils/validator');
 
 // ---- validation helpers ----
 const MAX = {
@@ -64,12 +64,15 @@ const AssetsController = {
   /** POST /assets */
   create: async (req, res) => {
     try {
-      const validation = EntityValidators.asset(req.body, { partial: false });
+      // Trim all string fields to prevent leading/trailing spaces and normalize multiple spaces
+      const trimmedBody = ValidationRules.trimStringFields(req.body);
+      
+      const validation = EntityValidators.asset(trimmedBody, { partial: false });
 
       if (!validation.isValid) {
         return res.validationErrors(validation.errors);
       }
-      const asset = await AssetsService.create(req.body);
+      const asset = await AssetsService.create(trimmedBody);
 
       const userEmail = req.user?.sub;
       if (!userEmail) {
@@ -107,11 +110,14 @@ const AssetsController = {
       const id = parseIdParam(req.params?.idAsset);
       if (!id) return res.validationErrors(['idAsset debe ser un entero positivo']);
       
-      const validation = EntityValidators.asset(req.body, { partial: true });
+      // Trim all string fields to prevent leading/trailing spaces and normalize multiple spaces
+      const updateData = ValidationRules.trimStringFields(req.body);
+      
+      const validation = EntityValidators.asset(updateData, { partial: true });
       if (!validation.isValid) {
         return res.validationErrors(validation.errors);
       }
-      if (!Object.keys(req.body).length) {
+      if (!Object.keys(updateData).length) {
         return res.validationErrors(['No hay campos para actualizar']);
       }
 
@@ -119,7 +125,7 @@ const AssetsController = {
       const previousAsset = await AssetsService.get(id);
       if (!previousAsset) return res.notFound('Activo');
 
-      const asset = await AssetsService.update(id, req.body);
+      const asset = await AssetsService.update(id, updateData);
 
       // Registrar en el log los cambios
       const userEmail = req.user?.sub;
@@ -209,9 +215,9 @@ const AssetsController = {
         affectedTable: 'Assets',
       });
 
-      return res.success(deleted, 'Activo eliminado exitosamente');
+      return res.success(deleted, 'Activo inactivado exitosamente');
     } catch (error) {
-      return res.error('Error al eliminar el activo');
+      return res.error('Error al inactivar el activo');
     }
   },
 
