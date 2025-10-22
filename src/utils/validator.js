@@ -92,16 +92,71 @@ const ValidationRules = {
     return regex.test(value) || 'Solo se permiten letras, números, espacios, apostrofes, guiones, puntos y comas';
   },
 
-  // Date validation
+  // Date validation with strict day/month checking
   isValidDate: (value) => {
     if (value === undefined || value === null) return true; // Skip if value is not provided
+    
+    // First check if it's a valid date object
     const date = new Date(value);
-    return !isNaN(date.getTime()) || 'Fecha inválida';
+    if (isNaN(date.getTime())) return 'Fecha inválida';
+    
+    // For string inputs, validate the components (day, month, year)
+    if (typeof value === 'string') {
+      // Extract date components from common formats (YYYY-MM-DD, YYYY/MM/DD, DD-MM-YYYY, DD/MM/YYYY)
+      const dateStr = value.trim();
+      let day, month, year;
+      
+      // Try ISO format (YYYY-MM-DD or YYYY/MM/DD)
+      if (/^\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(dateStr)) {
+        const parts = dateStr.split(/[-/T]/);
+        year = parseInt(parts[0]);
+        month = parseInt(parts[1]);
+        day = parseInt(parts[2]);
+      }
+      // Try DD-MM-YYYY or DD/MM/YYYY format
+      else if (/^\d{1,2}[-/]\d{1,2}[-/]\d{4}/.test(dateStr)) {
+        const parts = dateStr.split(/[-/]/);
+        day = parseInt(parts[0]);
+        month = parseInt(parts[1]);
+        year = parseInt(parts[2]);
+      }
+      
+      // Validate month is between 1-12
+      if (month && (month < 1 || month > 12)) {
+        return 'El mes debe estar entre 1 y 12';
+      }
+      
+      // Validate day is valid for the given month/year
+      if (day && month && year) {
+        const maxDays = new Date(year, month, 0).getDate(); // Get max days in that month
+        if (day < 1 || day > maxDays) {
+          return `El día debe estar entre 1 y ${maxDays} para el mes especificado`;
+        }
+      }
+      
+      // Additional check: verify the parsed date matches the input
+      // This catches cases like "2024-02-30" which JavaScript converts to "2024-03-01"
+      if (day && month && year) {
+        const reconstructed = new Date(year, month - 1, day);
+        if (reconstructed.getDate() !== day || 
+            reconstructed.getMonth() !== month - 1 || 
+            reconstructed.getFullYear() !== year) {
+          return 'Fecha inválida para el mes especificado';
+        }
+      }
+    }
+    
+    return true;
   },
 
   // Date not in future validation (birthday, etc.)
   dateNotInFuture: (value) => {
     if (value === undefined || value === null) return true; // Skip if value is not provided
+    
+    // First validate it's a valid date
+    const validDateResult = ValidationRules.isValidDate(value);
+    if (validDateResult !== true) return validDateResult;
+    
     const date = new Date(value);
     const now = new Date();
     return date <= now || 'La fecha no puede ser en el futuro';
@@ -142,6 +197,33 @@ const ValidationRules = {
 
   // ---- CONTROLLER HELPER FUNCTIONS ----
   
+  /**
+   * Trims all string fields in an object and normalizes multiple spaces to single space
+   * Useful for cleaning user input before validation
+   * Examples:
+   * - "  alberto  " → "alberto"
+   * - "alberto                gomes    gonzales            " → "alberto gomes gonzales"
+   * @param {Object} data - The object with fields to trim
+   * @returns {Object} New object with trimmed and normalized string values
+   */
+  trimStringFields: (data) => {
+    if (!data || typeof data !== 'object') return data;
+    
+    const trimmedData = {};
+    for (const key in data) {
+      if (data.hasOwnProperty(key)) {
+        const value = data[key];
+        // Only process if it's a string and not null/undefined
+        if (typeof value === 'string') {
+          // Trim leading/trailing spaces and replace multiple spaces with single space
+          trimmedData[key] = value.trim().replace(/\s+/g, ' ');
+        } else {
+          trimmedData[key] = value;
+        }
+      }
+    }
+    return trimmedData;
+  },
  
   parseIdParam: (id) => {
     if (!id || typeof id !== 'string') return null;

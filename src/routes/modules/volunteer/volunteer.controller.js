@@ -1,6 +1,6 @@
 const { VolunteerService } = require('./volunteer.service');
 const { SecurityLogService } = require('../../../services/securitylog.service');
-const { EntityValidators } = require('../../../utils/validator');
+const { EntityValidators, ValidationRules } = require('../../../utils/validator');
 
 // Helper function to parse and validate ID parameter
 function parseIdParam(id) {
@@ -84,11 +84,19 @@ const VolunteerController = {
 
   // Creates a new volunteer
   create: async (req, res) => {
+    // Validate that body exists and is an object
+    if (!req.body || typeof req.body !== 'object') {
+      return res.validationErrors(['El cuerpo de la petición debe ser un objeto JSON válido']);
+    }
+    
+    // Trim all string fields to prevent leading/trailing spaces
+    const trimmedBody = ValidationRules.trimStringFields(req.body);
+    
     const { 
       name, identifier, country, birthday, email, residence, 
       modality, institution, availableSchedule, requiredHours, 
       startDate, finishDate, imageAuthorization, notes, status 
-    } = req.body;
+    } = trimmedBody;
     
     // Parse dates to proper format
     const parsedBirthday = parseDate(birthday);
@@ -170,7 +178,8 @@ const VolunteerController = {
       return res.validationErrors(['idVolunteer debe ser un entero positivo']);
     }
     
-    const updateData = req.body;
+    // Trim all string fields to prevent leading/trailing spaces
+    const updateData = ValidationRules.trimStringFields(req.body);
 
     // Parse dates if present in updateData
     if (updateData.birthday) {
