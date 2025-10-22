@@ -72,6 +72,9 @@ const AssetsController = {
       const asset = await AssetsService.create(req.body);
 
       const userEmail = req.user?.sub;
+      if (!userEmail) {
+        return res.status(401).json({ message: 'No se pudo identificar el usuario autenticado para registrar la acción de seguridad.' });
+      }
       await SecurityLogService.log({
         email: userEmail,
         action: 'CREATE',
