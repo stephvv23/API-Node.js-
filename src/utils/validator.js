@@ -14,6 +14,8 @@
  * These rules can be reused across different entity validators
  */
 const ValidationRules = {
+  // Hardcoded offset for timezone adjustment (6 hours)
+  TIMEZONE_OFFSET_HOURS: 6,
   // Email format validation using regex pattern
   email: (value) => {
     if (value === undefined || value === null) return true; // Skip if value is not provided
@@ -93,38 +95,114 @@ const ValidationRules = {
   },
 
   // Date validation with strict day/month checking
+  // Parse a date value into a Date object treating plain date strings as local dates at midnight.
+  // Supports: 'YYYY-MM-DD', 'YYYY/MM/DD', 'DD-MM-YYYY', 'DD/MM/YYYY', and Date objects.
+  // Now also supports times: 'YYYY-MM-DDTHH:mm:ss', 'YYYY-MM-DD HH:mm:ss', etc., treated as local.
+  parseDate: (value) => {
+    if (value === undefined || value === null) return null;
+    // If it's already a Date
+    if (value instanceof Date) return isNaN(value.getTime()) ? null : value;
+
+    // If it's a number (timestamp)
+    if (typeof value === 'number') {
+      const d = new Date(value);
+      return isNaN(d.getTime()) ? null : d;
+    }
+
+    if (typeof value === 'string') {
+      const s = value.trim();
+
+      // Try ISO-like YYYY-MM-DDTHH:mm:ss or YYYY-MM-DD HH:mm:ss (treat as local date/time, not UTC)
+      const isoTimeMatch = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:[T\s](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/);
+      if (isoTimeMatch) {
+        const year = Number(isoTimeMatch[1]);
+        const month = Number(isoTimeMatch[2]);
+        const day = Number(isoTimeMatch[3]);
+        const hour = isoTimeMatch[4] ? Number(isoTimeMatch[4]) : 0;
+        const minute = isoTimeMatch[5] ? Number(isoTimeMatch[5]) : 0;
+        const second = isoTimeMatch[6] ? Number(isoTimeMatch[6]) : 0;
+        const d = new Date(year, month - 1, day, hour, minute, second);
+        // Hardcoded timezone adjustment: subtract 6 hours if time was specified
+        if (isoTimeMatch[4]) {
+          d.setHours(d.getHours() - ValidationRules.TIMEZONE_OFFSET_HOURS);
+        }
+        return isNaN(d.getTime()) ? null : d;
+      }
+
+      // Try DD-MM-YYYY HH:mm:ss or DD/MM/YYYY HH:mm:ss
+      const dmTimeMatch = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})(?:\s(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/);
+      if (dmTimeMatch) {
+        const day = Number(dmTimeMatch[1]);
+        const month = Number(dmTimeMatch[2]);
+        const year = Number(dmTimeMatch[3]);
+        const hour = dmTimeMatch[4] ? Number(dmTimeMatch[4]) : 0;
+        const minute = dmTimeMatch[5] ? Number(dmTimeMatch[5]) : 0;
+        const second = dmTimeMatch[6] ? Number(dmTimeMatch[6]) : 0;
+        const d = new Date(year, month - 1, day, hour, minute, second);
+        // Hardcoded timezone adjustment: subtract 6 hours if time was specified
+        if (dmTimeMatch[4]) {
+          d.setHours(d.getHours() - ValidationRules.TIMEZONE_OFFSET_HOURS);
+        }
+        return isNaN(d.getTime()) ? null : d;
+      }
+
+      // Fallback: let Date try parsing (may interpret timezone)
+      const fallback = new Date(s);
+      return isNaN(fallback.getTime()) ? null : fallback;
+    }
+
+    return null;
+  },
+
+  // Date validation with strict day/month checking
   isValidDate: (value) => {
     if (value === undefined || value === null) return true; // Skip if value is not provided
     
-    // First check if it's a valid date object
-    const date = new Date(value);
-    if (isNaN(date.getTime())) return 'Fecha inválida';
+    // Use parseDate to reliably get a Date treated as local
+    const date = ValidationRules.parseDate(value);
+    if (!date) return 'Fecha inválida';
     
-    // For string inputs, validate the components (day, month, year)
+    // For string inputs, validate the components (day, month, year, and optionally hour, minute, second)
     if (typeof value === 'string') {
       const dateStr = value.trim();
       
       // Reject incomplete date formats (year only or year-month only)
       // Must have at least year, month, and day
-      if (!/^\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(dateStr) && !/^\d{1,2}[-/]\d{1,2}[-/]\d{4}/.test(dateStr)) {
-        return 'La fecha debe incluir año, mes y día completos (ej: 2024-01-15 o 15/01/2024)';
+      if (!/^\d{4}[-/]\d{1,2}[-/]\d{1,2}(?:\s\d{1,2}:\d{1,2}(?::\d{1,2})?)?$/.test(dateStr) && 
+          !/^\d{1,2}[-/]\d{1,2}[-/]\d{4}(?:\s\d{1,2}:\d{1,2}(?::\d{1,2})?)?$/.test(dateStr) &&
+          !/^\d{4}[-/]\d{1,2}[-/]\d{1,2}T\d{1,2}:\d{1,2}(?::\d{1,2})?$/.test(dateStr)) {
+        return 'La fecha debe incluir año, mes y día completos (ej: 2024-01-15, 2024-01-15T10:30:00 o 15/01/2024 10:30)';
       }
       
-      let day, month, year;
+      let day, month, year, hour, minute, second, hasTime = false;
       
-      // Try ISO format (YYYY-MM-DD or YYYY/MM/DD)
-      if (/^\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(dateStr)) {
-        const parts = dateStr.split(/[-/T]/);
-        year = parseInt(parts[0]);
-        month = parseInt(parts[1]);
-        day = parseInt(parts[2]);
+      // Try ISO format with optional time (YYYY-MM-DD or YYYY/MM/DD [T]HH:mm[:ss])
+      const isoMatch = dateStr.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:[T\s](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/);
+      if (isoMatch) {
+        year = parseInt(isoMatch[1]);
+        month = parseInt(isoMatch[2]);
+        day = parseInt(isoMatch[3]);
+        if (isoMatch[4]) {
+          hour = parseInt(isoMatch[4]);
+          minute = parseInt(isoMatch[5]);
+          second = isoMatch[6] ? parseInt(isoMatch[6]) : 0;
+          hasTime = true;
+        }
       }
-      // Try DD-MM-YYYY or DD/MM/YYYY format
-      else if (/^\d{1,2}[-/]\d{1,2}[-/]\d{4}/.test(dateStr)) {
-        const parts = dateStr.split(/[-/]/);
-        day = parseInt(parts[0]);
-        month = parseInt(parts[1]);
-        year = parseInt(parts[2]);
+      // Try DD-MM-YYYY or DD/MM/YYYY with optional time
+      else {
+        const dmMatch = dateStr.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})(?:\s(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/);
+        if (dmMatch) {
+          day = parseInt(dmMatch[1]);
+          month = parseInt(dmMatch[2]);
+          year = parseInt(dmMatch[3]);
+          if (dmMatch[4]) {
+            hour = parseInt(dmMatch[4]);
+            minute = parseInt(dmMatch[5]);
+            second = dmMatch[6] ? parseInt(dmMatch[6]) : 0;
+            hasTime = true;
+          }
+        }
       }
       
       // Validate month is between 1-12
@@ -140,30 +218,68 @@ const ValidationRules = {
         }
       }
       
+      // Validate hour is between 0-23
+      if (hasTime && (hour < 0 || hour > 23)) {
+        return 'La hora debe estar entre 0 y 23';
+      }
+      
+      // Validate minute is between 0-59
+      if (hasTime && (minute < 0 || minute > 59)) {
+        return 'Los minutos deben estar entre 0 y 59';
+      }
+      
+      // Validate second is between 0-59
+      if (hasTime && (second < 0 || second > 59)) {
+        return 'Los segundos deben estar entre 0 y 59';
+      }
+      
       // Additional check: verify the parsed date matches the input
       // This catches cases like "2024-02-30" which JavaScript converts to "2024-03-01"
       if (day && month && year) {
-        const reconstructed = new Date(year, month - 1, day);
-        if (reconstructed.getDate() !== day || 
-            reconstructed.getMonth() !== month - 1 || 
-            reconstructed.getFullYear() !== year) {
-          return 'Fecha inválida para el mes especificado';
+        // Create reconstructed date with the timezone-adjusted time
+        let adjustedHour = hasTime ? hour - ValidationRules.TIMEZONE_OFFSET_HOURS : 0;
+        let adjustedMinute = hasTime ? minute : 0;
+        let adjustedSecond = hasTime ? second : 0;
+        let adjustedDay = day;
+        let adjustedMonth = month;
+        let adjustedYear = year;
+        
+        // Handle hour wrapping (negative hours wrap to previous day)
+        if (hasTime && adjustedHour < 0) {
+          adjustedHour += 24;
+          // Subtract one day
+          const tempDate = new Date(year, month - 1, day - 1);
+          adjustedDay = tempDate.getDate();
+          adjustedMonth = tempDate.getMonth() + 1;
+          adjustedYear = tempDate.getFullYear();
+        }
+        
+        const reconstructed = new Date(adjustedYear, adjustedMonth - 1, adjustedDay, adjustedHour, adjustedMinute, adjustedSecond);
+        
+        // The parsed date should match the reconstructed date
+        const parsed = ValidationRules.parseDate(value);
+        if (!parsed || 
+            parsed.getDate() !== reconstructed.getDate() || 
+            parsed.getMonth() !== reconstructed.getMonth() || 
+            parsed.getFullYear() !== reconstructed.getFullYear() ||
+            (hasTime && parsed.getHours() !== reconstructed.getHours()) ||
+            (hasTime && parsed.getMinutes() !== reconstructed.getMinutes()) ||
+            (hasTime && parsed.getSeconds() !== reconstructed.getSeconds())) {
+          return 'Fecha u hora inválida para el mes especificado';
         }
       }
     }
     
     return true;
-  },
-
-  // Date not in future validation (birthday, etc.)
+  },  // Date not in future validation (birthday, etc.)
   dateNotInFuture: (value) => {
     if (value === undefined || value === null) return true; // Skip if value is not provided
     
     // First validate it's a valid date
     const validDateResult = ValidationRules.isValidDate(value);
     if (validDateResult !== true) return validDateResult;
-    
-    const date = new Date(value);
+
+    const date = ValidationRules.parseDate(value);
     const now = new Date();
     return date <= now || 'La fecha no puede ser en el futuro';
   },
@@ -178,8 +294,10 @@ const ValidationRules = {
   // Compare two dates: first date must be before second date
   dateBefore: (firstDate, secondDate, firstFieldName = 'Fecha de inicio', secondFieldName = 'Fecha de finalización') => {
     if (firstDate === undefined || firstDate === null || secondDate === undefined || secondDate === null) return true;
-    const date1 = new Date(firstDate);
-    const date2 = new Date(secondDate);
+    const date1 = ValidationRules.parseDate(firstDate);
+    const date2 = ValidationRules.parseDate(secondDate);
+
+    if (!date1 || !date2) return `${firstFieldName} o ${secondFieldName} inválida(s)`;
     return date1 < date2 || `${firstFieldName} debe ser anterior a ${secondFieldName}`;
   },
 
@@ -1147,10 +1265,10 @@ const EntityValidators = {
 
     // Date congruence validation: startDate should be before or equal to finishDate
     if (shouldValidateField(data.startDate) && shouldValidateField(data.finishDate)) {
-      const startDate = new Date(data.startDate);
-      const finishDate = new Date(data.finishDate);
-      
-      if (!isNaN(startDate.getTime()) && !isNaN(finishDate.getTime())) {
+      const startDate = ValidationRules.parseDate(data.startDate);
+      const finishDate = ValidationRules.parseDate(data.finishDate);
+
+      if (startDate && finishDate) {
         if (startDate > finishDate) {
           const congruenceValidator = validator.field('dateCongruence', null);
           congruenceValidator.custom(() => 'La fecha de inicio no puede ser posterior a la fecha de finalización');
