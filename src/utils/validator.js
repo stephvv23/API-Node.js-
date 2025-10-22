@@ -119,9 +119,23 @@ const ValidationRules = {
 
   // ---- CONTROLLER HELPER FUNCTIONS ----
   
- 
+  // Trim and normalize string fields in an object
+  trimStringFields: (obj) => {
+    if (!obj || typeof obj !== 'object') return obj;
+    const trimmed = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (typeof value === 'string') {
+        // Trim leading/trailing spaces and normalize multiple spaces to single spaces
+        trimmed[key] = value.trim().replace(/\s+/g, ' ');
+      } else {
+        trimmed[key] = value;
+      }
+    }
+    return trimmed;
+  },
+
+  
   parseIdParam: (id) => {
-    if (!id || typeof id !== 'string') return null;
     const trimmed = id.trim();
     
     // Use existing ValidationRules
