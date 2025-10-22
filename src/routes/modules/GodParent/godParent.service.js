@@ -1,4 +1,5 @@
 const { GodParentRepository } = require('./godParent.repository');
+const { ValidationRules } = require('../../../utils/validator');
 
 const GodParentService = {
   // Lists all godparents (active and inactive)
@@ -27,8 +28,8 @@ const GodParentService = {
       name: data.name,
       email: data.email,
       paymentMethod: data.paymentMethod,
-      startDate: data.startDate ? new Date(data.startDate) : new Date(),
-      finishDate: data.finishDate ? new Date(data.finishDate) : null,
+      startDate: data.startDate ? ValidationRules.parseDate(data.startDate) : new Date(),
+      finishDate: data.finishDate ? ValidationRules.parseDate(data.finishDate) : null,
       description: data.description,
       status: data.status || "active"
     });
@@ -39,14 +40,23 @@ const GodParentService = {
     // Filter out relationship fields that are handled separately
     const { phones, activities, ...updateData } = data;
     
-    // Convert date strings to Date objects if they exist
-    if (updateData.startDate) {
-      updateData.startDate = new Date(updateData.startDate);
+    // Filter to only include valid godparent fields
+    const validFields = ['idSurvivor', 'idHeadquarter', 'name', 'email', 'paymentMethod', 'startDate', 'finishDate', 'description', 'status'];
+    const filteredUpdateData = {};
+    for (const field of validFields) {
+      if (updateData[field] !== undefined) {
+        filteredUpdateData[field] = updateData[field];
+      }
     }
-    if (updateData.finishDate) {
-      updateData.finishDate = new Date(updateData.finishDate);
+    
+    // Convert date strings to Date objects if they exist, using parseDate for timezone adjustment
+    if (filteredUpdateData.startDate) {
+      filteredUpdateData.startDate = ValidationRules.parseDate(filteredUpdateData.startDate);
     }
-    return GodParentRepository.update(id, updateData);
+    if (filteredUpdateData.finishDate) {
+      filteredUpdateData.finishDate = ValidationRules.parseDate(filteredUpdateData.finishDate);
+    }
+    return GodParentRepository.update(id, filteredUpdateData);
   },
 
   // Updates only the godparent status by id
