@@ -21,28 +21,61 @@ const ActivityRepository = {
   // Returns all activities with selected fields
   list: () => prisma.activity.findMany({ select: baseSelect }),
   
-  // Returns all activities with their headquarter information
-  findAll: () => prisma.activity.findMany({
-    select: {
-      idActivity: true,
-      idHeadquarter: true,
-      title: true,
-      description: true,
-      type: true,
-      modality: true,
-      capacity: true,
-      location: true,
-      date: true,
-      status: true,
-      headquarter: {
-        select: {
-          idHeadquarter: true,
-          name: true,
-          status: true
+  // Returns all activities with their headquarter information and optional filters
+  findAll: (filters = {}) => {
+    const where = {};
+    
+    // Apply status filter
+    if (filters.status && filters.status !== 'all') {
+      where.status = filters.status;
+    }
+    
+    // Apply headquarter filter
+    if (filters.headquarter) {
+      where.idHeadquarter = filters.headquarter;
+    }
+    
+    // Apply type filter
+    if (filters.type) {
+      where.type = filters.type;
+    }
+    
+    // Apply modality filter
+    if (filters.modality) {
+      where.modality = filters.modality;
+    }
+    
+    // Apply date range filter
+    if (filters.startDate && filters.endDate) {
+      where.date = {
+        gte: new Date(filters.startDate),
+        lte: new Date(filters.endDate)
+      };
+    }
+    
+    return prisma.activity.findMany({
+      where,
+      select: {
+        idActivity: true,
+        idHeadquarter: true,
+        title: true,
+        description: true,
+        type: true,
+        modality: true,
+        capacity: true,
+        location: true,
+        date: true,
+        status: true,
+        headquarter: {
+          select: {
+            idHeadquarter: true,
+            name: true,
+            status: true
+          }
         }
       }
-    }
-  }),
+    });
+  },
 
   create: (data) => prisma.activity.create({ data, select: baseSelect }),
   
@@ -155,106 +188,6 @@ const ActivityRepository = {
     select: { idHeadquarter: true, status: true }
   }),
 
-  // Get activities by headquarter
-  findByHeadquarter: (idHeadquarter) => prisma.activity.findMany({
-    where: { idHeadquarter: parseInt(idHeadquarter) },
-    select: {
-      idActivity: true,
-      idHeadquarter: true,
-      title: true,
-      description: true,
-      type: true,
-      modality: true,
-      capacity: true,
-      location: true,
-      date: true,
-      status: true,
-      headquarter: {
-        select: {
-          idHeadquarter: true,
-          name: true,
-          status: true
-        }
-      }
-    }
-  }),
-
-  // Get activities by date range
-  findByDateRange: (startDate, endDate) => prisma.activity.findMany({
-    where: {
-      date: {
-        gte: new Date(startDate),
-        lte: new Date(endDate)
-      }
-    },
-    select: {
-      idActivity: true,
-      idHeadquarter: true,
-      title: true,
-      description: true,
-      type: true,
-      modality: true,
-      capacity: true,
-      location: true,
-      date: true,
-      status: true,
-      headquarter: {
-        select: {
-          idHeadquarter: true,
-          name: true,
-          status: true
-        }
-      }
-    }
-  }),
-
-  // Get activities by type
-  findByType: (type) => prisma.activity.findMany({
-    where: { type },
-    select: {
-      idActivity: true,
-      idHeadquarter: true,
-      title: true,
-      description: true,
-      type: true,
-      modality: true,
-      capacity: true,
-      location: true,
-      date: true,
-      status: true,
-      headquarter: {
-        select: {
-          idHeadquarter: true,
-          name: true,
-          status: true
-        }
-      }
-    }
-  }),
-
-  // Get activities by modality
-  findByModality: (modality) => prisma.activity.findMany({
-    where: { modality },
-    select: {
-      idActivity: true,
-      idHeadquarter: true,
-      title: true,
-      description: true,
-      type: true,
-      modality: true,
-      capacity: true,
-      location: true,
-      date: true,
-      status: true,
-      headquarter: {
-        select: {
-          idHeadquarter: true,
-          name: true,
-          status: true
-        }
-      }
-    }
-  }),
 
   // Find an activity by title
   findByTitle: (title) => prisma.activity.findFirst({
