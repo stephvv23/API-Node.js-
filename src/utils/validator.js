@@ -872,7 +872,7 @@ const EntityValidators = {
 
   /**
    * Activity entity validator
-   * Schema: idActivity (PK), idHeadquarter, tittle (150), description (750), type (50), 
+   * Schema: idActivity (PK), idHeadquarter, title (150), description (750), type (50), 
    * modality (25), capacity (Int), location (300), date (DateTime), status (25)
    * @param {Object} data - The activity data to validate
    * @param {Object} options - Validation options
@@ -894,8 +894,8 @@ const EntityValidators = {
     }
 
     // Title validation
-    if (shouldValidateField(data.tittle)) {
-      const titleValidator = validator.field('tittle', data.tittle);
+    if (shouldValidateField(data.title)) {
+      const titleValidator = validator.field('title', data.title);
       if (!options.partial) titleValidator.required();
       titleValidator.string().minLength(1).internationalText().maxLength(150);
     }
