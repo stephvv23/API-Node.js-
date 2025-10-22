@@ -84,11 +84,6 @@ const VolunteerController = {
 
   // Creates a new volunteer
   create: async (req, res) => {
-    // Validate that body exists and is an object
-    if (!req.body || typeof req.body !== 'object') {
-      return res.validationErrors(['El cuerpo de la petición debe ser un objeto JSON válido']);
-    }
-    
     // Trim all string fields to prevent leading/trailing spaces
     const trimmedBody = ValidationRules.trimStringFields(req.body);
     
@@ -108,11 +103,6 @@ const VolunteerController = {
     if (!validation.isValid) {
       return res.validationErrors(validation.errors);
     }
-    
-    // Parse dates to proper format AFTER validation
-    const parsedBirthday = parseDate(birthday);
-    const parsedStartDate = parseDate(startDate);
-    const parsedFinishDate = parseDate(finishDate);
 
     try {
       // Check duplicates
@@ -131,9 +121,9 @@ const VolunteerController = {
       }
 
       const newVolunteer = await VolunteerService.create({ 
-        name, identifier, country, birthday: parsedBirthday, email, residence, 
+        name, identifier, country, birthday, email, residence, 
         modality, institution, availableSchedule, requiredHours, 
-        startDate: parsedStartDate, finishDate: parsedFinishDate, imageAuthorization, notes, status 
+        startDate, finishDate, imageAuthorization, notes, status 
       });
       
       const userEmail = req.user?.sub; 

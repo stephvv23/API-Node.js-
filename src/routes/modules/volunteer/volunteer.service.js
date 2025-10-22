@@ -1,4 +1,5 @@
 const { VolunteerRepository } = require('./volunteer.repository');
+const { ValidationRules } = require('../../../utils/validator');
 
 const VolunteerService = {
   // Lists all active volunteers
@@ -25,15 +26,15 @@ const VolunteerService = {
       name: data.name,
       identifier: data.identifier,
       country: data.country,
-      birthday: data.birthday,
+      birthday: ValidationRules.parseDate(data.birthday),
       email: data.email,
       residence: data.residence,
       modality: data.modality,
       institution: data.institution,
       availableSchedule: data.availableSchedule,
       requiredHours: data.requiredHours,
-      startDate: data.startDate,
-      finishDate: data.finishDate,
+      startDate: data.startDate ? ValidationRules.parseDate(data.startDate) : new Date(),
+      finishDate: data.finishDate ? ValidationRules.parseDate(data.finishDate) : null,
       imageAuthorization: data.imageAuthorization,
       notes: data.notes,
       status: data.status || "active"
@@ -41,6 +42,16 @@ const VolunteerService = {
   },
   // Updates volunteer data by id
   update: async (id, data) => {
+    // Parse dates if they exist
+    if (data.birthday) {
+      data.birthday = ValidationRules.parseDate(data.birthday);
+    }
+    if (data.startDate) {
+      data.startDate = ValidationRules.parseDate(data.startDate);
+    }
+    if (data.finishDate) {
+      data.finishDate = ValidationRules.parseDate(data.finishDate);
+    }
     return VolunteerRepository.update(id, data);
   },
   // Updates only the volunteer status by id
