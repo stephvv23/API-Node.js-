@@ -98,21 +98,21 @@ const VolunteerController = {
       startDate, finishDate, imageAuthorization, notes, status 
     } = trimmedBody;
     
-    // Parse dates to proper format
-    const parsedBirthday = parseDate(birthday);
-    const parsedStartDate = parseDate(startDate);
-    const parsedFinishDate = parseDate(finishDate);
-    
-    // Validation for CREATE - all fields required
+    // Validation for CREATE - all fields required (validate BEFORE parsing dates)
     const validation = EntityValidators.volunteer({
-      name, identifier, country, birthday: parsedBirthday, email, residence, 
+      name, identifier, country, birthday, email, residence, 
       modality, institution, availableSchedule, requiredHours, 
-      startDate: parsedStartDate, finishDate: parsedFinishDate, imageAuthorization, notes, status
+      startDate, finishDate, imageAuthorization, notes, status
     }, { partial: false });
     
     if (!validation.isValid) {
       return res.validationErrors(validation.errors);
     }
+    
+    // Parse dates to proper format AFTER validation
+    const parsedBirthday = parseDate(birthday);
+    const parsedStartDate = parseDate(startDate);
+    const parsedFinishDate = parseDate(finishDate);
 
     try {
       // Check duplicates
@@ -181,7 +181,14 @@ const VolunteerController = {
     // Trim all string fields to prevent leading/trailing spaces
     const updateData = ValidationRules.trimStringFields(req.body);
 
-    // Parse dates if present in updateData
+    // Validation for UPDATE - only validate provided fields (BEFORE parsing dates)
+    const validation = EntityValidators.volunteer(updateData, { partial: true });
+    
+    if (!validation.isValid) {
+      return res.validationErrors(validation.errors);
+    }
+
+    // Parse dates if present in updateData AFTER validation
     if (updateData.birthday) {
       updateData.birthday = parseDate(updateData.birthday);
     }
@@ -190,13 +197,6 @@ const VolunteerController = {
     }
     if (updateData.finishDate) {
       updateData.finishDate = parseDate(updateData.finishDate);
-    }
-
-    // Validation for UPDATE - only validate provided fields
-    const validation = EntityValidators.volunteer(updateData, { partial: true });
-    
-    if (!validation.isValid) {
-      return res.validationErrors(validation.errors);
     }
 
     try {
