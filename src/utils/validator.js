@@ -102,8 +102,14 @@ const ValidationRules = {
     
     // For string inputs, validate the components (day, month, year)
     if (typeof value === 'string') {
-      // Extract date components from common formats (YYYY-MM-DD, YYYY/MM/DD, DD-MM-YYYY, DD/MM/YYYY)
       const dateStr = value.trim();
+      
+      // Reject incomplete date formats (year only or year-month only)
+      // Must have at least year, month, and day
+      if (!/^\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(dateStr) && !/^\d{1,2}[-/]\d{1,2}[-/]\d{4}/.test(dateStr)) {
+        return 'La fecha debe incluir año, mes y día completos (ej: 2024-01-15 o 15/01/2024)';
+      }
+      
       let day, month, year;
       
       // Try ISO format (YYYY-MM-DD or YYYY/MM/DD)
@@ -192,7 +198,11 @@ const ValidationRules = {
 
   // Required field validation (skipped in partial mode)
   required: (value) => {
-    return (value !== undefined && value !== null && value !== '') || 'Este campo es obligatorio';
+    if (value === undefined || value === null) return 'Este campo es obligatorio';
+    if (typeof value === 'string') {
+      return value.trim() !== '' || 'Este campo es obligatorio';
+    }
+    return true; // For non-string values, just check that they're not null/undefined
   },
 
   // ---- CONTROLLER HELPER FUNCTIONS ----
@@ -1133,6 +1143,19 @@ const EntityValidators = {
     // Finish date validation (optional field)
     if (shouldValidateField(data.finishDate)) {
       validator.field('finishDate', data.finishDate).date();
+    }
+
+    // Date congruence validation: startDate should be before or equal to finishDate
+    if (shouldValidateField(data.startDate) && shouldValidateField(data.finishDate)) {
+      const startDate = new Date(data.startDate);
+      const finishDate = new Date(data.finishDate);
+      
+      if (!isNaN(startDate.getTime()) && !isNaN(finishDate.getTime())) {
+        if (startDate > finishDate) {
+          const congruenceValidator = validator.field('dateCongruence', null);
+          congruenceValidator.custom(() => 'La fecha de inicio no puede ser posterior a la fecha de finalización');
+        }
+      }
     }
 
     // Description validation
