@@ -186,7 +186,7 @@ const ValidationRules = {
   // Boolean validation
   isBoolean: (value) => {
     if (value === undefined || value === null) return true; // Skip if value is not provided
-    return typeof value === 'boolean' || 'Debe ser verdadero o falso';
+    return typeof value === 'boolean' || 'Debe ser "true" o "false"';
   },
 
   // Entity status validation (common across all entities)
