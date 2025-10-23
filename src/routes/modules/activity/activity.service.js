@@ -4,9 +4,9 @@ const { ValidationRules } = require('../../../utils/validator');
 // ActivityService contains business logic for activity operations.
 // It interacts with ActivityRepository for database actions and handles validations.
 const ActivityService = {
-  // List all activities
-  list: () => {
-    return ActivityRepository.findAll();
+  // List all activities with optional filters
+  list: (filters = {}) => {
+    return ActivityRepository.findAll(filters);
   },
 
   // Get an activity by its ID.
@@ -60,25 +60,6 @@ const ActivityService = {
     });
   },
 
-  // Get activities by headquarter
-  getByHeadquarter: (idHeadquarter) => {
-    return ActivityRepository.findByHeadquarter(idHeadquarter);
-  },
-
-  // Get activities by date range
-  getByDateRange: (startDate, endDate) => {
-    return ActivityRepository.findByDateRange(startDate, endDate);
-  },
-
-  // Get activities by type
-  getByType: (type) => {
-    return ActivityRepository.findByType(type);
-  },
-
-  // Get activities by modality
-  getByModality: (modality) => {
-    return ActivityRepository.findByModality(modality);
-  },
 
   // Get activity with all relations
   getWithRelations: (idActivity) => {

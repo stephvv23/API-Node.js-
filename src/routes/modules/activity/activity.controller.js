@@ -15,23 +15,46 @@ const formatActivityData = (activity) => {
 
 // ActivityController handles HTTP requests for activity operations
 const ActivityController = {
-  // List all activities
+  // List all activities with optional filters
   list: async (req, res) => {
     try {
-      const status = (req.query.status || 'active').toLowerCase();
-      if (!ValidationRules.isValidStatusFilter(status)) {
+      const { 
+        status = 'active', 
+        headquarter, 
+        type, 
+        modality, 
+        startDate, 
+        endDate 
+      } = req.query;
+      
+      // Validate status filter
+      if (!ValidationRules.isValidStatusFilter(status.toLowerCase())) {
         return res.validationErrors(['El status debe ser "active", "inactive" o "all"']);
       }
       
-      // Get all activities and filter in controller
-      const allActivities = await ActivityService.list();
-      let filteredActivities = allActivities;
-      
-      if (status !== 'all') {
-        filteredActivities = allActivities.filter(activity => activity.status === status);
+      // Validate date range if provided
+      if (startDate && endDate) {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+          return res.validationErrors(['Las fechas deben tener formato válido (YYYY-MM-DD)']);
+        }
+        if (start > end) {
+          return res.validationErrors(['La fecha de inicio debe ser anterior a la fecha de fin']);
+        }
       }
       
-      return res.success(filteredActivities);
+      // Get filtered activities
+      const activities = await ActivityService.list({
+        status: status.toLowerCase(),
+        headquarter: headquarter ? parseInt(headquarter) : undefined,
+        type,
+        modality,
+        startDate,
+        endDate
+      });
+      
+      return res.success(activities);
     } catch (error) {
       console.error('[ACTIVITY] list error:', error);
       return res.error('Error retrieving activities');
@@ -340,60 +363,6 @@ const ActivityController = {
     }
   },
 
-  // Get activities by headquarter
-  getByHeadquarter: async (req, res) => {
-    const { idHeadquarter } = req.params;
-    const validId = ValidationRules.parseIdParam(idHeadquarter);
-    if (!validId) {
-      return res.validationErrors(['idHeadquarter debe ser un número entero positivo']);
-    }
-    try {
-      const activities = await ActivityService.getByHeadquarter(validId);
-      return res.success(activities);
-    } catch (error) {
-      console.error('[ACTIVITY] getByHeadquarter error:', error);
-      return res.error('Error retrieving activities by headquarter');
-    }
-  },
-
-  // Get activities by date range
-  getByDateRange: async (req, res) => {
-    const { startDate, endDate } = req.query;
-    if (!startDate || !endDate) {
-      return res.validationErrors(['startDate and endDate are required']);
-    }
-    try {
-      const activities = await ActivityService.getByDateRange(startDate, endDate);
-      return res.success(activities);
-    } catch (error) {
-      console.error('[ACTIVITY] getByDateRange error:', error);
-      return res.error('Error retrieving activities by date range');
-    }
-  },
-
-  // Get activities by type
-  getByType: async (req, res) => {
-    const { type } = req.params;
-    try {
-      const activities = await ActivityService.getByType(type);
-      return res.success(activities);
-    } catch (error) {
-      console.error('[ACTIVITY] getByType error:', error);
-      return res.error('Error retrieving activities by type');
-    }
-  },
-
-  // Get activities by modality
-  getByModality: async (req, res) => {
-    const { modality } = req.params;
-    try {
-      const activities = await ActivityService.getByModality(modality);
-      return res.success(activities);
-    } catch (error) {
-      console.error('[ACTIVITY] getByModality error:', error);
-      return res.error('Error retrieving activities by modality');
-    }
-  },
 
   // Get activity with all relations (volunteers, survivors, godparents)
   getWithRelations: async (req, res) => {
