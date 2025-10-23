@@ -5,6 +5,7 @@ module.exports = [
   // protected routes with window-based permissions
   { method: 'GET', path: '/api/activities', handler: authenticate(authorizeWindow('Actividades', 'read')(ActivityController.list)) },
   { method: 'POST', path: '/api/activities', handler: authenticate(authorizeWindow('Actividades', 'read', 'create')(ActivityController.create)) },
+  { method: 'GET', path: '/api/activities/lookup-data', handler: authenticate(authorizeWindow('Actividades', 'read')(ActivityController.getLookupData)) },
   
   // Generic routes with parameters
   { method: 'GET', path: '/api/activities/:idActivity', handler: authenticate(authorizeWindow('Actividades', 'read')(ActivityController.get)) },

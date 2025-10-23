@@ -211,7 +211,62 @@ const ActivityRepository = {
         }
       }
     }
-  })
+  }),
+
+  // Get all lookup data needed for activity assignment
+  getLookupData: async () => {
+    const [headquarters, volunteers, survivors, godparents] = await Promise.all([
+      // Get all headquarters (active and inactive)
+      prisma.headquarter.findMany({
+        select: {
+          idHeadquarter: true,
+          name: true,
+          status: true
+        },
+        orderBy: { name: 'asc' }
+      }),
+      
+      // Get all volunteers (active and inactive)
+      prisma.volunteer.findMany({
+        select: {
+          idVolunteer: true,
+          name: true,
+          email: true,
+          status: true
+        },
+        orderBy: { name: 'asc' }
+      }),
+      
+      // Get all survivors (active and inactive)
+      prisma.survivor.findMany({
+        select: {
+          idSurvivor: true,
+          survivorName: true,
+          email: true,
+          status: true
+        },
+        orderBy: { survivorName: 'asc' }
+      }),
+      
+      // Get all godparents (active and inactive)
+      prisma.godparent.findMany({
+        select: {
+          idGodparent: true,
+          name: true,
+          email: true,
+          status: true
+        },
+        orderBy: { name: 'asc' }
+      })
+    ]);
+
+    return {
+      headquarters,
+      volunteers,
+      survivors,
+      godparents
+    };
+  }
 };
 
 module.exports = { ActivityRepository };

@@ -382,6 +382,17 @@ const ActivityController = {
       console.error('[ACTIVITY] getWithRelations error:', error);
       return res.error('Error retrieving activity with relations');
     }
+  },
+
+  // Get all lookup data needed for activity assignment in a single request
+  getLookupData: async (req, res) => {
+    try {
+      const lookupData = await ActivityService.getLookupData();
+      return res.success(lookupData);
+    } catch (error) {
+      console.error('[ACTIVITY] getLookupData error:', error);
+      return res.error('Error al obtener los datos de referencia para actividades');
+    }
   }
 };
 

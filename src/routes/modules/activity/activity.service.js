@@ -69,6 +69,11 @@ const ActivityService = {
   // Check if headquarter exists
   checkHeadquarterExists: (idHeadquarter) => {
     return ActivityRepository.checkHeadquarterExists(idHeadquarter);
+  },
+
+  // Get all lookup data needed for activity assignment
+  getLookupData: () => {
+    return ActivityRepository.getLookupData();
   }
 };
 
