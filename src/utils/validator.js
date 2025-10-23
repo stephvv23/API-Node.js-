@@ -160,7 +160,7 @@ const ValidationRules = {
     
     // Use parseDate to reliably get a Date treated as local
     const date = ValidationRules.parseDate(value);
-    if (!date) return 'Fecha inválida';
+    if (!date) return 'La fecha debe incluir año, mes y día completos (ej: 2024-01-15, 2024-01-15T10:30:00 o 15/01/2024 10:30)';
     
     // For string inputs, validate the components (day, month, year, and optionally hour, minute, second)
     if (typeof value === 'string') {
