@@ -91,7 +91,7 @@ const ActivityController = {
         modality: modality.trim(),
         capacity: parseInt(capacity),
         location: location.trim(),
-        date: new Date(date),
+        date,
         status: status || 'active'
       });
       
@@ -162,9 +162,6 @@ const ActivityController = {
       }
 
       // Process data before update
-      if (updateData.date) {
-        updateData.date = new Date(updateData.date);
-      }
       if (updateData.capacity) {
         updateData.capacity = parseInt(updateData.capacity);
       }
