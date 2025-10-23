@@ -4,6 +4,13 @@ const { EntityValidators } = require('../../../utils/validator');
 // Import prisma for foreign key validation
 let prisma = require('../../../lib/prisma.js');
 
+// Helper function to format dates for logging
+const formatDateForLog = (date) => {
+  if (!date) return 'N/A';
+  const d = new Date(date);
+  return d.toLocaleDateString('es-ES'); // Format as DD/MM/YYYY
+};
+
 const GodParentController = {
   // Lists all godparents (active and inactive)
   getAll: async (req, res, next) => {
@@ -33,7 +40,7 @@ const GodParentController = {
 
   // Creates a new godparent
   create: async (req, res) => {
-    const { idSurvivor, idHeadquarter, name, email, paymentMethod, startDate, finishDate, description, status, phones, activities } = req.body;
+    const { idSurvivor, idHeadquarter, name, email, paymentMethod, startDate, finishDate, description, status } = req.body;
 
     // Validation for CREATE - all required fields must be present
     const validation = EntityValidators.godparent({
@@ -77,44 +84,14 @@ const GodParentController = {
         }
       }
 
-      // Normalize arrays for phones and activities
-      const phoneIds = Array.isArray(phones) ? phones : (phones ? [phones] : []);
-      const activityIds = Array.isArray(activities) ? activities : (activities ? [activities] : []);
-
-      // Validate that all phones exist
-      for (const phoneId of phoneIds) {
-        const phoneExists = await GodParentService.checkPhoneExists(phoneId);
-        if (!phoneExists) {
-          return res.validationErrors([`El teléfono con ID ${phoneId} no existe`]);
-        }
-      }
-
-      // Validate that all activities exist
-      for (const activityId of activityIds) {
-        const activityExists = await GodParentService.checkActivityExists(activityId);
-        if (!activityExists) {
-          return res.validationErrors([`La actividad con ID ${activityId} no existe`]);
-        }
-      }
-
       const newGodparent = await GodParentService.create({ idSurvivor, idHeadquarter, name, email, paymentMethod, startDate, finishDate, description, status });
-
-      // Create relations with phones
-      if (phoneIds.length > 0) {
-        await GodParentService.assignPhones(newGodparent.idGodparent, phoneIds);
-      }
-
-      // Create relations with activities
-      if (activityIds.length > 0) {
-        await GodParentService.assignActivities(newGodparent.idGodparent, activityIds);
-      }
 
       const userEmail = req.user?.sub;
       await SecurityLogService.log({
         email: userEmail,
         action: 'CREATE',
         description:
-        `Se creó el padrino con los siguientes datos: ID: "${newGodparent.idGodparent}", Nombre: "${newGodparent.name}", Email: "${newGodparent.email}", Método de pago: "${newGodparent.paymentMethod}", Fecha de inicio: "${newGodparent.startDate}", Fecha de fin: "${newGodparent.finishDate || 'N/A'}", Descripción: "${newGodparent.description}", Estado: "${newGodparent.status}", Teléfonos: [${phoneIds.join(', ') || 'Ninguno'}], Actividades: [${activityIds.join(', ') || 'Ninguna'}].`,
+        `Se creó el padrino con los siguientes datos: ID: "${newGodparent.idGodparent}", Nombre: "${newGodparent.name}", Email: "${newGodparent.email}", Método de pago: "${newGodparent.paymentMethod}", Fecha de inicio: "${formatDateForLog(newGodparent.startDate)}", Fecha de fin: "${formatDateForLog(newGodparent.finishDate)}", Descripción: "${newGodparent.description}", Estado: "${newGodparent.status}".`,
         affectedTable: 'Godparent',
       });
 
@@ -177,26 +154,6 @@ const GodParentController = {
         }
       }
 
-      // Validate phones if they are being updated
-      if (Array.isArray(updateData.phones)) {
-        for (const phoneId of updateData.phones) {
-          const phoneExists = await GodParentService.checkPhoneExists(phoneId);
-          if (!phoneExists) {
-            return res.validationErrors([`El teléfono con ID ${phoneId} no existe`]);
-          }
-        }
-      }
-
-      // Validate activities if they are being updated
-      if (Array.isArray(updateData.activities)) {
-        for (const activityId of updateData.activities) {
-          const activityExists = await GodParentService.checkActivityExists(activityId);
-          if (!activityExists) {
-            return res.validationErrors([`La actividad con ID ${activityId} no existe`]);
-          }
-        }
-      }
-
       // Get the previous godparent data
       const previousGodparent = await GodParentService.findById(id);
       if (!previousGodparent) {
@@ -204,22 +161,6 @@ const GodParentController = {
       }
 
       const updatedGodparent = await GodParentService.update(id, updateData);
-
-      // Update phone relations if provided
-      if (Array.isArray(updateData.phones)) {
-        await GodParentService.clearPhones(id);
-        if (updateData.phones.length > 0) {
-          await GodParentService.assignPhones(id, updateData.phones);
-        }
-      }
-
-      // Update activity relations if provided
-      if (Array.isArray(updateData.activities)) {
-        await GodParentService.clearActivities(id);
-        if (updateData.activities.length > 0) {
-          await GodParentService.assignActivities(id, updateData.activities);
-        }
-      }
 
       // Register in the log the changes (previous and new)
       const userEmail = req.user?.sub;
@@ -240,7 +181,7 @@ const GodParentController = {
           email: userEmail,
           action: 'REACTIVATE',
           description:
-          `Se reactivó el padrino con ID "${id}". Datos completos: Nombre: "${updatedGodparent.name}", Email: "${updatedGodparent.email}", Método de pago: "${updatedGodparent.paymentMethod}", Fecha de inicio: "${updatedGodparent.startDate}", Fecha de fin: "${updatedGodparent.finishDate || 'N/A'}", Descripción: "${updatedGodparent.description}", Estado: "${updatedGodparent.status}", Teléfonos: [${updatedGodparent.phones?.map(p => p.idPhone).join(', ') || 'Ninguno'}], Actividades: [${updatedGodparent.activities?.map(a => a.idActivity).join(', ') || 'Ninguna'}].`,
+          `Se reactivó el padrino con ID "${id}". Datos completos: Nombre: "${updatedGodparent.name}", Email: "${updatedGodparent.email}", Método de pago: "${updatedGodparent.paymentMethod}", Fecha de inicio: "${formatDateForLog(updatedGodparent.startDate)}", Fecha de fin: "${formatDateForLog(updatedGodparent.finishDate)}", Descripción: "${updatedGodparent.description}", Estado: "${updatedGodparent.status}".`,
           affectedTable: 'Godparent',
         });
       } else {
@@ -249,8 +190,8 @@ const GodParentController = {
           action: 'UPDATE',
           description:
           `Se actualizó el padrino con ID "${id}".\n` +
-          `Versión previa: Nombre: "${previousGodparent.name}", Email: "${previousGodparent.email}", Método de pago: "${previousGodparent.paymentMethod}", Fecha de inicio: "${previousGodparent.startDate}", Fecha de fin: "${previousGodparent.finishDate || 'N/A'}", Descripción: "${previousGodparent.description}", Estado: "${previousGodparent.status}", Teléfonos: [${previousGodparent.phones?.map(p => p.idPhone).join(', ') || 'Ninguno'}], Actividades: [${previousGodparent.activities?.map(a => a.idActivity).join(', ') || 'Ninguna'}]. \n` +
-          `Nueva versión: Nombre: "${updatedGodparent.name}", Email: "${updatedGodparent.email}", Método de pago: "${updatedGodparent.paymentMethod}", Fecha de inicio: "${updatedGodparent.startDate}", Fecha de fin: "${updatedGodparent.finishDate || 'N/A'}", Descripción: "${updatedGodparent.description}", Estado: "${updatedGodparent.status}", Teléfonos: [${updatedGodparent.phones?.map(p => p.idPhone).join(', ') || 'Ninguno'}], Actividades: [${updatedGodparent.activities?.map(a => a.idActivity).join(', ') || 'Ninguna'}].`,
+          `Versión previa: Nombre: "${previousGodparent.name}", Email: "${previousGodparent.email}", Método de pago: "${previousGodparent.paymentMethod}", Fecha de inicio: "${formatDateForLog(previousGodparent.startDate)}", Fecha de fin: "${formatDateForLog(previousGodparent.finishDate)}", Descripción: "${previousGodparent.description}", Estado: "${previousGodparent.status}". \n` +
+          `Nueva versión: Nombre: "${updatedGodparent.name}", Email: "${updatedGodparent.email}", Método de pago: "${updatedGodparent.paymentMethod}", Fecha de inicio: "${formatDateForLog(updatedGodparent.startDate)}", Fecha de fin: "${formatDateForLog(updatedGodparent.finishDate)}", Descripción: "${updatedGodparent.description}", Estado: "${updatedGodparent.status}".`,
           affectedTable: 'Godparent',
         });
       }
@@ -275,7 +216,7 @@ const GodParentController = {
       await SecurityLogService.log({
         email: userEmail,
         action: 'INACTIVE',
-        description: `Se inactivó el padrino: ID "${id}", Nombre: "${deletedGodparent.name}", Email: "${deletedGodparent.email}", Método de pago: "${deletedGodparent.paymentMethod}", Fecha de inicio: "${deletedGodparent.startDate}", Fecha de fin: "${deletedGodparent.finishDate || 'N/A'}", Descripción: "${deletedGodparent.description}", Estado: "${deletedGodparent.status}".`,
+        description: `Se inactivó el padrino: ID "${id}", Nombre: "${deletedGodparent.name}", Email: "${deletedGodparent.email}", Método de pago: "${deletedGodparent.paymentMethod}", Fecha de inicio: "${formatDateForLog(deletedGodparent.startDate)}", Fecha de fin: "${formatDateForLog(deletedGodparent.finishDate)}", Descripción: "${deletedGodparent.description}", Estado: "${deletedGodparent.status}".`,
         affectedTable: 'Godparent',
       });
       return res.success(deletedGodparent, 'Padrino inactivado exitosamente');
@@ -288,7 +229,7 @@ const GodParentController = {
   // Get all lookup data needed for godparent assignment in a single request (includes active and inactive)
   getLookupData: async (req, res) => {
     try {
-      const [survivors, headquarters, phones, activities] = await Promise.all([
+      const [survivors, headquarters] = await Promise.all([
         // Get all survivors (active and inactive)
         prisma.survivor.findMany({
           select: {
@@ -307,33 +248,12 @@ const GodParentController = {
             status: true
           },
           orderBy: { name: 'asc' }
-        }),
-        
-        // Get all phones (no status filter as phones don't have status)
-        prisma.phone.findMany({
-          select: {
-            idPhone: true,
-            phone: true
-          },
-          orderBy: { phone: 'asc' }
-        }),
-        
-        // Get all activities (active and inactive)
-        prisma.activity.findMany({
-          select: {
-            idActivity: true,
-            tittle: true,
-            status: true
-          },
-          orderBy: { tittle: 'asc' }
         })
       ]);
 
       const lookupData = {
         survivors,
-        headquarters,
-        phones,
-        activities
+        headquarters
       };
 
       return res.success(lookupData);

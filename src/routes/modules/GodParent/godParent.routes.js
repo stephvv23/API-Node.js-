@@ -1,4 +1,4 @@
-const { GodParentController } = require('../../modules/GodParent/godParent.controller');
+const { GodParentController } = require('./godparent.controller');
 const { authenticate, authorizeWindow } = require('../../../middlewares/auth.middleware');
 
 module.exports = [

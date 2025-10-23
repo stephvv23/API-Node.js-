@@ -68,36 +68,6 @@ const GodParentService = {
   remove: async (id, status) => {
     return GodParentRepository.update(id, { status: "inactive" });
   },
-
-  // Assign phones to godparent
-  assignPhones: async (godparentId, phoneIds) => {
-    return GodParentRepository.assignPhones(godparentId, phoneIds);
-  },
-
-  // Assign activities to godparent
-  assignActivities: async (godparentId, activityIds) => {
-    return GodParentRepository.assignActivities(godparentId, activityIds);
-  },
-
-  // Clear phones for godparent
-  clearPhones: async (godparentId) => {
-    return GodParentRepository.clearPhones(godparentId);
-  },
-
-  // Clear activities for godparent
-  clearActivities: async (godparentId) => {
-    return GodParentRepository.clearActivities(godparentId);
-  },
-
-  // Check if phone exists
-  checkPhoneExists: (phoneId) => {
-    return GodParentRepository.checkPhoneExists(phoneId);
-  },
-
-  // Check if activity exists
-  checkActivityExists: (activityId) => {
-    return GodParentRepository.checkActivityExists(activityId);
-  },
 };
 
 module.exports = { GodParentService };
