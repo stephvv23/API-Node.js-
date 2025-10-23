@@ -50,6 +50,13 @@ const ValidationRules = {
     return Number.isInteger(Number(value)) || 'Debe ser un número entero';
   },
 
+  // Strict integer validation - only accepts number type, not strings
+  isStrictInteger: (value) => {
+    if (value === undefined || value === null) return true; // Skip if value is not provided
+    if (typeof value !== 'number') return 'Debe ser un número, no texto u otro tipo';
+    return Number.isInteger(value) || 'Debe ser un número entero sin decimales';
+  },
+
   // Content format validations
   onlyAlphanumeric: (value) => {
     if (value === undefined || value === null) return true; // Skip if value is not provided
@@ -130,7 +137,7 @@ const ValidationRules = {
       }
 
       // Try DD-MM-YYYY HH:mm:ss or DD/MM/YYYY HH:mm:ss
-      const dmTimeMatch = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})(?:\s(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/);
+      const dmTimeMatch = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})(?:[T\s](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/);
       if (dmTimeMatch) {
         const day = Number(dmTimeMatch[1]);
         const month = Number(dmTimeMatch[2]);
@@ -169,7 +176,7 @@ const ValidationRules = {
       // Reject incomplete date formats (year only or year-month only)
       // Must have at least year, month, and day
       if (!/^\d{4}[-/]\d{1,2}[-/]\d{1,2}(?:\s\d{1,2}:\d{1,2}(?::\d{1,2})?)?$/.test(dateStr) && 
-          !/^\d{1,2}[-/]\d{1,2}[-/]\d{4}(?:\s\d{1,2}:\d{1,2}(?::\d{1,2})?)?$/.test(dateStr) &&
+          !/^\d{1,2}[-/]\d{1,2}[-/]\d{4}(?:[T\s]\d{1,2}:\d{1,2}(?::\d{1,2})?)?$/.test(dateStr) &&
           !/^\d{4}[-/]\d{1,2}[-/]\d{1,2}T\d{1,2}:\d{1,2}(?::\d{1,2})?$/.test(dateStr)) {
         return 'La fecha debe incluir año, mes y día completos (ej: 2024-01-15, 2024-01-15T10:30:00 o 15/01/2024 10:30)';
       }
@@ -191,7 +198,7 @@ const ValidationRules = {
       }
       // Try DD-MM-YYYY or DD/MM/YYYY with optional time
       else {
-        const dmMatch = dateStr.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})(?:\s(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/);
+        const dmMatch = dateStr.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})(?:[T\s](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/);
         if (dmMatch) {
           day = parseInt(dmMatch[1]);
           month = parseInt(dmMatch[2]);
@@ -304,7 +311,7 @@ const ValidationRules = {
   // Boolean validation
   isBoolean: (value) => {
     if (value === undefined || value === null) return true; // Skip if value is not provided
-    return typeof value === 'boolean' || 'Debe ser verdadero o falso';
+    return typeof value === 'boolean' || 'Debe ser "true" o "false"';
   },
 
   // Entity status validation (common across all entities)
@@ -463,6 +470,12 @@ class FieldValidator {
 
   integer() {
     this.rules.push(ValidationRules.isInteger);
+    return this;
+  }
+
+  // Strict integer validation - only accepts number type
+  strictInteger() {
+    this.rules.push(ValidationRules.isStrictInteger);
     return this;
   }
 
@@ -1051,9 +1064,9 @@ const EntityValidators = {
       scheduleValidator.string().minLength(1).internationalText().maxLength(300);
     }
 
-    // Required hours validation (optional field, must be non-negative)
+    // Required hours validation (optional field, must be non-negative integer)
     if (shouldValidateField(data.requiredHours)) {
-      validator.field('requiredHours', data.requiredHours).integer().positiveNumber();
+      validator.field('requiredHours', data.requiredHours).strictInteger().positiveNumber();
     }
 
     // Start date validation
@@ -1087,10 +1100,15 @@ const EntityValidators = {
 
     // Cross-field validation: startDate must be before finishDate
     // Only validate if both dates are provided
-    if (data.startDate && data.finishDate) {
-      const dateComparisonResult = ValidationRules.dateBefore(data.startDate, data.finishDate, 'Fecha de inicio', 'Fecha de finalización');
-      if (dateComparisonResult !== true) {
-        validator.field('startDate/finishDate', null).custom(() => dateComparisonResult);
+    if (shouldValidateField(data.startDate) && shouldValidateField(data.finishDate)) {
+      const startDate = ValidationRules.parseDate(data.startDate);
+      const finishDate = ValidationRules.parseDate(data.finishDate);
+
+      if (startDate && finishDate) {
+        if (startDate > finishDate) {
+          const congruenceValidator = validator.field('dateCongruence', null);
+          congruenceValidator.custom(() => 'La fecha de inicio no puede ser posterior a la fecha de finalización');
+        }
       }
     }
     
@@ -1124,7 +1142,7 @@ const EntityValidators = {
 
   /**
    * Activity entity validator
-   * Schema: idActivity (PK), idHeadquarter, tittle (150), description (750), type (50), 
+   * Schema: idActivity (PK), idHeadquarter, title (150), description (750), type (50), 
    * modality (25), capacity (Int), location (300), date (DateTime), status (25)
    * @param {Object} data - The activity data to validate
    * @param {Object} options - Validation options
@@ -1146,17 +1164,10 @@ const EntityValidators = {
     }
 
     // Title validation
-    if (shouldValidateField(data.tittle)) {
-      const titleValidator = validator.field('tittle', data.tittle);
+    if (shouldValidateField(data.title)) {
+      const titleValidator = validator.field('title', data.title);
       if (!options.partial) titleValidator.required();
       titleValidator.string().minLength(1).internationalText().maxLength(150);
-    }
-
-    // Description validation
-    if (shouldValidateField(data.description)) {
-      const descValidator = validator.field('description', data.description);
-      if (!options.partial) descValidator.required();
-      descValidator.string().minLength(1).internationalText().maxLength(750);
     }
 
     // Type validation
@@ -1192,6 +1203,13 @@ const EntityValidators = {
       const dateValidator = validator.field('date', data.date);
       if (!options.partial) dateValidator.required();
       dateValidator.date();
+    }
+
+    // Description validation
+    if (shouldValidateField(data.description)) {
+      const descValidator = validator.field('description', data.description);
+      if (!options.partial) descValidator.required();
+      descValidator.string().minLength(1).internationalText().maxLength(750);
     }
 
     // Status validation
