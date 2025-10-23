@@ -171,6 +171,11 @@ const VolunteerController = {
     // Trim all string fields to prevent leading/trailing spaces
     const updateData = ValidationRules.trimStringFields(req.body);
 
+    // Prevent user from trying to modify the ID
+    if (updateData.idVolunteer !== undefined) {
+      return res.validationErrors(['No se puede modificar el ID del voluntario']);
+    }
+
     // Validation for UPDATE - only validate provided fields (BEFORE parsing dates)
     const validation = EntityValidators.volunteer(updateData, { partial: true });
     
