@@ -50,6 +50,13 @@ const ValidationRules = {
     return Number.isInteger(Number(value)) || 'Debe ser un número entero';
   },
 
+  // Strict integer validation - only accepts number type, not strings
+  isStrictInteger: (value) => {
+    if (value === undefined || value === null) return true; // Skip if value is not provided
+    if (typeof value !== 'number') return 'Debe ser un número, no texto u otro tipo';
+    return Number.isInteger(value) || 'Debe ser un número entero sin decimales';
+  },
+
   // Content format validations
   onlyAlphanumeric: (value) => {
     if (value === undefined || value === null) return true; // Skip if value is not provided
@@ -304,7 +311,7 @@ const ValidationRules = {
   // Boolean validation
   isBoolean: (value) => {
     if (value === undefined || value === null) return true; // Skip if value is not provided
-    return typeof value === 'boolean' || 'Debe ser verdadero o falso';
+    return typeof value === 'boolean' || 'Debe ser "true" o "false"';
   },
 
   // Entity status validation (common across all entities)
@@ -463,6 +470,12 @@ class FieldValidator {
 
   integer() {
     this.rules.push(ValidationRules.isInteger);
+    return this;
+  }
+
+  // Strict integer validation - only accepts number type
+  strictInteger() {
+    this.rules.push(ValidationRules.isStrictInteger);
     return this;
   }
 
@@ -1051,9 +1064,9 @@ const EntityValidators = {
       scheduleValidator.string().minLength(1).internationalText().maxLength(300);
     }
 
-    // Required hours validation (optional field, must be non-negative)
+    // Required hours validation (optional field, must be non-negative integer)
     if (shouldValidateField(data.requiredHours)) {
-      validator.field('requiredHours', data.requiredHours).integer().positiveNumber();
+      validator.field('requiredHours', data.requiredHours).strictInteger().positiveNumber();
     }
 
     // Start date validation
@@ -1087,10 +1100,15 @@ const EntityValidators = {
 
     // Cross-field validation: startDate must be before finishDate
     // Only validate if both dates are provided
-    if (data.startDate && data.finishDate) {
-      const dateComparisonResult = ValidationRules.dateBefore(data.startDate, data.finishDate, 'Fecha de inicio', 'Fecha de finalización');
-      if (dateComparisonResult !== true) {
-        validator.field('startDate/finishDate', null).custom(() => dateComparisonResult);
+    if (shouldValidateField(data.startDate) && shouldValidateField(data.finishDate)) {
+      const startDate = ValidationRules.parseDate(data.startDate);
+      const finishDate = ValidationRules.parseDate(data.finishDate);
+
+      if (startDate && finishDate) {
+        if (startDate > finishDate) {
+          const congruenceValidator = validator.field('dateCongruence', null);
+          congruenceValidator.custom(() => 'La fecha de inicio no puede ser posterior a la fecha de finalización');
+        }
       }
     }
     

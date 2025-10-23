@@ -24,7 +24,7 @@ Validar y generar cliente Prisma:
     Migrar la base de datos:
         npx prisma migrate dev -n init_users_module
 
-    Reiniciar los seeders: 
+   # ############################### COMANDO PARA REINICIAR TODA LA BASE DE DATOS Y PONER LOS SEEDERS TOTALMENTE DESDE 0: 
         npx prisma migrate reset
 
 se usa subir para subri cuando no hay datos  |       se usa para subir cuando ya hay datos    
