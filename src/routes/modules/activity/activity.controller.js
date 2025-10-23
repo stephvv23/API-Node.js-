@@ -439,7 +439,7 @@ const ActivityController = {
       return res.success(survivors);
     } catch (error) {
       console.error('[ACTIVITY] getSurvivors error:', error);
-      return res.error('Error al obtener los sobrevivientes de la actividad');
+      return res.error('Error al obtener los supervivientes de la actividad');
     }
   },
 
@@ -566,7 +566,7 @@ const ActivityController = {
       const validation = await ActivityService.validateSurvivorsExist(survivorIds);
       if (!validation.allExist) {
         const missingIds = validation.missingIds.join(', ');
-        return res.validationErrors([`Los siguientes sobrevivientes no existen: ${missingIds}`]);
+        return res.validationErrors([`Los siguientes supervivientes no existen: ${missingIds}`]);
       }
       
       const result = await ActivityService.assignSurvivors(validId, survivorIds);
@@ -574,13 +574,13 @@ const ActivityController = {
       await SecurityLogService.log({
         email: userEmail,
         action: 'ASSIGN_SURVIVORS',
-        description: `Se asignaron ${result.count} sobrevivientes a la actividad ID "${idActivity}"`,
+        description: `Se asignaron ${result.count} supervivientes a la actividad ID "${idActivity}"`,
         affectedTable: 'ActivitySurvivor',
       });
       return res.success(result, 'Sobrevivientes asignados exitosamente');
     } catch (error) {
       console.error('[ACTIVITY] assignSurvivors error:', error);
-      return res.error('Error al asignar sobrevivientes a la actividad');
+      return res.error('Error al asignar supervivientes a la actividad');
     }
   },
 
@@ -609,7 +609,7 @@ const ActivityController = {
       const validation = await ActivityService.validateSurvivorsExist(survivorIds);
       if (!validation.allExist) {
         const missingIds = validation.missingIds.join(', ');
-        return res.validationErrors([`Los siguientes sobrevivientes no existen: ${missingIds}`]);
+        return res.validationErrors([`Los siguientes supervivientes no existen: ${missingIds}`]);
       }
       
       const result = await ActivityService.removeSurvivors(validActivityId, survivorIds);
@@ -617,13 +617,13 @@ const ActivityController = {
       await SecurityLogService.log({
         email: userEmail,
         action: 'REMOVE_SURVIVORS',
-        description: `Se removieron ${result.count} sobrevivientes de la actividad ID "${idActivity}". IDs removidos: ${survivorIds.join(', ')}`,
+        description: `Se removieron ${result.count} supervivientes de la actividad ID "${idActivity}". IDs removidos: ${survivorIds.join(', ')}`,
         affectedTable: 'ActivitySurvivor',
       });
       return res.success(result, 'Sobrevivientes removidos exitosamente');
     } catch (error) {
       console.error('[ACTIVITY] removeSurvivors error:', error);
-      return res.error('Error al remover sobrevivientes de la actividad');
+      return res.error('Error al remover supervivientes de la actividad');
     }
   },
 
