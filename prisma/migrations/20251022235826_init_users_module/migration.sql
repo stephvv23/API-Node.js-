@@ -23,7 +23,7 @@ CREATE TABLE `SecurityLog` (
     `email` VARCHAR(150) NOT NULL,
     `date` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `action` VARCHAR(25) NOT NULL,
-    `description` VARCHAR(700) NOT NULL,
+    `description` VARCHAR(4000) NOT NULL,
     `affectedTable` VARCHAR(50) NOT NULL,
 
     PRIMARY KEY (`securityIdLog`)
@@ -111,7 +111,7 @@ CREATE TABLE `Supplier` (
 CREATE TABLE `Activity` (
     `idActivity` INTEGER NOT NULL AUTO_INCREMENT,
     `idHeadquarter` INTEGER NOT NULL,
-    `tittle` VARCHAR(150) NOT NULL,
+    `title` VARCHAR(150) NOT NULL,
     `description` VARCHAR(750) NOT NULL,
     `type` VARCHAR(50) NOT NULL,
     `modality` VARCHAR(25) NOT NULL,
