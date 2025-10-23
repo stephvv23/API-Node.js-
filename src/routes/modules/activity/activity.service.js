@@ -74,6 +74,64 @@ const ActivityService = {
   // Get all lookup data needed for activity assignment
   getLookupData: () => {
     return ActivityRepository.getLookupData();
+  },
+
+  // Get volunteers assigned to a specific activity
+  getVolunteers: (idActivity) => {
+    return ActivityRepository.getVolunteers(idActivity);
+  },
+
+  // Get survivors assigned to a specific activity
+  getSurvivors: (idActivity) => {
+    return ActivityRepository.getSurvivors(idActivity);
+  },
+
+  // Get godparents assigned to a specific activity
+  getGodparents: (idActivity) => {
+    return ActivityRepository.getGodparents(idActivity);
+  },
+
+  // Assign volunteers to activity
+  assignVolunteers: (idActivity, volunteerIds) => {
+    return ActivityRepository.assignVolunteers(idActivity, volunteerIds);
+  },
+
+  // Remove volunteers from activity
+  removeVolunteers: (idActivity, volunteerIds) => {
+    return ActivityRepository.removeVolunteers(idActivity, volunteerIds);
+  },
+
+  // Assign survivors to activity
+  assignSurvivors: (idActivity, survivorIds) => {
+    return ActivityRepository.assignSurvivors(idActivity, survivorIds);
+  },
+
+  // Remove survivors from activity
+  removeSurvivors: (idActivity, survivorIds) => {
+    return ActivityRepository.removeSurvivors(idActivity, survivorIds);
+  },
+
+  // Assign godparents to activity
+  assignGodparents: (idActivity, godparentIds) => {
+    return ActivityRepository.assignGodparents(idActivity, godparentIds);
+  },
+
+  // Remove godparents from activity
+  removeGodparents: (idActivity, godparentIds) => {
+    return ActivityRepository.removeGodparents(idActivity, godparentIds);
+  },
+
+  // Validation methods
+  validateVolunteersExist: (volunteerIds) => {
+    return ActivityRepository.validateVolunteersExist(volunteerIds);
+  },
+
+  validateSurvivorsExist: (survivorIds) => {
+    return ActivityRepository.validateSurvivorsExist(survivorIds);
+  },
+
+  validateGodparentsExist: (godparentIds) => {
+    return ActivityRepository.validateGodparentsExist(godparentIds);
   }
 };
 

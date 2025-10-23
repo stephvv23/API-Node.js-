@@ -393,6 +393,318 @@ const ActivityController = {
       console.error('[ACTIVITY] getLookupData error:', error);
       return res.error('Error al obtener los datos de referencia para actividades');
     }
+  },
+
+  // Get volunteers assigned to a specific activity
+  getVolunteers: async (req, res) => {
+    const { idActivity } = req.params;
+    
+    const validId = ValidationRules.parseIdParam(idActivity);
+    if (!validId) {
+      return res.validationErrors(['idActivity debe ser un número entero positivo']);
+    }
+    
+    try {
+      // First check if activity exists
+      const activity = await ActivityService.get(validId);
+      if (!activity) {
+        return res.notFound('Activity');
+      }
+      
+      const volunteers = await ActivityService.getVolunteers(validId);
+      return res.success(volunteers);
+    } catch (error) {
+      console.error('[ACTIVITY] getVolunteers error:', error);
+      return res.error('Error al obtener los voluntarios de la actividad');
+    }
+  },
+
+  // Get survivors assigned to a specific activity
+  getSurvivors: async (req, res) => {
+    const { idActivity } = req.params;
+    
+    const validId = ValidationRules.parseIdParam(idActivity);
+    if (!validId) {
+      return res.validationErrors(['idActivity debe ser un número entero positivo']);
+    }
+    
+    try {
+      // First check if activity exists
+      const activity = await ActivityService.get(validId);
+      if (!activity) {
+        return res.notFound('Activity');
+      }
+      
+      const survivors = await ActivityService.getSurvivors(validId);
+      return res.success(survivors);
+    } catch (error) {
+      console.error('[ACTIVITY] getSurvivors error:', error);
+      return res.error('Error al obtener los sobrevivientes de la actividad');
+    }
+  },
+
+  // Get godparents assigned to a specific activity
+  getGodparents: async (req, res) => {
+    const { idActivity } = req.params;
+    
+    const validId = ValidationRules.parseIdParam(idActivity);
+    if (!validId) {
+      return res.validationErrors(['idActivity debe ser un número entero positivo']);
+    }
+    
+    try {
+      // First check if activity exists
+      const activity = await ActivityService.get(validId);
+      if (!activity) {
+        return res.notFound('Activity');
+      }
+      
+      const godparents = await ActivityService.getGodparents(validId);
+      return res.success(godparents);
+    } catch (error) {
+      console.error('[ACTIVITY] getGodparents error:', error);
+      return res.error('Error al obtener los padrinos de la actividad');
+    }
+  },
+
+  // Assign volunteers to activity
+  assignVolunteers: async (req, res) => {
+    const { idActivity } = req.params;
+    const { volunteerIds } = req.body;
+    
+    const validId = ValidationRules.parseIdParam(idActivity);
+    if (!validId) {
+      return res.validationErrors(['idActivity debe ser un número entero positivo']);
+    }
+    
+    if (!volunteerIds || !Array.isArray(volunteerIds) || volunteerIds.length === 0) {
+      return res.validationErrors(['volunteerIds es requerido y debe ser un array no vacío']);
+    }
+    
+    try {
+      // Validate that all volunteers exist
+      const validation = await ActivityService.validateVolunteersExist(volunteerIds);
+      if (!validation.allExist) {
+        const missingIds = validation.missingIds.join(', ');
+        return res.validationErrors([`Los siguientes voluntarios no existen: ${missingIds}`]);
+      }
+      
+      const result = await ActivityService.assignVolunteers(validId, volunteerIds);
+      const userEmail = req.user?.sub;
+      await SecurityLogService.log({
+        email: userEmail,
+        action: 'ASSIGN_VOLUNTEERS',
+        description: `Se asignaron ${result.count} voluntarios a la actividad ID "${idActivity}"`,
+        affectedTable: 'ActivityVolunteer',
+      });
+      return res.success(result, 'Voluntarios asignados exitosamente');
+    } catch (error) {
+      console.error('[ACTIVITY] assignVolunteers error:', error);
+      return res.error('Error al asignar voluntarios a la actividad');
+    }
+  },
+
+  // Remove volunteers from activity
+  removeVolunteers: async (req, res) => {
+    const { idActivity } = req.params;
+    const { volunteerIds } = req.body;
+    
+    const validActivityId = ValidationRules.parseIdParam(idActivity);
+    if (!validActivityId) {
+      return res.validationErrors(['idActivity debe ser un número entero positivo']);
+    }
+    
+    if (!volunteerIds || !Array.isArray(volunteerIds) || volunteerIds.length === 0) {
+      return res.validationErrors(['volunteerIds es requerido y debe ser un array no vacío']);
+    }
+    
+    // Validate that all volunteer IDs are valid numbers
+    const invalidIds = volunteerIds.filter(id => isNaN(parseInt(id)) || parseInt(id) <= 0);
+    if (invalidIds.length > 0) {
+      return res.validationErrors([`Los siguientes IDs no son válidos (deben ser números enteros positivos): ${invalidIds.join(', ')}`]);
+    }
+    
+    try {
+      // Validate that all volunteers exist
+      const validation = await ActivityService.validateVolunteersExist(volunteerIds);
+      if (!validation.allExist) {
+        const missingIds = validation.missingIds.join(', ');
+        return res.validationErrors([`Los siguientes voluntarios no existen: ${missingIds}`]);
+      }
+      
+      const result = await ActivityService.removeVolunteers(validActivityId, volunteerIds);
+      const userEmail = req.user?.sub;
+      await SecurityLogService.log({
+        email: userEmail,
+        action: 'REMOVE_VOLUNTEERS',
+        description: `Se removieron ${result.count} voluntarios de la actividad ID "${idActivity}". IDs removidos: ${volunteerIds.join(', ')}`,
+        affectedTable: 'ActivityVolunteer',
+      });
+      return res.success(result, 'Voluntarios removidos exitosamente');
+    } catch (error) {
+      console.error('[ACTIVITY] removeVolunteers error:', error);
+      return res.error('Error al remover voluntarios de la actividad');
+    }
+  },
+
+  // Assign survivors to activity
+  assignSurvivors: async (req, res) => {
+    const { idActivity } = req.params;
+    const { survivorIds } = req.body;
+    
+    const validId = ValidationRules.parseIdParam(idActivity);
+    if (!validId) {
+      return res.validationErrors(['idActivity debe ser un número entero positivo']);
+    }
+    
+    if (!survivorIds || !Array.isArray(survivorIds) || survivorIds.length === 0) {
+      return res.validationErrors(['survivorIds es requerido y debe ser un array no vacío']);
+    }
+    
+    try {
+      // Validate that all survivors exist
+      const validation = await ActivityService.validateSurvivorsExist(survivorIds);
+      if (!validation.allExist) {
+        const missingIds = validation.missingIds.join(', ');
+        return res.validationErrors([`Los siguientes sobrevivientes no existen: ${missingIds}`]);
+      }
+      
+      const result = await ActivityService.assignSurvivors(validId, survivorIds);
+      const userEmail = req.user?.sub;
+      await SecurityLogService.log({
+        email: userEmail,
+        action: 'ASSIGN_SURVIVORS',
+        description: `Se asignaron ${result.count} sobrevivientes a la actividad ID "${idActivity}"`,
+        affectedTable: 'ActivitySurvivor',
+      });
+      return res.success(result, 'Sobrevivientes asignados exitosamente');
+    } catch (error) {
+      console.error('[ACTIVITY] assignSurvivors error:', error);
+      return res.error('Error al asignar sobrevivientes a la actividad');
+    }
+  },
+
+  // Remove survivors from activity
+  removeSurvivors: async (req, res) => {
+    const { idActivity } = req.params;
+    const { survivorIds } = req.body;
+    
+    const validActivityId = ValidationRules.parseIdParam(idActivity);
+    if (!validActivityId) {
+      return res.validationErrors(['idActivity debe ser un número entero positivo']);
+    }
+    
+    if (!survivorIds || !Array.isArray(survivorIds) || survivorIds.length === 0) {
+      return res.validationErrors(['survivorIds es requerido y debe ser un array no vacío']);
+    }
+    
+    // Validate that all survivor IDs are valid numbers
+    const invalidIds = survivorIds.filter(id => isNaN(parseInt(id)) || parseInt(id) <= 0);
+    if (invalidIds.length > 0) {
+      return res.validationErrors([`Los siguientes IDs no son válidos (deben ser números enteros positivos): ${invalidIds.join(', ')}`]);
+    }
+    
+    try {
+      // Validate that all survivors exist
+      const validation = await ActivityService.validateSurvivorsExist(survivorIds);
+      if (!validation.allExist) {
+        const missingIds = validation.missingIds.join(', ');
+        return res.validationErrors([`Los siguientes sobrevivientes no existen: ${missingIds}`]);
+      }
+      
+      const result = await ActivityService.removeSurvivors(validActivityId, survivorIds);
+      const userEmail = req.user?.sub;
+      await SecurityLogService.log({
+        email: userEmail,
+        action: 'REMOVE_SURVIVORS',
+        description: `Se removieron ${result.count} sobrevivientes de la actividad ID "${idActivity}". IDs removidos: ${survivorIds.join(', ')}`,
+        affectedTable: 'ActivitySurvivor',
+      });
+      return res.success(result, 'Sobrevivientes removidos exitosamente');
+    } catch (error) {
+      console.error('[ACTIVITY] removeSurvivors error:', error);
+      return res.error('Error al remover sobrevivientes de la actividad');
+    }
+  },
+
+  // Assign godparents to activity
+  assignGodparents: async (req, res) => {
+    const { idActivity } = req.params;
+    const { godparentIds } = req.body;
+    
+    const validId = ValidationRules.parseIdParam(idActivity);
+    if (!validId) {
+      return res.validationErrors(['idActivity debe ser un número entero positivo']);
+    }
+    
+    if (!godparentIds || !Array.isArray(godparentIds) || godparentIds.length === 0) {
+      return res.validationErrors(['godparentIds es requerido y debe ser un array no vacío']);
+    }
+    
+    try {
+      // Validate that all godparents exist
+      const validation = await ActivityService.validateGodparentsExist(godparentIds);
+      if (!validation.allExist) {
+        const missingIds = validation.missingIds.join(', ');
+        return res.validationErrors([`Los siguientes padrinos no existen: ${missingIds}`]);
+      }
+      
+      const result = await ActivityService.assignGodparents(validId, godparentIds);
+      const userEmail = req.user?.sub;
+      await SecurityLogService.log({
+        email: userEmail,
+        action: 'ASSIGN_GODPARENTS',
+        description: `Se asignaron ${result.count} padrinos a la actividad ID "${idActivity}"`,
+        affectedTable: 'ActivityGodparent',
+      });
+      return res.success(result, 'Padrinos asignados exitosamente');
+    } catch (error) {
+      console.error('[ACTIVITY] assignGodparents error:', error);
+      return res.error('Error al asignar padrinos a la actividad');
+    }
+  },
+
+  // Remove godparents from activity
+  removeGodparents: async (req, res) => {
+    const { idActivity } = req.params;
+    const { godparentIds } = req.body;
+    
+    const validActivityId = ValidationRules.parseIdParam(idActivity);
+    if (!validActivityId) {
+      return res.validationErrors(['idActivity debe ser un número entero positivo']);
+    }
+    
+    if (!godparentIds || !Array.isArray(godparentIds) || godparentIds.length === 0) {
+      return res.validationErrors(['godparentIds es requerido y debe ser un array no vacío']);
+    }
+    
+    // Validate that all godparent IDs are valid numbers
+    const invalidIds = godparentIds.filter(id => isNaN(parseInt(id)) || parseInt(id) <= 0);
+    if (invalidIds.length > 0) {
+      return res.validationErrors([`Los siguientes IDs no son válidos (deben ser números enteros positivos): ${invalidIds.join(', ')}`]);
+    }
+    
+    try {
+      // Validate that all godparents exist
+      const validation = await ActivityService.validateGodparentsExist(godparentIds);
+      if (!validation.allExist) {
+        const missingIds = validation.missingIds.join(', ');
+        return res.validationErrors([`Los siguientes padrinos no existen: ${missingIds}`]);
+      }
+      
+      const result = await ActivityService.removeGodparents(validActivityId, godparentIds);
+      const userEmail = req.user?.sub;
+      await SecurityLogService.log({
+        email: userEmail,
+        action: 'REMOVE_GODPARENTS',
+        description: `Se removieron ${result.count} padrinos de la actividad ID "${idActivity}". IDs removidos: ${godparentIds.join(', ')}`,
+        affectedTable: 'ActivityGodparent',
+      });
+      return res.success(result, 'Padrinos removidos exitosamente');
+    } catch (error) {
+      console.error('[ACTIVITY] removeGodparents error:', error);
+      return res.error('Error al remover padrinos de la actividad');
+    }
   }
 };
 

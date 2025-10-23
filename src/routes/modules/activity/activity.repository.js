@@ -55,25 +55,25 @@ const ActivityRepository = {
     
     return prisma.activity.findMany({
       where,
-      select: {
-        idActivity: true,
-        idHeadquarter: true,
-        title: true,
-        description: true,
-        type: true,
-        modality: true,
-        capacity: true,
-        location: true,
-        date: true,
-        status: true,
-        headquarter: {
-          select: {
-            idHeadquarter: true,
-            name: true,
-            status: true
-          }
+    select: {
+      idActivity: true,
+      idHeadquarter: true,
+      title: true,
+      description: true,
+      type: true,
+      modality: true,
+      capacity: true,
+      location: true,
+      date: true,
+      status: true,
+      headquarter: {
+        select: {
+          idHeadquarter: true,
+          name: true,
+          status: true
         }
       }
+    }
     });
   },
 
@@ -235,11 +235,11 @@ const ActivityRepository = {
           status: true
         },
         orderBy: { name: 'asc' }
-      }),
-      
+  }),
+
       // Get all survivors (active and inactive)
       prisma.survivor.findMany({
-        select: {
+    select: {
           idSurvivor: true,
           survivorName: true,
           email: true,
@@ -265,6 +265,313 @@ const ActivityRepository = {
       volunteers,
       survivors,
       godparents
+    };
+  },
+
+  // Get volunteers assigned to a specific activity
+  getVolunteers: (idActivity) => {
+    return prisma.activityVolunteer.findMany({
+      where: {
+        idActivity: parseInt(idActivity)
+      },
+      select: {
+        volunteer: {
+          select: {
+            idVolunteer: true,
+            name: true,
+            email: true,
+            status: true
+          }
+        }
+      },
+      orderBy: {
+        volunteer: {
+          name: 'asc'
+        }
+      }
+    });
+  },
+
+  // Get survivors assigned to a specific activity
+  getSurvivors: (idActivity) => {
+    return prisma.activitySurvivor.findMany({
+      where: {
+        idActivity: parseInt(idActivity)
+      },
+      select: {
+        survivor: {
+          select: {
+            idSurvivor: true,
+            survivorName: true,
+            email: true,
+            status: true
+          }
+        }
+      },
+      orderBy: {
+        survivor: {
+          survivorName: 'asc'
+        }
+      }
+    });
+  },
+
+  // Get godparents assigned to a specific activity
+  getGodparents: (idActivity) => {
+    return prisma.activityGodparent.findMany({
+      where: {
+        idActivity: parseInt(idActivity)
+      },
+      select: {
+        godparent: {
+          select: {
+            idGodparent: true,
+            name: true,
+            email: true,
+            status: true
+          }
+        }
+      },
+      orderBy: {
+        godparent: {
+          name: 'asc'
+        }
+      }
+    });
+  },
+
+  // Assign volunteers to activity
+  assignVolunteers: async (idActivity, volunteerIds) => {
+    const activityNum = parseInt(idActivity);
+    // Filter and validate volunteer IDs - convert to integers
+    const validVolunteerIds = volunteerIds
+      .map(id => parseInt(id))
+      .filter(id => !isNaN(id) && id > 0);
+
+    if (validVolunteerIds.length === 0) return { count: 0 };
+
+    // Remove duplicates
+    const uniqueVolunteerIds = [...new Set(validVolunteerIds)];
+
+    // Check which relationships already exist
+    const existingRelations = await prisma.activityVolunteer.findMany({
+      where: {
+        idActivity: activityNum,
+        idVolunteer: { in: uniqueVolunteerIds }
+      },
+      select: { idVolunteer: true }
+    });
+
+    const existingVolunteerIds = existingRelations.map(rel => rel.idVolunteer);
+    const newVolunteerIds = uniqueVolunteerIds.filter(id => !existingVolunteerIds.includes(id));
+
+    if (newVolunteerIds.length === 0) {
+      return { count: 0, message: 'Todos los voluntarios ya están asignados a esta actividad' };
+    }
+
+    return prisma.activityVolunteer.createMany({
+      data: newVolunteerIds.map(volunteerId => ({
+        idActivity: activityNum,
+        idVolunteer: volunteerId
+      }))
+    });
+  },
+
+  // Remove volunteers from activity
+  removeVolunteers: async (idActivity, volunteerIds) => {
+    const activityNum = parseInt(idActivity);
+    // Filter and validate volunteer IDs - convert to integers
+    const validVolunteerIds = volunteerIds
+      .map(id => parseInt(id))
+      .filter(id => !isNaN(id) && id > 0);
+
+    if (validVolunteerIds.length === 0) return { count: 0 };
+
+    // Remove duplicates
+    const uniqueVolunteerIds = [...new Set(validVolunteerIds)];
+
+    return prisma.activityVolunteer.deleteMany({
+      where: {
+        idActivity: activityNum,
+        idVolunteer: { in: uniqueVolunteerIds }
+      }
+    });
+  },
+
+  // Assign survivors to activity
+  assignSurvivors: async (idActivity, survivorIds) => {
+    const activityNum = parseInt(idActivity);
+    // Filter and validate survivor IDs - convert to integers
+    const validSurvivorIds = survivorIds
+      .map(id => parseInt(id))
+      .filter(id => !isNaN(id) && id > 0);
+
+    if (validSurvivorIds.length === 0) return { count: 0 };
+
+    // Remove duplicates
+    const uniqueSurvivorIds = [...new Set(validSurvivorIds)];
+
+    // Check which relationships already exist
+    const existingRelations = await prisma.activitySurvivor.findMany({
+      where: {
+        idActivity: activityNum,
+        idSurvivor: { in: uniqueSurvivorIds }
+      },
+      select: { idSurvivor: true }
+    });
+
+    const existingSurvivorIds = existingRelations.map(rel => rel.idSurvivor);
+    const newSurvivorIds = uniqueSurvivorIds.filter(id => !existingSurvivorIds.includes(id));
+
+    if (newSurvivorIds.length === 0) {
+      return { count: 0, message: 'Todos los sobrevivientes ya están asignados a esta actividad' };
+    }
+
+    return prisma.activitySurvivor.createMany({
+      data: newSurvivorIds.map(survivorId => ({
+        idActivity: activityNum,
+        idSurvivor: survivorId
+      }))
+    });
+  },
+
+  // Remove survivors from activity
+  removeSurvivors: async (idActivity, survivorIds) => {
+    const activityNum = parseInt(idActivity);
+    // Filter and validate survivor IDs - convert to integers
+    const validSurvivorIds = survivorIds
+      .map(id => parseInt(id))
+      .filter(id => !isNaN(id) && id > 0);
+
+    if (validSurvivorIds.length === 0) return { count: 0 };
+
+    // Remove duplicates
+    const uniqueSurvivorIds = [...new Set(validSurvivorIds)];
+
+    return prisma.activitySurvivor.deleteMany({
+      where: {
+        idActivity: activityNum,
+        idSurvivor: { in: uniqueSurvivorIds }
+      }
+    });
+  },
+
+  // Assign godparents to activity
+  assignGodparents: async (idActivity, godparentIds) => {
+    const activityNum = parseInt(idActivity);
+    // Filter and validate godparent IDs - convert to integers
+    const validGodparentIds = godparentIds
+      .map(id => parseInt(id))
+      .filter(id => !isNaN(id) && id > 0);
+
+    if (validGodparentIds.length === 0) return { count: 0 };
+
+    // Remove duplicates
+    const uniqueGodparentIds = [...new Set(validGodparentIds)];
+
+    // Check which relationships already exist
+    const existingRelations = await prisma.activityGodparent.findMany({
+      where: {
+        idActivity: activityNum,
+        idGodparent: { in: uniqueGodparentIds }
+      },
+      select: { idGodparent: true }
+    });
+
+    const existingGodparentIds = existingRelations.map(rel => rel.idGodparent);
+    const newGodparentIds = uniqueGodparentIds.filter(id => !existingGodparentIds.includes(id));
+
+    if (newGodparentIds.length === 0) {
+      return { count: 0, message: 'Todos los padrinos ya están asignados a esta actividad' };
+    }
+
+    return prisma.activityGodparent.createMany({
+      data: newGodparentIds.map(godparentId => ({
+        idActivity: activityNum,
+        idGodparent: godparentId
+      }))
+    });
+  },
+
+  // Remove godparents from activity
+  removeGodparents: async (idActivity, godparentIds) => {
+    const activityNum = parseInt(idActivity);
+    // Filter and validate godparent IDs - convert to integers
+    const validGodparentIds = godparentIds
+      .map(id => parseInt(id))
+      .filter(id => !isNaN(id) && id > 0);
+
+    if (validGodparentIds.length === 0) return { count: 0 };
+
+    // Remove duplicates
+    const uniqueGodparentIds = [...new Set(validGodparentIds)];
+
+    return prisma.activityGodparent.deleteMany({
+      where: {
+        idActivity: activityNum,
+        idGodparent: { in: uniqueGodparentIds }
+      }
+    });
+  },
+
+  // Validation methods
+  validateVolunteersExist: async (volunteerIds) => {
+    // Convert all IDs to integers
+    const integerIds = volunteerIds.map(id => parseInt(id));
+    
+    const existingVolunteers = await prisma.volunteer.findMany({
+      where: {
+        idVolunteer: { in: integerIds }
+      },
+      select: { idVolunteer: true }
+    });
+    
+    const existingIds = existingVolunteers.map(v => v.idVolunteer);
+    const missingIds = integerIds.filter(id => !existingIds.includes(id));
+    
+    return {
+      allExist: missingIds.length === 0,
+      missingIds
+    };
+  },
+
+  validateSurvivorsExist: async (survivorIds) => {
+    // Convert all IDs to integers
+    const integerIds = survivorIds.map(id => parseInt(id));
+    
+    const existingSurvivors = await prisma.survivor.findMany({
+      where: {
+        idSurvivor: { in: integerIds }
+      },
+      select: { idSurvivor: true }
+    });
+    
+    const existingIds = existingSurvivors.map(s => s.idSurvivor);
+    const missingIds = integerIds.filter(id => !existingIds.includes(id));
+    
+    return {
+      allExist: missingIds.length === 0,
+      missingIds
+    };
+  },
+
+  validateGodparentsExist: async (godparentIds) => {
+    // Convert all IDs to integers
+    const integerIds = godparentIds.map(id => parseInt(id));
+    
+    const existingGodparents = await prisma.godparent.findMany({
+      where: {
+        idGodparent: { in: integerIds }
+      },
+      select: { idGodparent: true }
+    });
+    
+    const existingIds = existingGodparents.map(g => g.idGodparent);
+    const missingIds = integerIds.filter(id => !existingIds.includes(id));
+    
+    return {
+      allExist: missingIds.length === 0,
+      missingIds
     };
   }
 };

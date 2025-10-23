@@ -13,4 +13,21 @@ module.exports = [
   { method: 'PATCH', path: '/api/activities/:idActivity/status', handler: authenticate(authorizeWindow('Actividades', 'read', 'update')(ActivityController.updateStatus)) },
   { method: 'DELETE', path: '/api/activities/:idActivity', handler: authenticate(authorizeWindow('Actividades', 'read', 'delete')(ActivityController.remove)) },
   { method: 'GET', path: '/api/activities/:idActivity/relations', handler: authenticate(authorizeWindow('Actividades', 'read')(ActivityController.getWithRelations)) },
+
+  // Relations routes
+  // Volunteer relations
+  { method: 'GET', path: '/api/activities/:idActivity/volunteers', handler: authenticate(authorizeWindow('Actividades', 'read')(ActivityController.getVolunteers)) },
+  { method: 'POST', path: '/api/activities/:idActivity/volunteers', handler: authenticate(authorizeWindow('Actividades', 'read', 'create')(ActivityController.assignVolunteers)) },
+  { method: 'DELETE', path: '/api/activities/:idActivity/volunteers', handler: authenticate(authorizeWindow('Actividades', 'read', 'delete')(ActivityController.removeVolunteers)) },
+  
+  // Survivor relations
+  { method: 'GET', path: '/api/activities/:idActivity/survivors', handler: authenticate(authorizeWindow('Actividades', 'read')(ActivityController.getSurvivors)) },
+  { method: 'POST', path: '/api/activities/:idActivity/survivors', handler: authenticate(authorizeWindow('Actividades', 'read', 'create')(ActivityController.assignSurvivors)) },
+  { method: 'DELETE', path: '/api/activities/:idActivity/survivors', handler: authenticate(authorizeWindow('Actividades', 'read', 'delete')(ActivityController.removeSurvivors)) },
+  
+  // Godparent relations
+  { method: 'GET', path: '/api/activities/:idActivity/godparents', handler: authenticate(authorizeWindow('Actividades', 'read')(ActivityController.getGodparents)) },
+  { method: 'POST', path: '/api/activities/:idActivity/godparents', handler: authenticate(authorizeWindow('Actividades', 'read', 'create')(ActivityController.assignGodparents)) },
+  { method: 'DELETE', path: '/api/activities/:idActivity/godparents', handler: authenticate(authorizeWindow('Actividades', 'read', 'delete')(ActivityController.removeGodparents)) },
+
 ];
