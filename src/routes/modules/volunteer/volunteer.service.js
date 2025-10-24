@@ -62,6 +62,74 @@ const VolunteerService = {
   remove: async (id, status) => {
     return VolunteerRepository.update(id, { status: "inactive" });
   },
+
+  // ===== HEADQUARTERS RELATIONSHIPS =====
+  
+  // Get all headquarters for a volunteer
+  getHeadquarters: async (idVolunteer) => {
+    const result = await VolunteerRepository.getHeadquarters(idVolunteer);
+    // Transform to return only the headquarter data
+    return result.map(item => item.headquarter);
+  },
+
+  // Add headquarter to volunteer
+  addHeadquarter: async (idVolunteer, idHeadquarter) => {
+    // Validate that volunteer exists
+    const volunteer = await VolunteerRepository.findById(idVolunteer);
+    if (!volunteer) {
+      throw new Error('Voluntario no encontrado');
+    }
+    
+    // Validate that headquarter exists and is active
+    const headquarterStatus = await VolunteerRepository.headquarterExists(idHeadquarter);
+    if (!headquarterStatus.exists) {
+      throw new Error('La sede no existe');
+    }
+    if (!headquarterStatus.active) {
+      throw new Error('La sede está inactiva');
+    }
+    
+    return VolunteerRepository.addHeadquarter(idVolunteer, idHeadquarter);
+  },
+
+  // Remove headquarter from volunteer
+  removeHeadquarter: async (idVolunteer, idHeadquarter) => {
+    return VolunteerRepository.removeHeadquarter(idVolunteer, idHeadquarter);
+  },
+
+  // ===== EMERGENCY CONTACT RELATIONSHIPS =====
+  
+  // Get all emergency contacts for a volunteer
+  getEmergencyContacts: async (idVolunteer) => {
+    const result = await VolunteerRepository.getEmergencyContacts(idVolunteer);
+    // Transform to return only the emergency contact data
+    return result.map(item => item.emergencyContact);
+  },
+
+  // Add emergency contact to volunteer
+  addEmergencyContact: async (idVolunteer, idEmergencyContact) => {
+    // Validate that volunteer exists
+    const volunteer = await VolunteerRepository.findById(idVolunteer);
+    if (!volunteer) {
+      throw new Error('Voluntario no encontrado');
+    }
+    
+    // Validate that emergency contact exists and is active
+    const contactStatus = await VolunteerRepository.emergencyContactExists(idEmergencyContact);
+    if (!contactStatus.exists) {
+      throw new Error('El contacto de emergencia no existe');
+    }
+    if (!contactStatus.active) {
+      throw new Error('El contacto de emergencia está inactivo');
+    }
+    
+    return VolunteerRepository.addEmergencyContact(idVolunteer, idEmergencyContact);
+  },
+
+  // Remove emergency contact from volunteer
+  removeEmergencyContact: async (idVolunteer, idEmergencyContact) => {
+    return VolunteerRepository.removeEmergencyContact(idVolunteer, idEmergencyContact);
+  },
 };
 
 module.exports = { VolunteerService };
