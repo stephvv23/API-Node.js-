@@ -95,11 +95,6 @@ const VolunteerRepository = {
           select: {
             idHeadquarter: true,
             name: true,
-            schedule: true,
-            location: true,
-            email: true,
-            description: true,
-            status: true,
           }
         }
       }
@@ -136,9 +131,7 @@ const VolunteerRepository = {
           select: {
             idEmergencyContact: true,
             nameEmergencyContact: true,
-            emailEmergencyContact: true,
             relationship: true,
-            status: true,
           }
         }
       }
