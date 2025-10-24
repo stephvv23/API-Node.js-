@@ -413,6 +413,7 @@ const VolunteerController = {
         },
         'Sede asociada al voluntario exitosamente'
       );
+    } catch (error) {
       console.error('[VOLUNTEERS] addHeadquarter error:', error);
       if (error.message === 'Voluntario no encontrado') {
         return res.notFound('Voluntario');
