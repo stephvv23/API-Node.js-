@@ -502,8 +502,12 @@ const VolunteerController = {
 
     try {
       await VolunteerService.addEmergencyContact(validId, validContactId);
+      // Fetch the full emergency contact details for the volunteer
+      const emergencyContact = await VolunteerService.getEmergencyContactForVolunteer
+        ? await VolunteerService.getEmergencyContactForVolunteer(validId, validContactId)
+        : { idVolunteer: validId, idEmergencyContact: validContactId }; // fallback if method does not exist
       return res.status(201).success(
-        { idVolunteer: validId, idEmergencyContact: validContactId },
+        emergencyContact,
         'Contacto de emergencia asociado al voluntario exitosamente'
       );
     } catch (error) {
