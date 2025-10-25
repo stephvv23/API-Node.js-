@@ -404,13 +404,8 @@ const VolunteerController = {
 
     try {
       await VolunteerService.addHeadquarter(validId, validHqId);
-      // Fetch the full headquarter details after association
-      const headquarter = await VolunteerService.getHeadquarterById(validHqId);
       return res.status(201).success(
-        {
-          idVolunteer: validId,
-          headquarter: headquarter
-        },
+        { idVolunteer: validId, idHeadquarter: validHqId },
         'Sede asociada al voluntario exitosamente'
       );
     } catch (error) {
