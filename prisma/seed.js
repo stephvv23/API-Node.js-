@@ -300,7 +300,7 @@ async function main() {
   const activity = await prisma.activity.create({
     data: {
       idHeadquarter: hq1.idHeadquarter,
-      tittle: 'Jornada de acompañamiento',
+      title: 'Jornada de acompañamiento',
       description: 'Taller de acompañamiento y orientación a familias',
       type: 'Taller',
       modality: 'Presencial',
