@@ -31,9 +31,6 @@ function authenticate(handler) {
       const payload = jwt.verify(token, process.env.JWT_SECRET);
       req.user = payload; // ← { sub, name, roles, iat, exp }
 
-      // continue to the handler
-      return handler(req, res, next);
-
     } catch (error) {
 
       // differentiate error types
