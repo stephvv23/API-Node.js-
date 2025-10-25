@@ -121,16 +121,13 @@ const AssetsController = {
         return res.validationErrors(['No hay campos para actualizar']);
       }
 
-      // Obtener datos previos del activo
       const previousAsset = await AssetsService.get(id);
       if (!previousAsset) return res.notFound('Activo');
 
       const asset = await AssetsService.update(id, updateData);
 
-      // Registrar en el log los cambios
       const userEmail = req.user?.sub;
 
-      // Verificar si solo cambió el estado de inactive a active
       const onlyStatusChange =
         previousAsset.status === 'inactive' &&
         asset.status === 'active' &&
@@ -187,13 +184,11 @@ const AssetsController = {
     }
   },
 
-  /** DELETE /assets/:idAsset */
   delete: async (req, res) => {
     try {
       const id = parseIdParam(req.params?.idAsset);
       if (!id) return res.validationErrors(['idAsset debe ser un entero positivo']);
       
-      // Confirmar existencia antes de eliminar
       const exists = await AssetsService.get(id);
       if (!exists) return res.notFound('Activo');
       
