@@ -20,7 +20,7 @@ const ValidationRules = {
   email: (value) => {
     if (value === undefined || value === null) return true; // Skip if value is not provided
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(value) || 'Formato de email inválido';
+    return emailRegex.test(value) || 'Formato de Correo inválido';
   },
 
   // String length validations

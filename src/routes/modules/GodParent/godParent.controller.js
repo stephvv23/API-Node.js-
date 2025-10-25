@@ -60,7 +60,7 @@ const GodParentController = {
         duplicateErrors.push('Ya existe un padrino con ese nombre');
       }
       if (allGodparents.some(g => g.email === email)) {
-        duplicateErrors.push('Ya existe un padrino con ese email');
+        duplicateErrors.push('Ya existe un padrino con ese correo');
       }
 
       if (duplicateErrors.length > 0) {
@@ -127,7 +127,7 @@ const GodParentController = {
       if (updateData.email) {
         const existsEmail = await GodParentService.findByEmail(updateData.email);
         if (existsEmail && existsEmail.idGodparent != id) {
-          duplicateErrors.push('Ya existe un padrino con ese email');
+          duplicateErrors.push('Ya existe un padrino con ese correo');
         }
       }
 
