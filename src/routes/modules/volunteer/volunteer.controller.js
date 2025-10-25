@@ -387,68 +387,111 @@ const VolunteerController = {
     }
   },
 
-  // Add headquarter to volunteer
-  addHeadquarter: async (req, res) => {
+  // Add headquarters to volunteer (single or multiple)
+  addHeadquarters: async (req, res) => {
     const { id } = req.params;
-    const { idHeadquarter } = req.body;
+    const { idHeadquarter, idHeadquarters } = req.body;
 
     const validId = parseIdParam(id);
     if (!validId) {
       return res.validationErrors(['idVolunteer debe ser un entero positivo']);
     }
 
-    const validHqId = parseIdParam(idHeadquarter);
-    if (!validHqId) {
-      return res.validationErrors(['idHeadquarter debe ser un entero positivo']);
+    // Accept either single idHeadquarter or array idHeadquarters
+    let headquarterIds = idHeadquarters || (idHeadquarter ? [idHeadquarter] : null);
+    
+    if (!headquarterIds || (Array.isArray(headquarterIds) && headquarterIds.length === 0)) {
+      return res.validationErrors(['Debe proporcionar al menos un idHeadquarter']);
+    }
+
+    // Ensure it's an array
+    if (!Array.isArray(headquarterIds)) {
+      headquarterIds = [headquarterIds];
+    }
+
+    // Validate all IDs
+    const validHqIds = [];
+    for (const hqId of headquarterIds) {
+      const validHqId = parseIdParam(hqId);
+      if (!validHqId) {
+        return res.validationErrors([`idHeadquarter ${hqId} debe ser un entero positivo`]);
+      }
+      validHqIds.push(validHqId);
     }
 
     try {
-      await VolunteerService.addHeadquarter(validId, validHqId);
+      await VolunteerService.addHeadquarters(validId, validHqIds);
       return res.status(201).success(
-        { idVolunteer: validId, idHeadquarter: validHqId },
-        'Sede asociada al voluntario exitosamente'
+        { 
+          idVolunteer: validId, 
+          idHeadquarters: validHqIds,
+          count: validHqIds.length
+        },
+        `${validHqIds.length} sede(s) asociada(s) al voluntario exitosamente`
       );
     } catch (error) {
-      console.error('[VOLUNTEERS] addHeadquarter error:', error);
+      console.error('[VOLUNTEERS] addHeadquarters error:', error);
       if (error.message === 'Voluntario no encontrado') {
         return res.notFound('Voluntario');
       }
-      if (error.message === 'La sede no existe') {
-        return res.notFound('Sede');
+      if (error.message && error.message.includes('no existe')) {
+        return res.validationErrors([error.message]);
       }
-      if (error.message === 'La sede está inactiva') {
-        return res.validationErrors(['La sede está inactiva y no puede ser asociada']);
+      if (error.message && error.message.includes('inactiva')) {
+        return res.validationErrors([error.message]);
       }
       // Prisma unique constraint error
       if (error.code === 'P2002') {
-        return res.validationErrors(['Esta sede ya está asociada al voluntario']);
+        return res.validationErrors(['Una o más sedes ya están asociadas al voluntario']);
       }
       return res.error('Error al asociar la sede al voluntario');
     }
   },
 
-  // Remove headquarter from volunteer
-  removeHeadquarter: async (req, res) => {
+  // Remove headquarters from volunteer (single or multiple)
+  removeHeadquarters: async (req, res) => {
     const { id, hqId } = req.params;
+    const { idHeadquarters } = req.body;
 
     const validId = parseIdParam(id);
     if (!validId) {
       return res.validationErrors(['idVolunteer debe ser un entero positivo']);
     }
 
-    const validHqId = parseIdParam(hqId);
-    if (!validHqId) {
-      return res.validationErrors(['idHeadquarter debe ser un entero positivo']);
+    // Accept either URL param hqId or body idHeadquarters array
+    let headquarterIds = idHeadquarters || (hqId ? [hqId] : null);
+    
+    if (!headquarterIds || (Array.isArray(headquarterIds) && headquarterIds.length === 0)) {
+      return res.validationErrors(['Debe proporcionar al menos un idHeadquarter']);
+    }
+
+    // Ensure it's an array
+    if (!Array.isArray(headquarterIds)) {
+      headquarterIds = [headquarterIds];
+    }
+
+    // Validate all IDs
+    const validHqIds = [];
+    for (const hqIdValue of headquarterIds) {
+      const validHqId = parseIdParam(hqIdValue);
+      if (!validHqId) {
+        return res.validationErrors([`idHeadquarter ${hqIdValue} debe ser un entero positivo`]);
+      }
+      validHqIds.push(validHqId);
     }
 
     try {
-      await VolunteerService.removeHeadquarter(validId, validHqId);
+      const result = await VolunteerService.removeHeadquarters(validId, validHqIds);
       return res.success(
-        { idVolunteer: validId, idHeadquarter: validHqId },
-        'Sede desasociada del voluntario exitosamente'
+        { 
+          idVolunteer: validId, 
+          idHeadquarters: validHqIds,
+          count: result.count || validHqIds.length
+        },
+        `${result.count || validHqIds.length} sede(s) desasociada(s) del voluntario exitosamente`
       );
     } catch (error) {
-      console.error('[VOLUNTEERS] removeHeadquarter error:', error);
+      console.error('[VOLUNTEERS] removeHeadquarters error:', error);
       if (error.code === 'P2025') {
         return res.notFound('Relación entre voluntario y sede');
       }
@@ -481,72 +524,111 @@ const VolunteerController = {
     }
   },
 
-  // Add emergency contact to volunteer
-  addEmergencyContact: async (req, res) => {
+  // Add emergency contacts to volunteer (single or multiple)
+  addEmergencyContacts: async (req, res) => {
     const { id } = req.params;
-    const { idEmergencyContact } = req.body;
+    const { idEmergencyContact, idEmergencyContacts } = req.body;
 
     const validId = parseIdParam(id);
     if (!validId) {
       return res.validationErrors(['idVolunteer debe ser un entero positivo']);
     }
 
-    const validContactId = parseIdParam(idEmergencyContact);
-    if (!validContactId) {
-      return res.validationErrors(['idEmergencyContact debe ser un entero positivo']);
+    // Accept either single idEmergencyContact or array idEmergencyContacts
+    let contactIds = idEmergencyContacts || (idEmergencyContact ? [idEmergencyContact] : null);
+    
+    if (!contactIds || (Array.isArray(contactIds) && contactIds.length === 0)) {
+      return res.validationErrors(['Debe proporcionar al menos un idEmergencyContact']);
+    }
+
+    // Ensure it's an array
+    if (!Array.isArray(contactIds)) {
+      contactIds = [contactIds];
+    }
+
+    // Validate all IDs
+    const validContactIds = [];
+    for (const contactId of contactIds) {
+      const validContactId = parseIdParam(contactId);
+      if (!validContactId) {
+        return res.validationErrors([`idEmergencyContact ${contactId} debe ser un entero positivo`]);
+      }
+      validContactIds.push(validContactId);
     }
 
     try {
-      await VolunteerService.addEmergencyContact(validId, validContactId);
-      // Fetch the full emergency contact details for the volunteer
-      const emergencyContact = await VolunteerService.getEmergencyContactForVolunteer
-        ? await VolunteerService.getEmergencyContactForVolunteer(validId, validContactId)
-        : { idVolunteer: validId, idEmergencyContact: validContactId }; // fallback if method does not exist
+      await VolunteerService.addEmergencyContacts(validId, validContactIds);
       return res.status(201).success(
-        emergencyContact,
-        'Contacto de emergencia asociado al voluntario exitosamente'
+        { 
+          idVolunteer: validId, 
+          idEmergencyContacts: validContactIds,
+          count: validContactIds.length
+        },
+        `${validContactIds.length} contacto(s) de emergencia asociado(s) al voluntario exitosamente`
       );
     } catch (error) {
-      console.error('[VOLUNTEERS] addEmergencyContact error:', error);
+      console.error('[VOLUNTEERS] addEmergencyContacts error:', error);
       if (error.message === 'Voluntario no encontrado') {
         return res.notFound('Voluntario');
       }
-      if (error.message === 'El contacto de emergencia no existe') {
-        return res.notFound('Contacto de emergencia');
+      if (error.message && error.message.includes('no existe')) {
+        return res.validationErrors([error.message]);
       }
-      if (error.message === 'El contacto de emergencia está inactivo') {
-        return res.validationErrors(['El contacto de emergencia está inactivo y no puede ser asociado']);
+      if (error.message && error.message.includes('inactivo')) {
+        return res.validationErrors([error.message]);
       }
       // Prisma unique constraint error
       if (error.code === 'P2002') {
-        return res.validationErrors(['Este contacto de emergencia ya está asociado al voluntario']);
+        return res.validationErrors(['Uno o más contactos de emergencia ya están asociados al voluntario']);
       }
       return res.error('Error al asociar el contacto de emergencia al voluntario');
     }
   },
 
-  // Remove emergency contact from volunteer
-  removeEmergencyContact: async (req, res) => {
+  // Remove emergency contacts from volunteer (single or multiple)
+  removeEmergencyContacts: async (req, res) => {
     const { id, contactId } = req.params;
+    const { idEmergencyContacts } = req.body;
 
     const validId = parseIdParam(id);
     if (!validId) {
       return res.validationErrors(['idVolunteer debe ser un entero positivo']);
     }
 
-    const validContactId = parseIdParam(contactId);
-    if (!validContactId) {
-      return res.validationErrors(['idEmergencyContact debe ser un entero positivo']);
+    // Accept either URL param contactId or body idEmergencyContacts array
+    let contactIds = idEmergencyContacts || (contactId ? [contactId] : null);
+    
+    if (!contactIds || (Array.isArray(contactIds) && contactIds.length === 0)) {
+      return res.validationErrors(['Debe proporcionar al menos un idEmergencyContact']);
+    }
+
+    // Ensure it's an array
+    if (!Array.isArray(contactIds)) {
+      contactIds = [contactIds];
+    }
+
+    // Validate all IDs
+    const validContactIds = [];
+    for (const contactIdValue of contactIds) {
+      const validContactId = parseIdParam(contactIdValue);
+      if (!validContactId) {
+        return res.validationErrors([`idEmergencyContact ${contactIdValue} debe ser un entero positivo`]);
+      }
+      validContactIds.push(validContactId);
     }
 
     try {
-      await VolunteerService.removeEmergencyContact(validId, validContactId);
+      const result = await VolunteerService.removeEmergencyContacts(validId, validContactIds);
       return res.success(
-        { idVolunteer: validId, idEmergencyContact: validContactId },
-        'Contacto de emergencia desasociado del voluntario exitosamente'
+        { 
+          idVolunteer: validId, 
+          idEmergencyContacts: validContactIds,
+          count: result.count || validContactIds.length
+        },
+        `${result.count || validContactIds.length} contacto(s) de emergencia desasociado(s) del voluntario exitosamente`
       );
     } catch (error) {
-      console.error('[VOLUNTEERS] removeEmergencyContact error:', error);
+      console.error('[VOLUNTEERS] removeEmergencyContacts error:', error);
       if (error.code === 'P2025') {
         return res.notFound('Relación entre voluntario y contacto de emergencia');
       }

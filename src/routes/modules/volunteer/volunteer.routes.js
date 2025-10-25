@@ -11,11 +11,11 @@ module.exports = [
   
   // Headquarters relationships
   { method: 'GET', path: '/api/volunteers/:id/headquarters', handler: authenticate(authorizeWindow('Voluntarios','read')(VolunteerController.getHeadquarters)) },
-  { method: 'POST', path: '/api/volunteers/:id/headquarters', handler: authenticate(authorizeWindow('Voluntarios','read','create')(VolunteerController.addHeadquarter)) },
-  { method: 'DELETE', path: '/api/volunteers/:id/headquarters/:hqId', handler: authenticate(authorizeWindow('Voluntarios','read','delete')(VolunteerController.removeHeadquarter)) },
+  { method: 'POST', path: '/api/volunteers/:id/headquarters', handler: authenticate(authorizeWindow('Voluntarios','read','create')(VolunteerController.addHeadquarters)) },
+  { method: 'DELETE', path: '/api/volunteers/:id/headquarters/:hqId', handler: authenticate(authorizeWindow('Voluntarios','read','delete')(VolunteerController.removeHeadquarters)) },
   
   // Emergency contact relationships
   { method: 'GET', path: '/api/volunteers/:id/emergencyContacts', handler: authenticate(authorizeWindow('Voluntarios','read')(VolunteerController.getEmergencyContacts)) },
-  { method: 'POST', path: '/api/volunteers/:id/emergencyContacts', handler: authenticate(authorizeWindow('Voluntarios','read','create')(VolunteerController.addEmergencyContact)) },
-  { method: 'DELETE', path: '/api/volunteers/:id/emergencyContacts/:contactId', handler: authenticate(authorizeWindow('Voluntarios','read','delete')(VolunteerController.removeEmergencyContact)) },
+  { method: 'POST', path: '/api/volunteers/:id/emergencyContacts', handler: authenticate(authorizeWindow('Voluntarios','read','create')(VolunteerController.addEmergencyContacts)) },
+  { method: 'DELETE', path: '/api/volunteers/:id/emergencyContacts/:contactId', handler: authenticate(authorizeWindow('Voluntarios','read','delete')(VolunteerController.removeEmergencyContacts)) },
 ];

@@ -72,29 +72,51 @@ const VolunteerService = {
     return result.map(item => item.headquarter);
   },
 
-  // Add headquarter to volunteer
-  addHeadquarter: async (idVolunteer, idHeadquarter) => {
+  // Add headquarters to volunteer (single or multiple)
+  addHeadquarters: async (idVolunteer, idHeadquarters) => {
     // Validate that volunteer exists
     const volunteer = await VolunteerRepository.findById(idVolunteer);
     if (!volunteer) {
       throw new Error('Voluntario no encontrado');
     }
     
-    // Validate that headquarter exists and is active
-    const headquarterStatus = await VolunteerRepository.headquarterExists(idHeadquarter);
-    if (!headquarterStatus.exists) {
-      throw new Error('La sede no existe');
-    }
-    if (!headquarterStatus.active) {
-      throw new Error('La sede está inactiva');
+    // Normalize to array
+    const headquarterIds = Array.isArray(idHeadquarters) ? idHeadquarters : [idHeadquarters];
+    
+    // Validate each headquarter exists and is active
+    const validationErrors = [];
+    for (const idHq of headquarterIds) {
+      const headquarterStatus = await VolunteerRepository.headquarterExists(idHq);
+      if (!headquarterStatus.exists) {
+        validationErrors.push(`La sede con ID ${idHq} no existe`);
+      } else if (!headquarterStatus.active) {
+        validationErrors.push(`La sede con ID ${idHq} está inactiva`);
+      }
     }
     
-    return VolunteerRepository.addHeadquarter(idVolunteer, idHeadquarter);
+    if (validationErrors.length > 0) {
+      throw new Error(validationErrors.join(', '));
+    }
+    
+    // Use batch insert for multiple, single insert for one
+    if (headquarterIds.length === 1) {
+      return VolunteerRepository.addHeadquarter(idVolunteer, headquarterIds[0]);
+    } else {
+      return VolunteerRepository.addHeadquarters(idVolunteer, headquarterIds);
+    }
   },
 
-  // Remove headquarter from volunteer
-  removeHeadquarter: async (idVolunteer, idHeadquarter) => {
-    return VolunteerRepository.removeHeadquarter(idVolunteer, idHeadquarter);
+  // Remove headquarters from volunteer (single or multiple)
+  removeHeadquarters: async (idVolunteer, idHeadquarters) => {
+    // Normalize to array
+    const headquarterIds = Array.isArray(idHeadquarters) ? idHeadquarters : [idHeadquarters];
+    
+    // Use batch delete for multiple, single delete for one
+    if (headquarterIds.length === 1) {
+      return VolunteerRepository.removeHeadquarter(idVolunteer, headquarterIds[0]);
+    } else {
+      return VolunteerRepository.removeHeadquarters(idVolunteer, headquarterIds);
+    }
   },
 
   // ===== EMERGENCY CONTACT RELATIONSHIPS =====
@@ -106,29 +128,51 @@ const VolunteerService = {
     return result.map(item => item.emergencyContact);
   },
 
-  // Add emergency contact to volunteer
-  addEmergencyContact: async (idVolunteer, idEmergencyContact) => {
+  // Add emergency contacts to volunteer (single or multiple)
+  addEmergencyContacts: async (idVolunteer, idEmergencyContacts) => {
     // Validate that volunteer exists
     const volunteer = await VolunteerRepository.findById(idVolunteer);
     if (!volunteer) {
       throw new Error('Voluntario no encontrado');
     }
     
-    // Validate that emergency contact exists and is active
-    const contactStatus = await VolunteerRepository.emergencyContactExists(idEmergencyContact);
-    if (!contactStatus.exists) {
-      throw new Error('El contacto de emergencia no existe');
-    }
-    if (!contactStatus.active) {
-      throw new Error('El contacto de emergencia está inactivo');
+    // Normalize to array
+    const contactIds = Array.isArray(idEmergencyContacts) ? idEmergencyContacts : [idEmergencyContacts];
+    
+    // Validate each emergency contact exists and is active
+    const validationErrors = [];
+    for (const idContact of contactIds) {
+      const contactStatus = await VolunteerRepository.emergencyContactExists(idContact);
+      if (!contactStatus.exists) {
+        validationErrors.push(`El contacto de emergencia con ID ${idContact} no existe`);
+      } else if (!contactStatus.active) {
+        validationErrors.push(`El contacto de emergencia con ID ${idContact} está inactivo`);
+      }
     }
     
-    return VolunteerRepository.addEmergencyContact(idVolunteer, idEmergencyContact);
+    if (validationErrors.length > 0) {
+      throw new Error(validationErrors.join(', '));
+    }
+    
+    // Use batch insert for multiple, single insert for one
+    if (contactIds.length === 1) {
+      return VolunteerRepository.addEmergencyContact(idVolunteer, contactIds[0]);
+    } else {
+      return VolunteerRepository.addEmergencyContacts(idVolunteer, contactIds);
+    }
   },
 
-  // Remove emergency contact from volunteer
-  removeEmergencyContact: async (idVolunteer, idEmergencyContact) => {
-    return VolunteerRepository.removeEmergencyContact(idVolunteer, idEmergencyContact);
+  // Remove emergency contacts from volunteer (single or multiple)
+  removeEmergencyContacts: async (idVolunteer, idEmergencyContacts) => {
+    // Normalize to array
+    const contactIds = Array.isArray(idEmergencyContacts) ? idEmergencyContacts : [idEmergencyContacts];
+    
+    // Use batch delete for multiple, single delete for one
+    if (contactIds.length === 1) {
+      return VolunteerRepository.removeEmergencyContact(idVolunteer, contactIds[0]);
+    } else {
+      return VolunteerRepository.removeEmergencyContacts(idVolunteer, contactIds);
+    }
   },
 };
 

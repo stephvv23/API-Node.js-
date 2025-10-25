@@ -100,7 +100,7 @@ const VolunteerRepository = {
       }
     }),
 
-  // Add headquarter to volunteer
+  // Add single headquarter to volunteer
   addHeadquarter: (idVolunteer, idHeadquarter) =>
     prisma.headquarterVolunteer.create({
       data: {
@@ -109,13 +109,34 @@ const VolunteerRepository = {
       }
     }),
 
-  // Remove headquarter from volunteer
+  // Add multiple headquarters to volunteer
+  addHeadquarters: (idVolunteer, idHeadquarters) =>
+    prisma.headquarterVolunteer.createMany({
+      data: idHeadquarters.map(idHq => ({
+        idVolunteer: Number(idVolunteer),
+        idHeadquarter: Number(idHq),
+      })),
+      skipDuplicates: true, // Skip if relationship already exists
+    }),
+
+  // Remove single headquarter from volunteer
   removeHeadquarter: (idVolunteer, idHeadquarter) =>
     prisma.headquarterVolunteer.delete({
       where: {
         idHeadquarter_idVolunteer: {
           idVolunteer: Number(idVolunteer),
           idHeadquarter: Number(idHeadquarter),
+        }
+      }
+    }),
+
+  // Remove multiple headquarters from volunteer
+  removeHeadquarters: (idVolunteer, idHeadquarters) =>
+    prisma.headquarterVolunteer.deleteMany({
+      where: {
+        idVolunteer: Number(idVolunteer),
+        idHeadquarter: {
+          in: idHeadquarters.map(id => Number(id))
         }
       }
     }),
@@ -137,7 +158,7 @@ const VolunteerRepository = {
       }
     }),
 
-  // Add emergency contact to volunteer
+  // Add single emergency contact to volunteer
   addEmergencyContact: (idVolunteer, idEmergencyContact) =>
     prisma.emergencyContactVolunteer.create({
       data: {
@@ -146,13 +167,34 @@ const VolunteerRepository = {
       }
     }),
 
-  // Remove emergency contact from volunteer
+  // Add multiple emergency contacts to volunteer
+  addEmergencyContacts: (idVolunteer, idEmergencyContacts) =>
+    prisma.emergencyContactVolunteer.createMany({
+      data: idEmergencyContacts.map(idContact => ({
+        idVolunteer: Number(idVolunteer),
+        idEmergencyContact: Number(idContact),
+      })),
+      skipDuplicates: true, // Skip if relationship already exists
+    }),
+
+  // Remove single emergency contact from volunteer
   removeEmergencyContact: (idVolunteer, idEmergencyContact) =>
     prisma.emergencyContactVolunteer.delete({
       where: {
         idEmergencyContact_idVolunteer: {
           idVolunteer: Number(idVolunteer),
           idEmergencyContact: Number(idEmergencyContact),
+        }
+      }
+    }),
+
+  // Remove multiple emergency contacts from volunteer
+  removeEmergencyContacts: (idVolunteer, idEmergencyContacts) =>
+    prisma.emergencyContactVolunteer.deleteMany({
+      where: {
+        idVolunteer: Number(idVolunteer),
+        idEmergencyContact: {
+          in: idEmergencyContacts.map(id => Number(id))
         }
       }
     }),
