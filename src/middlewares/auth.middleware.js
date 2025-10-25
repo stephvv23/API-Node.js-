@@ -1,6 +1,6 @@
 // src/middlewares/auth.middleware.js
 const jwt = require('jsonwebtoken');
-const ApiError = require('../utils/apiError');
+const ApiError = require('../utils/apiResponse').ApiError;
 const { UsersRepository } = require('../routes/modules/users/users.repository');
 const { UsersService } = require('../routes/modules/users/users.service');
 
@@ -46,6 +46,26 @@ function authenticate(handler) {
       console.error('Error en authenticate middleware:', error);
       return next(ApiError.internal('Error interno en autenticación'));
     }
+    
+    // Check user status from database (real-time verification)
+    try {
+      const userFromDB = await UsersRepository.findAuthWithRoles(req.user.sub || req.user.email);
+      if (!userFromDB) {
+        return next(ApiError.unauthorized('Usuario no encontrado'));
+      }
+      if (!userFromDB.status || userFromDB.status !== 'active') {
+        return next(ApiError.unauthorized('Usuario inactivo'));
+      }
+      
+      // Check that user has active roles in database (real-time verification)
+      if (!userFromDB.roles || userFromDB.roles.length === 0) {
+        return next(ApiError.unauthorized('Usuario sin roles activos'));
+      }
+    } catch (err) {
+      return next(ApiError.unauthorized('Error verificando estado del usuario'));
+    }
+
+    return handler(req, res, next);
   };
 }
 
@@ -84,8 +104,16 @@ function authorizeWindow(windowName, ...actions) {
           return next(ApiError.forbidden('No tienes acceso a esta ventana'));
         }
 
-        const windows = auth.roles.flatMap((r) => r.role?.windows || []);
+        // Verify that the user is active
+        if (auth.status !== 'active') {
+          return next(ApiError.forbidden('Usuario inactivo'));
+        }
 
+        // collect all windows permissions from roles (already filtered to active roles in DB query)
+        if (!auth.roles || auth.roles.length === 0) {
+          return next(ApiError.forbidden('El usuario no tiene roles activos'));
+        }
+        const windows = auth.roles.flatMap((r) => r.role?.windows || []);
 
         // combine permissions across all roles for the same window (OR semantics)
         const matched = windows.filter((w) => {

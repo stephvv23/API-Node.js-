@@ -1,155 +1,133 @@
-// Controller for Role entity. Handles HTTP requests, validation, and calls the service layer.
 const { roleService } = require('./role.service');
-const ApiError = require('../../../utils/apiError')
+const { EntityValidators } = require('../../../utils/validator');
 
 const roleController = {
-    // List roles, with status filter and validation.
-    list: async (req, res, next) => {
+    // List roles with status filter
+    list: async (req, res) => {
         try {
             const status = (req.query.status || 'active').toLowerCase();
             const allowed = ['active', 'inactive', 'all'];
             if (!allowed.includes(status)) {
-                return next(ApiError.badRequest('El estado debe ser activo, inactivo o todos'));
-
+                return res.validationErrors(['Status must be "active", "inactive" or "all"']);
             }
             const data = await roleService.list({ status });
-            return res.status(200).json({ ok: true, data });
+            return res.success(data);
         } catch (error) {
-            return next(ApiError.internal('Error interno list'));
+            console.error('[ROLE] list error:', error);
+            return res.error('Error retrieving roles');
         }
     },
 
-    // Get a role by ID, with validation.
+    // Get a role by ID
     getById: async (req, res) => {
         const { id } = req.params;
-        if (!/^[0-9\s]+$/.test(id)) return res.status(400).json({ok: false, error: 'el id solo puede ser numeros'});
+        if (!/^[0-9\s]+$/.test(id)) {
+            return res.validationErrors(['id must be a number']);
+        }
         try {
             const role = await roleService.getById(id);
             if (!role) {
-                return res.status(404).json({ ok: false, error: 'Rol no encontrado' });
+                return res.notFound('Role');
             }
-            return res.status(200).json({ ok: true, data: role });
+            return res.success(role);
         } catch (error) {
-            return res.status(500).json({ ok: false, error: 'Error interno del servidor ID' });
+            console.error('[ROLE] getById error:', error);
+            return res.error('Error retrieving role');
         }
     },
 
-    // Create a new role, with input validation.
+    // Create a new role
     create: async (req, res) => {
-        const errors = [];
-        
         const { rolName, status } = req.body;
-        if (!rolName) errors.push('El campo nombre es obligatorio.');
-        else if (!/^[a-zA-Z0-9\s]+$/.test(rolName)) errors.push('El campo nombre tiene caracteres invalidos');
-        else if (rolName.length > 50) errors.push ('El campo nombre no puede tener mas de 50 caracteres');
-
-        if (!status) errors.push('El campo estado es obligatorio');
-        else if (!['active', 'inactive'].includes(status)) errors.push('El estado solo puede ser active o inactive');
-        else if(status.length > 25) errors.push('El campo estado no puede tener mas de 25 caracteres');
-
-        const allRols = await roleService.list({ status: 'all'})
-        if (allRols.some(c => c.rolName === rolName)){
-            errors.push('Ya existe un rol con ese nombre');
+        // Validate using centralized validator
+        const validation = EntityValidators.role({ rolName, status }, { partial: false });
+        const errors = [...validation.errors];
+        // Check for duplicate role name
+        const allRoles = await roleService.list({ status: 'all' });
+        if (allRoles.some(c => c.rolName === rolName)) {
+            errors.push('A role with that name already exists');
         }
-        if (errors.length > 0){
-            return res.status(400).json({ok: false, errors});
+        if (errors.length > 0) {
+            return res.validationErrors(errors);
         }
         try {
             const newRole = await roleService.create({ rolName, status });
-            res.status(201).json({ ok: true, data: newRole });
+            return res.status(201).success(newRole, 'Role created successfully');
         } catch (error) {
-            return next(ApiError.internal('Error interno create'));
-        }
-
-    },
-
-    // Update a role by ID, with validation.
-    update: async (req, res, next) => {
-        const { id } = req.params;
-        // Accepts 'rolName' or 'name' as alias
-        let { rolName, name, status } = req.body;
-        if (rolName === undefined && name !== undefined) rolName = name;
-
-        const errors = [];
-
-        // ID validation (digits only)
-        if (!/^[0-9\s]+$/.test(id)) {
-            errors.push('El id solo puede contener números');
-        }
-
-        // Name validation (if present)
-        if (rolName !== undefined) {
-            const trimmed = String(rolName).trim();
-            if (!trimmed) errors.push('El campo nombre es obligatorio');
-            else if (!/^[a-zA-Z0-9\s]+$/.test(trimmed)) errors.push('El campo nombre tiene caracteres inválidos');
-            else if (trimmed.length > 50) errors.push('El campo nombre no puede tener más de 50 caracteres');
-
-            if (!errors.length) {
-            const exist = await roleService.findByName(trimmed);
-            const existId =
-                exist?.idRole ?? exist?.id ?? exist?._id ?? exist?.ID;
-            if (exist && String(existId) !== String(id)) {
-                errors.push('Ya existe un rol con ese nombre');
-            }
-            }
-            // if passed validation, normalize
-            rolName = String(rolName).trim();
-        }
-
-        // Status validation (if present)
-        if (status !== undefined) {
-            if (!['active', 'inactive'].includes(String(status))) {
-            errors.push('El campo estado debe ser "active" o "inactive"');
-            } else if (String(status).length > 25) {
-            errors.push('El campo estado no puede tener más de 25 caracteres');
-            }
-            status = String(status).trim();
-        }
-
-
-        if (errors.length) return res.status(400).json({ ok: false, errors });
-
-        const payload = {};
-        if (rolName !== undefined) payload.rolName = rolName; 
-        if (status  !== undefined) payload.status  = status;
-
-        if (!Object.keys(payload).length) {
-            return res.status(400).json({ ok: false, errors: ['Nada para actualizar'] });
-        }
-
-        try {
-
-            const updated = await roleService.update(id, payload);
-            if (!updated) return res.status(404).json({ ok: false, error: 'Rol no encontrado' });
-            return res.status(200).json({ ok: true, data: updated });
-        } catch (err) {
-            return res.status(500).json({ ok:false, error:'Error interno update' });
+            console.error('[ROLE] create error:', error);
+            return res.error('Error creating role');
         }
     },
 
-
-    // Soft-delete a role by ID.
-    delete: async (req, res, next) => {
-        const raw = String(req.params.id ?? '').trim();
-        if (!/^\d+$/.test(raw)) {
-            return res.status(400).json({ ok: false, error: 'El id solo puede contener números' });
-        }
-        const id = Number.parseInt(raw, 10);
-
-        try {
-            const deleted = await roleService.delete(id);
-            if (!deleted) {
-            return res.status(404).json({ ok: false, error: 'Rol no encontrado' });
+        // Update a role by ID
+        update: async (req, res) => {
+            const { id } = req.params;
+            let { rolName, name, status } = req.body;
+            if (rolName === undefined && name !== undefined) rolName = name;
+            // Validate ID
+            if (!/^[0-9\s]+$/.test(id)) {
+                return res.validationErrors(['id must be a number']);
             }
-            return res.status(200).json({ ok: true, data: deleted });
-        } catch (e) {
-            if (e?.code === 'P2025') {
-            return res.status(404).json({ ok: false, error: 'Rol no encontrado' });
+            // Check existence before update
+            const exists = await roleService.getById(id);
+            if (!exists) {
+                return res.notFound('Role');
             }
-            return next ? next(e) : res.status(500).json({ ok: false, error: 'Error interno delete' });
-        }
-        }
+            // Validate using centralized validator (partial mode)
+            const validation = EntityValidators.role({ rolName, status }, { partial: true });
+            const errors = [...validation.errors];
+            // Check for duplicate role name if provided
+            if (rolName !== undefined && !errors.length) {
+                const exist = await roleService.findByName(String(rolName).trim());
+                const existId = exist?.idRole ?? exist?.id ?? exist?._id ?? exist?.ID;
+                if (exist && String(existId) !== String(id)) {
+                    errors.push('A role with that name already exists');
+                }
+            }
+            if (errors.length > 0) {
+                return res.validationErrors(errors);
+            }
+            const payload = {};
+            if (rolName !== undefined) payload.rolName = String(rolName).trim();
+            if (status !== undefined) payload.status = String(status).trim();
+            if (!Object.keys(payload).length) {
+                return res.validationErrors(['Nothing to update']);
+            }
+            try {
+                const updated = await roleService.update(id, payload);
+                return res.success(updated, 'Role updated successfully');
+            } catch (error) {
+                if (error?.code === 'P2025') {
+                    return res.notFound('Role');
+                }
+                console.error('[ROLE] update error:', error);
+                return res.error('Error updating role');
+            }
+        },
 
+        // Soft-delete a role by ID
+        delete: async (req, res) => {
+            const raw = String(req.params.id ?? '').trim();
+            if (!/^\d+$/.test(raw)) {
+                return res.validationErrors(['id must be a number']);
+            }
+            const id = Number.parseInt(raw, 10);
+            // Check existence before delete
+            const exists = await roleService.getById(id);
+            if (!exists) {
+                return res.notFound('Role');
+            }
+            try {
+                const deleted = await roleService.delete(id);
+                return res.success(deleted, 'Role deleted successfully');
+            } catch (error) {
+                if (error?.code === 'P2025') {
+                    return res.notFound('Role');
+                }
+                console.error('[ROLE] delete error:', error);
+                return res.error('Error deleting role');
+            }
+        },
 };
 
 module.exports = { roleController };

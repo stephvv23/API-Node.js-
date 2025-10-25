@@ -1,7 +1,7 @@
 const bcrypt = require('bcrypt');
 const { UsersRepository } = require('./users.repository');
 const jwt  = require('jsonwebtoken');
-const ApiError = require('../../../utils/apiError');
+const ApiError = require('../../../utils/apiResponse').ApiError;
 
 /**
  * validate the format of an email
@@ -119,19 +119,19 @@ const UsersService = {
     const headquarterIds = Array.isArray(data.idHeadquarter) ? data.idHeadquarter : [data.idHeadquarter];
     const roleIds = Array.isArray(data.idRole) ? data.idRole : [data.idRole];
 
-    // verify that all headquarters exist
+    // verify that all headquarters exist (regardless of status)
     for (const headquarterId of headquarterIds) {
       const headquarterCheck = await UsersRepository.checkHeadquarterExists(headquarterId);
       if (!headquarterCheck) {
-        throw ApiError.badRequest(`La sede con ID ${headquarterId} no existe`);
+        throw ApiError.notFound(`La sede con ID ${headquarterId} no existe`);
       }
     }
 
-    // verify that all roles exist
+    // verify that all roles exist (regardless of status)
     for (const roleId of roleIds) {
       const roleCheck = await UsersRepository.checkRoleExists(roleId);
       if (!roleCheck) {
-        throw ApiError.badRequest(`El rol con ID ${roleId} no existe`);
+        throw ApiError.notFound(`El rol con ID ${roleId} no existe`);
       }
     }
 
@@ -211,15 +211,13 @@ const UsersService = {
       if (data.sedes.length === 0) {
         throw ApiError.badRequest('El usuario debe tener al menos una sede asignada');
       }
-      
-      // verify that all the headquarters exist
+      // verify that all the headquarters exist (regardless of status)
       for (const sedeId of data.sedes) {
         const headquarterCheck = await UsersRepository.checkHeadquarterExists(sedeId);
         if (!headquarterCheck) {
-          throw ApiError.badRequest(`La sede con ID ${sedeId} no existe`);
+          throw ApiError.notFound(`La sede con ID ${sedeId} no existe`);
         }
       }
-      
       await UsersRepository.clearHeadquarters(email);
       await UsersRepository.assignHeadquarters(email, data.sedes);
     }
@@ -230,15 +228,13 @@ const UsersService = {
       if (data.roles.length === 0) {
         throw ApiError.badRequest('El usuario debe tener al menos un rol asignado');
       }
-      
-      // verify that all the roles exist
+      // verify that all the roles exist (regardless of status)
       for (const roleId of data.roles) {
         const roleCheck = await UsersRepository.checkRoleExists(roleId);
         if (!roleCheck) {
-          throw ApiError.badRequest(`El rol con ID ${roleId} no existe`);
+          throw ApiError.notFound(`El rol con ID ${roleId} no existe`);
         }
       }
-      
       await UsersRepository.clearRoles(email);
       await UsersRepository.assignRoles(email, data.roles);
     }
@@ -282,15 +278,9 @@ const UsersService = {
     const ok = await bcrypt.compare(password, user.password);
     if (!ok) throw ApiError.unauthorized('Credenciales inválidas');
 
-    // verify rol
+    // verify rol (roles are already filtered to active in findAuthWithRoles)
     if (!user.roles || user.roles.length === 0) {
-      throw ApiError.forbidden('El usuario no tiene roles asignados');
-    }
-
-    // filters the roles actives
-    const activeRoles = user.roles.filter(ur => ur.role.status === 'active');
-    if (activeRoles.length === 0) {
-      throw ApiError.forbidden('El rol del usuario está inactivo');
+      throw ApiError.forbidden('El usuario no tiene roles activos asignados');
     }
 
     // First, verify if the window exists
@@ -303,9 +293,9 @@ const UsersService = {
       throw ApiError.forbidden('La página está inactiva');
     }
 
-    // Then verify permissions to the window
+    // Then verify permissions to the window (using roles already filtered to active)
     let hasAccess = false;
-    for (const ur of activeRoles) {
+    for (const ur of user.roles) {
       for (const rw of ur.role.windows) {   
         if (rw.window.windowName === windowName && rw.read === true) {
           hasAccess = true;

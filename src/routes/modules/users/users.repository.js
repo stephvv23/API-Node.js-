@@ -47,8 +47,42 @@ const UsersRepository = {
 
   // Finds a user by email (primary key)
   findByEmailWithHeadquarters: (email) => prisma.user.findUnique({ where: { email },include: {headquarterUser: { select: { idHeadquarter: true, headquarter: true } },roles: { select: { idRole: true, role: true } }}}),
-  // Login roles and permitions the window
-  findAuthWithRoles: (email) =>prisma.user.findUnique({where: { email }, select: {email: true, name: true, status: true, password: true, roles: {include: {role: {select: {idRole: true,rolName: true,status: true,windows: { include: { window: true }}}}}}}}),
+  // Login roles and permissions for the window - only includes active roles
+  findAuthWithRoles: (email) =>prisma.user.findUnique({
+    where: { email }, 
+    select: {
+      email: true, 
+      name: true, 
+      status: true, 
+      password: true, 
+      roles: {
+        where: {
+          role: {
+            status: 'active' // Only include active roles
+          }
+        },
+        include: {
+          role: {
+            select: {
+              idRole: true,
+              rolName: true,
+              status: true,
+              windows: { 
+                where: {
+                  window: {
+                    status: 'active' // Only include active windows
+                  }
+                },
+                include: { 
+                  window: true 
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }),
   
   // verify that a headquarter exists and is active
   verifyHeadquarterExists: (idHeadquarter) => prisma.headquarter.findFirst({

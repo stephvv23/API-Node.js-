@@ -42,7 +42,7 @@ model SecurityLog {
   email         String @db.VarChar(150) // Foreign key: references User.email
   date          DateTime @default(now())
   action        String @db.VarChar(25)
-  description   String @db.VarChar(700)
+  description   String @db.VarChar(4000) 
   affectedTable String @db.VarChar(50)
 
   // Relation
@@ -137,7 +137,7 @@ model Supplier {
 model Activity {
   idActivity     Int @id @default(autoincrement())
   idHeadquarter  Int //FK for headquarter
-  tittle         String @db.VarChar(150)
+  title          String @db.VarChar(150)
   description    String @db.VarChar(750)
   type           String @db.VarChar(50)
   modality       String @db.VarChar(25)

@@ -39,11 +39,17 @@ const AssetsRepository = {
     });
   },
 
-  create: (data) =>
-    prisma.asset.create({
-      data,
+  create: (data) => {
+    const { idCategory, idHeadquarter, ...rest } = data;
+    return prisma.asset.create({
+      data: {
+        ...rest,
+        category: { connect: { idCategory } },
+        headquarter: { connect: { idHeadquarter } },
+      },
       select: baseSelect,
-    }),
+    });
+  },
 
   update: (idAsset, data) =>
     prisma.asset.update({
