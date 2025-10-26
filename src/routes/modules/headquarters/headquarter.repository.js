@@ -12,25 +12,15 @@ const baseSelect = {
 };
 
 const HeadquarterRepository = {
-  // Lists headquarters with optional status, pagination, and ordering
-    list: ({ status = 'active', take = 100, skip = 0 } = {}) => {
-      const where = status === 'all' ? {} : { status };
-      return prisma.headquarter.findMany({
-        where,
-        select: baseSelect,
-        orderBy: {
-          name: 'asc'
-        },
-        take,
-        skip,
-      });
-    },
-  // Lists all active headquarters
-  listActive: () =>
-    prisma.headquarter.findMany({
-      where: { status: 'active' },
-      select: baseSelect
-    }),
+  // Lists all headquarters (active and inactive)
+  list: () => {
+    return prisma.headquarter.findMany({
+      select: baseSelect,
+      orderBy: {
+        name: 'asc'
+      },
+    });
+  },
   // Finds a headquarter by id
   findById: (id) =>
     prisma.headquarter.findUnique({

@@ -20,7 +20,7 @@ const ValidationRules = {
   email: (value) => {
     if (value === undefined || value === null) return true; // Skip if value is not provided
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(value) || 'Formato de email inválido';
+    return emailRegex.test(value) || 'Formato de Correo inválido';
   },
 
   // String length validations
@@ -167,7 +167,7 @@ const ValidationRules = {
     
     // Use parseDate to reliably get a Date treated as local
     const date = ValidationRules.parseDate(value);
-    if (!date) return 'Fecha inválida';
+    if (!date) return 'La fecha debe incluir año, mes y día completos (ej: 2024-01-15, 2024-01-15T10:30:00 o 15/01/2024 10:30)';
     
     // For string inputs, validate the components (day, month, year, and optionally hour, minute, second)
     if (typeof value === 'string') {
@@ -1297,7 +1297,11 @@ const EntityValidators = {
     if (shouldValidateField(data.description)) {
       const descValidator = validator.field('description', data.description);
       if (!options.partial) descValidator.required();
-      descValidator.string().internationalText().maxLength(250);
+      descValidator.string().custom((value) => {
+        if (value === undefined || value === null) return true;
+        const regex = /^[\p{L}\p{N}\p{P}\p{Z}\p{S}]+$/u;
+        return regex.test(value) || 'Solo se permiten letras, números, espacios, signos de puntuación y símbolos';
+      }).maxLength(250);
     }
 
     // Status validation

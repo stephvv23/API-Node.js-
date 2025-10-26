@@ -19,6 +19,7 @@ const roleRoutes = require('./modules/Role/role.routes');
 const roleWindowsRoutes = require('./modules/RoleWindows/roleWindows.routes');
 const emergencyContactRoutes = require('./modules/emergencyContact/emergencyContact.routes');
 const permissionRoutes = require('./modules/auth/permission.routes');
+const godParentRoutes = require('./modules/GodParent/godParent.routes');
 const activityRoutes = require('./modules/activity/activity.routes');
 const volunteerRoutes = require('./modules/volunteer/volunteer.routes');
 
@@ -35,6 +36,7 @@ function buildRoutes() {
     ...roleWindowsRoutes,
     ...emergencyContactRoutes,
     ...permissionRoutes,
+    ...godParentRoutes,
     ...activityRoutes,
     ...volunteerRoutes,
   ];
