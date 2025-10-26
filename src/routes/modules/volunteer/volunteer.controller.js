@@ -426,7 +426,7 @@ const VolunteerController = {
           idHeadquarters: validHqIds,
           count: validHqIds.length
         },
-        `${validHqIds.length} sede(s) asociada(s) al voluntario exitosamente`
+        ` sede(s) asociada(s) al voluntario exitosamente`
       );
     } catch (error) {
       console.error('[VOLUNTEERS] addHeadquarters error:', error);
