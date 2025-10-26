@@ -235,6 +235,7 @@ const GodParentController = {
           select: {
             idSurvivor: true,
             survivorName: true,
+            email: true,
             status: true
           },
           orderBy: { survivorName: 'asc' }

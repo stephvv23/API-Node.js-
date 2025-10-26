@@ -1298,7 +1298,11 @@ const EntityValidators = {
     if (shouldValidateField(data.description)) {
       const descValidator = validator.field('description', data.description);
       if (!options.partial) descValidator.required();
-      descValidator.string().internationalText().maxLength(250);
+      descValidator.string().custom((value) => {
+        if (value === undefined || value === null) return true;
+        const regex = /^[\p{L}\p{N}\p{P}\p{Z}\p{S}]+$/u;
+        return regex.test(value) || 'Solo se permiten letras, números, espacios, signos de puntuación y símbolos';
+      }).maxLength(250);
     }
 
     // Status validation
