@@ -27,7 +27,12 @@ const roleWindowRepository = {
     } = {}) => {
         const where = status === 'all' ? {}: {status};
         return prisma.window.findMany({
-            where,
+            where: {
+                ...where,
+                NOT: {
+                    idWindow: 12 
+                }
+            },
             select: baseWindow,
             orderBy: {
                 windowName: 'asc'
@@ -61,16 +66,19 @@ const roleWindowRepository = {
     getByIdRole: async (idRole) => {
         const roleId = Number(idRole);
 
-        const windows = await prisma.window.findMany({
-            where: { status: 'active' },
-            select: {
-            idWindow: true,
-            windowName: true,
-            roles: {
-                where: { idRole: roleId },
-                select: { create: true, read: true, update: true, delete: true },
-                take: 1,
+         const windows = await prisma.window.findMany({
+            where: { 
+                status: 'active',
+                NOT: { idWindow: 12 } 
             },
+            select: {
+                idWindow: true,
+                windowName: true,
+                roles: {
+                    where: { idRole: roleId },
+                    select: { create: true, read: true, update: true, delete: true },
+                    take: 1,
+                },
             },
             orderBy: { idWindow: 'asc' },
         });

@@ -107,6 +107,9 @@ const roleWindowController = {
                 update: Number(update),
                 remove: Number(remove),
             });
+
+            await roleWindowService.assignReadPermissionToPrincipalPage();
+
             return res.status(201).success(newRoleWindow, 'Role-Window created successfully');
         } catch (error) {
             console.error('[ROLEWINDOWS] create error:', error);

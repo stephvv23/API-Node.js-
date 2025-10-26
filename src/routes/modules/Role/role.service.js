@@ -1,5 +1,6 @@
 // Service layer for Role entity. Handles business logic and delegates data access to the repository.
 const { roleRepository } = require('./role.repository');
+const { roleWindowService } = require('../RoleWindows/roleWindows.service.js');
 
 const roleService = {
     // List roles, optionally filtered by status, with pagination.
@@ -17,12 +18,25 @@ const roleService = {
         return roleRepository.findByName(name);
     },
     // Create a new role.
-    create: async (data) => {
-        return roleRepository.create({
+     create: async (data) => {
+        const newRole = await roleRepository.create({
             rolName: data.rolName,
             status: data.status || 'active'
-            
-        })
+        });
+
+        // Assign read permission to "PrincipalPage" window for the new role
+        await roleWindowService.create({
+            idRole: newRole.idRole,
+            idWindow: 12, // Assuming 12 is the ID for "PrincipalPage"
+            create: false,
+            read: true,
+            update: false,
+            remove: false
+        });
+
+        await roleWindowService.assignReadPermissionToPrincipalPage();  // Llamamos al método para asignar a todos los roles
+
+        return newRole;
     },
     // Update a role by ID.
     update: async (id, data) => {
