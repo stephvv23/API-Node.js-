@@ -1,6 +1,6 @@
 const { HeadquarterService } = require('./headquarter.service');
 const { SecurityLogService } = require('../../../services/securitylog.service');
-const { EntityValidators } = require('../../../utils/validator');
+const { EntityValidators, ValidationRules } = require('../../../utils/validator');
 
 const HeadquarterController = {
   // Lists all active headquarters
@@ -48,7 +48,9 @@ const HeadquarterController = {
 
   // Creates a new headquarter
   create: async (req, res) => {
-    const { name, schedule, location, email, description, status } = req.body;
+    // Trim all string fields to prevent leading/trailing spaces and normalize multiple spaces
+    const trimmedBody = ValidationRules.trimStringFields(req.body);
+    const { name, schedule, location, email, description, status } = trimmedBody;
     
     // Validation for CREATE - all fields required
     const validation = EntityValidators.headquarters({
@@ -103,7 +105,9 @@ const HeadquarterController = {
   // Updates an existing headquarter
   update: async (req, res) => {
     const { id } = req.params;
-    const updateData = req.body;
+    
+    // Trim all string fields to prevent leading/trailing spaces and normalize multiple spaces
+    const updateData = ValidationRules.trimStringFields(req.body);
 
     // Validation for UPDATE - only validate provided fields
     const validation = EntityValidators.headquarters(updateData, { partial: true });

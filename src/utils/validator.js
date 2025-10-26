@@ -361,7 +361,6 @@ const ValidationRules = {
   },
  
   parseIdParam: (id) => {
-    if (!id || typeof id !== 'string') return null;
     const trimmed = id.trim();
     
     // Use existing ValidationRules
