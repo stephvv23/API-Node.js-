@@ -390,28 +390,27 @@ const VolunteerController = {
   // Add headquarters to volunteer (single or multiple)
   addHeadquarters: async (req, res) => {
     const { id } = req.params;
-    const { idHeadquarter, idHeadquarters } = req.body;
+    const { idHeadquarters } = req.body;
 
     const validId = parseIdParam(id);
     if (!validId) {
       return res.validationErrors(['idVolunteer debe ser un entero positivo']);
     }
 
-    // Accept either single idHeadquarter or array idHeadquarters
-    let headquarterIds = idHeadquarters || (idHeadquarter ? [idHeadquarter] : null);
-    
-    if (!headquarterIds || (Array.isArray(headquarterIds) && headquarterIds.length === 0)) {
-      return res.validationErrors(['Debe proporcionar al menos un idHeadquarter']);
+    if (!idHeadquarters) {
+      return res.validationErrors(['El campo idHeadquarters es requerido']);
     }
 
-    // Ensure it's an array
-    if (!Array.isArray(headquarterIds)) {
-      headquarterIds = [headquarterIds];
+    if (!Array.isArray(idHeadquarters)) {
+      return res.validationErrors(['idHeadquarters debe ser un array']);
     }
 
-    // Validate all IDs
+    if (idHeadquarters.length === 0) {
+      return res.validationErrors(['Debe proporcionar al menos un idHeadquarter en el array']);
+    }
+
     const validHqIds = [];
-    for (const hqId of headquarterIds) {
+    for (const hqId of idHeadquarters) {
       const validHqId = parseIdParam(hqId);
       if (!validHqId) {
         return res.validationErrors([`idHeadquarter ${hqId} debe ser un entero positivo`]);
@@ -450,7 +449,7 @@ const VolunteerController = {
 
   // Remove headquarters from volunteer (single or multiple)
   removeHeadquarters: async (req, res) => {
-    const { id, hqId } = req.params;
+    const { id } = req.params;
     const { idHeadquarters } = req.body;
 
     const validId = parseIdParam(id);
@@ -458,21 +457,20 @@ const VolunteerController = {
       return res.validationErrors(['idVolunteer debe ser un entero positivo']);
     }
 
-    // Accept either URL param hqId or body idHeadquarters array
-    let headquarterIds = idHeadquarters || (hqId ? [hqId] : null);
-    
-    if (!headquarterIds || (Array.isArray(headquarterIds) && headquarterIds.length === 0)) {
-      return res.validationErrors(['Debe proporcionar al menos un idHeadquarter']);
+    if (!idHeadquarters) {
+      return res.validationErrors(['El campo idHeadquarters es requerido']);
     }
 
-    // Ensure it's an array
-    if (!Array.isArray(headquarterIds)) {
-      headquarterIds = [headquarterIds];
+    if (!Array.isArray(idHeadquarters)) {
+      return res.validationErrors(['idHeadquarters debe ser un array']);
     }
 
-    // Validate all IDs
+    if (idHeadquarters.length === 0) {
+      return res.validationErrors(['Debe proporcionar al menos un idHeadquarter en el array']);
+    }
+
     const validHqIds = [];
-    for (const hqIdValue of headquarterIds) {
+    for (const hqIdValue of idHeadquarters) {
       const validHqId = parseIdParam(hqIdValue);
       if (!validHqId) {
         return res.validationErrors([`idHeadquarter ${hqIdValue} debe ser un entero positivo`]);
@@ -527,28 +525,27 @@ const VolunteerController = {
   // Add emergency contacts to volunteer (single or multiple)
   addEmergencyContacts: async (req, res) => {
     const { id } = req.params;
-    const { idEmergencyContact, idEmergencyContacts } = req.body;
+    const { idEmergencyContacts } = req.body;
 
     const validId = parseIdParam(id);
     if (!validId) {
       return res.validationErrors(['idVolunteer debe ser un entero positivo']);
     }
 
-    // Accept either single idEmergencyContact or array idEmergencyContacts
-    let contactIds = idEmergencyContacts || (idEmergencyContact ? [idEmergencyContact] : null);
-    
-    if (!contactIds || (Array.isArray(contactIds) && contactIds.length === 0)) {
-      return res.validationErrors(['Debe proporcionar al menos un idEmergencyContact']);
+    if (!idEmergencyContacts) {
+      return res.validationErrors(['El campo idEmergencyContacts es requerido']);
     }
 
-    // Ensure it's an array
-    if (!Array.isArray(contactIds)) {
-      contactIds = [contactIds];
+    if (!Array.isArray(idEmergencyContacts)) {
+      return res.validationErrors(['idEmergencyContacts debe ser un array']);
     }
 
-    // Validate all IDs
+    if (idEmergencyContacts.length === 0) {
+      return res.validationErrors(['Debe proporcionar al menos un idEmergencyContact en el array']);
+    }
+
     const validContactIds = [];
-    for (const contactId of contactIds) {
+    for (const contactId of idEmergencyContacts) {
       const validContactId = parseIdParam(contactId);
       if (!validContactId) {
         return res.validationErrors([`idEmergencyContact ${contactId} debe ser un entero positivo`]);
@@ -587,7 +584,7 @@ const VolunteerController = {
 
   // Remove emergency contacts from volunteer (single or multiple)
   removeEmergencyContacts: async (req, res) => {
-    const { id, contactId } = req.params;
+    const { id } = req.params;
     const { idEmergencyContacts } = req.body;
 
     const validId = parseIdParam(id);
@@ -595,21 +592,20 @@ const VolunteerController = {
       return res.validationErrors(['idVolunteer debe ser un entero positivo']);
     }
 
-    // Accept either URL param contactId or body idEmergencyContacts array
-    let contactIds = idEmergencyContacts || (contactId ? [contactId] : null);
-    
-    if (!contactIds || (Array.isArray(contactIds) && contactIds.length === 0)) {
-      return res.validationErrors(['Debe proporcionar al menos un idEmergencyContact']);
+    if (!idEmergencyContacts) {
+      return res.validationErrors(['El campo idEmergencyContacts es requerido']);
     }
 
-    // Ensure it's an array
-    if (!Array.isArray(contactIds)) {
-      contactIds = [contactIds];
+    if (!Array.isArray(idEmergencyContacts)) {
+      return res.validationErrors(['idEmergencyContacts debe ser un array']);
     }
 
-    // Validate all IDs
+    if (idEmergencyContacts.length === 0) {
+      return res.validationErrors(['Debe proporcionar al menos un idEmergencyContact en el array']);
+    }
+
     const validContactIds = [];
-    for (const contactIdValue of contactIds) {
+    for (const contactIdValue of idEmergencyContacts) {
       const validContactId = parseIdParam(contactIdValue);
       if (!validContactId) {
         return res.validationErrors([`idEmergencyContact ${contactIdValue} debe ser un entero positivo`]);
