@@ -420,14 +420,8 @@ const VolunteerController = {
 
     try {
       await VolunteerService.addHeadquarters(validId, validHqIds);
-      return res.status(201).success(
-        { 
-          idVolunteer: validId, 
-          idHeadquarters: validHqIds,
-          count: validHqIds.length
-        },
-        ` sede(s) asociada(s) al voluntario exitosamente`
-      );
+      return res.status(201).success(null, 'sede(s) asociada(s) al voluntario exitosamente');
+      
     } catch (error) {
       console.error('[VOLUNTEERS] addHeadquarters error:', error);
       if (error.message === 'Voluntario no encontrado') {
@@ -480,14 +474,8 @@ const VolunteerController = {
 
     try {
       const result = await VolunteerService.removeHeadquarters(validId, validHqIds);
-      return res.success(
-        { 
-          idVolunteer: validId, 
-          idHeadquarters: validHqIds,
-          count: result.count || validHqIds.length
-        },
-        `${result.count || validHqIds.length} sede(s) desasociada(s) del voluntario exitosamente`
-      );
+      return res.success(null, 'sede(s) eliminada(s) al voluntario exitosamente');
+      
     } catch (error) {
       console.error('[VOLUNTEERS] removeHeadquarters error:', error);
       if (error.code === 'P2025') {
@@ -555,14 +543,8 @@ const VolunteerController = {
 
     try {
       await VolunteerService.addEmergencyContacts(validId, validContactIds);
-      return res.status(201).success(
-        { 
-          idVolunteer: validId, 
-          idEmergencyContacts: validContactIds,
-          count: validContactIds.length
-        },
-        `${validContactIds.length} contacto(s) de emergencia asociado(s) al voluntario exitosamente`
-      );
+      return res.status(201).success(null, 'contacto(s) de emergencia asociado(s) al voluntario exitosamente');
+      
     } catch (error) {
       console.error('[VOLUNTEERS] addEmergencyContacts error:', error);
       if (error.message === 'Voluntario no encontrado') {
@@ -615,14 +597,8 @@ const VolunteerController = {
 
     try {
       const result = await VolunteerService.removeEmergencyContacts(validId, validContactIds);
-      return res.success(
-        { 
-          idVolunteer: validId, 
-          idEmergencyContacts: validContactIds,
-          count: result.count || validContactIds.length
-        },
-        `${result.count || validContactIds.length} contacto(s) de emergencia desasociado(s) del voluntario exitosamente`
-      );
+      return res.success(null, 'contacto(s) de emergencia eliminada(s) al voluntario exitosamente');
+      
     } catch (error) {
       console.error('[VOLUNTEERS] removeEmergencyContacts error:', error);
       if (error.code === 'P2025') {
