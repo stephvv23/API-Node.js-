@@ -82,7 +82,10 @@ const ActivityController = {
 
   // Create a new activity
   create: async (req, res) => {
-    const { idHeadquarter, title, description, type, modality, capacity, location, date, status } = req.body;
+    // Trim all string fields to prevent leading/trailing spaces and normalize multiple spaces
+    const trimmedBody = ValidationRules.trimStringFields(req.body);
+    
+    const { idHeadquarter, title, description, type, modality, capacity, location, date, status } = trimmedBody;
     
     // Validation for CREATE - all fields required
     const validation = EntityValidators.activity({
@@ -135,7 +138,9 @@ const ActivityController = {
   // Update activity data by idActivity
   update: async (req, res) => {
     const { idActivity } = req.params;
-    const updateData = req.body;
+    
+    // Trim all string fields to prevent leading/trailing spaces and normalize multiple spaces
+    const updateData = ValidationRules.trimStringFields(req.body);
 
     // Validation for UPDATE - only validate provided fields
     const validation = EntityValidators.activity(updateData, { partial: true });
