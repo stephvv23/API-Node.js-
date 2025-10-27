@@ -1,5 +1,6 @@
 const { roleService } = require('./role.service');
 const { EntityValidators } = require('../../../utils/validator');
+const { SecurityLogService } = require('../../../services/securitylog.service');
 
 const roleController = {
     // List roles with status filter
@@ -52,6 +53,15 @@ const roleController = {
         }
         try {
             const newRole = await roleService.create({ rolName, status });
+            const userEmail = req.user?.sub || 'unknown';
+            await SecurityLogService.log({
+                email: userEmail,
+                action: 'CREATE',
+                description: `Role created: ID: "${newRole.idRole}", ` +
+                 ` Name: "${newRole.rolName}", ` +
+                 `Status: "${newRole.status}"`,
+                affectedTable: 'Role',
+            });
             return res.status(201).success(newRole, 'Role created successfully');
         } catch (error) {
             console.error('[ROLE] create error:', error);
@@ -93,8 +103,39 @@ const roleController = {
             if (!Object.keys(payload).length) {
                 return res.validationErrors(['Nothing to update']);
             }
+            const previousRole = await roleService.getById(id);
+            const userEmail = req.user?.sub || 'unknown';
             try {
                 const updated = await roleService.update(id, payload);
+                
+                const nameUnchanged = previousRole.rolName === updated.rolName;
+                const movedInactiveToActive =
+                    previousRole.status === 'inactive' && updated.status === 'active';
+                const movedActiveToInactive =
+                    previousRole.status === 'active' && updated.status === 'inactive';
+                const statusChanged = movedInactiveToActive || movedActiveToInactive;
+
+                if (statusChanged && nameUnchanged) {
+                    const action = movedInactiveToActive ? 'REACTIVATE' : 'DEACTIVATE';
+                        await SecurityLogService.log({
+                        email: userEmail,
+                        action,
+                        description: `Role updated: ID: "${id}", ` +
+                            `Name: "${payload.rolName}", ` +
+                            `Status: "${payload.status}"`,
+                        affectedTable: 'Role',
+                    });
+                } else {
+                    await SecurityLogService.log({
+                        email: userEmail,
+                        action: 'UPDATE',
+                        description: `Role updated: ID: "${id}", ` +
+                            `Name: "${payload.rolName}", ` +
+                            `Status: "${payload.status}"`,
+                        affectedTable: 'Role',
+                    });
+                }
+                
                 return res.success(updated, 'Role updated successfully');
             } catch (error) {
                 if (error?.code === 'P2025') {
@@ -119,6 +160,15 @@ const roleController = {
             }
             try {
                 const deleted = await roleService.delete(id);
+                const userEmail = req.user?.sub || 'unknown';
+                await SecurityLogService.log({
+                    email: userEmail,
+                    action: 'DELETE',
+                    description: `Role deleted: ID: "${id}", ` +
+                        `Name: "${deleted.rolName}", ` +
+                        `Status: "${deleted.status}"`,
+                    affectedTable: 'Role',
+                });
                 return res.success(deleted, 'Role deleted successfully');
             } catch (error) {
                 if (error?.code === 'P2025') {

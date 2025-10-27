@@ -56,7 +56,7 @@ const categoryController = {
                 email: userEmail,
                 action: 'CREATE',
                 description: `Categoría creada: ` +
-                `ID: "${newCategory.id}", ` +
+                `ID: "${newCategory.idCategory}", ` +
                 `Nombre: "${newCategory.name}", ` +
                 `Estado: "${newCategory.status}"`,
                 affectedTable: 'Category',
@@ -153,8 +153,8 @@ const categoryController = {
             await SecurityLogService.log({
                 email: userEmail,
                 action: 'DELETE',
-                description: `Categoría creada: ` +
-                `ID: "${deletedCategory.id}", ` +
+                description: `Categoría eliminada: ` +
+                `ID: "${deletedCategory.idCategory}", ` +
                 `Nombre: "${deletedCategory.name}", ` +
                 `Estado: "${deletedCategory.status}"`,
                 affectedTable: 'Category',
