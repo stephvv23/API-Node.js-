@@ -1155,11 +1155,6 @@ const EntityValidators = {
       return !options.partial || (fieldValue !== undefined && fieldValue !== null);
     };
 
-    // Check for incorrect field name 'tittle' and provide clear error message
-    if (data.tittle !== undefined) {
-      validator.field('tittle', data.tittle).custom(() => 'El campo "tittle" no existe. Debes usar "title" en su lugar.');
-    }
-
     // Headquarter ID validation
     if (shouldValidateField(data.idHeadquarter)) {
       const headquarterValidator = validator.field('idHeadquarter', data.idHeadquarter);
