@@ -33,43 +33,70 @@ const SurvivorController = {
     }
   },
 
-  // Get survivor by ID
   getById: async (req, res) => {
     const { id } = req.params;
     try {
       const survivor = await SurvivorService.findById(id);
       if (!survivor) {
-        return res.notFound("Survivor");
+        return res.notFound("Superviviente");
       }
       return res.success(survivor);
     } catch (error) {
       console.error("[SURVIVORS] getById error:", error);
-      return res.error("Error al obtener el sobreviviente");
+      return res.error("Error al obtener el superviviente");
     }
   },
 
-  // Create a new survivor
   create: async (req, res) => {
     const data = req.body;
 
-    // CREATE validation (full)
     const validation = EntityValidators.survivor(data, { partial: false });
     if (!validation.isValid) {
       return res.validationErrors(validation.errors);
     }
 
     try {
-      // Verify duplicates
+      const errors = [];
+
+      // Validate cancers array (required, minimum 1)
+      if (!data.cancers || !Array.isArray(data.cancers) || data.cancers.length === 0) {
+        errors.push("Debe proporcionar al menos un tipo de cáncer");
+      } else {
+        data.cancers.forEach((cancer, index) => {
+          if (!cancer.idCancer || typeof cancer.idCancer !== 'number') {
+            errors.push(`Cáncer ${index + 1}: idCancer es requerido y debe ser un número`);
+          }
+          if (!cancer.stage || typeof cancer.stage !== 'string') {
+            errors.push(`Cáncer ${index + 1}: stage (etapa) es requerido y debe ser texto`);
+          }
+        });
+      }
+
+      // Validate phones (optional, but must be array if provided)
+      if (data.phones && !Array.isArray(data.phones)) {
+        errors.push("phones debe ser un array");
+      }
+
+      // Validate emergency contacts (optional, but must be array if provided)
+      if (data.emergencyContacts && !Array.isArray(data.emergencyContacts)) {
+        errors.push("emergencyContacts debe ser un array de IDs");
+      }
+
+      if (errors.length > 0) {
+        return res.validationErrors(errors);
+      }
+
+      // Check for duplicates
       const allSurvivors = await SurvivorService.list({ status: "all" });
       const duplicateErrors = [];
 
       if (allSurvivors.some((s) => s.documentNumber === data.documentNumber)) {
         duplicateErrors.push(
-          "Ya existe un sobreviviente con ese número de documento"
+          "Ya existe un superviviente con ese número de documento"
         );
       }
       if (data.email && allSurvivors.some((s) => s.email === data.email)) {
-        duplicateErrors.push("Ya existe un sobreviviente con ese correo");
+        duplicateErrors.push("Ya existe un superviviente con ese correo electrónico");
       }
 
       if (duplicateErrors.length > 0) {
@@ -83,43 +110,44 @@ const SurvivorController = {
         email: userEmail,
         action: "CREATE",
         description:
-          `A new survivor was created with the following data: ` +
+          `Se creó un nuevo superviviente con los siguientes datos: ` +
           `ID: "${newSurvivor.idSurvivor}", ` +
-          `Name: "${newSurvivor.survivorName}", ` +
-          `Document: "${newSurvivor.documentNumber}", ` +
-          `Email: "${newSurvivor.email}", ` +
-          `Status: "${newSurvivor.status}".`,
+          `Nombre: "${newSurvivor.survivorName}", ` +
+          `Documento: "${newSurvivor.documentNumber}", ` +
+          `Correo: "${newSurvivor.email}", ` +
+          `Cánceres: ${data.cancers.length}, ` +
+          `Estado: "${newSurvivor.status}".`,
         affectedTable: "Survivor",
       });
 
       return res
         .status(201)
-        .success(newSurvivor, "Survivor created successfully");
+        .success(newSurvivor, "Superviviente creado exitosamente");
     } catch (error) {
       console.error("[SURVIVORS] create error:", error);
-      return res.error("Error creating survivor");
+      return res.error("Error al crear el superviviente");
     }
   },
 
-  // Update an existing survivor
   update: async (req, res) => {
     const { id } = req.params;
     const updateData = req.body;
 
-    // 1) Partially validate fields
     const validation = EntityValidators.survivor(updateData, { partial: true });
     if (!validation.isValid) {
       return res.validationErrors(validation.errors);
     }
 
     try {
-      // 2) Find previous survivor
       const previousSurvivor = await SurvivorService.findById(id);
       if (!previousSurvivor) {
         return res.notFound("Superviviente");
       }
 
-      // 3) Convert date fields if present
+      if (previousSurvivor.status !== "active") {
+        return res.badRequest("No se puede actualizar un superviviente inactivo");
+      }
+
       const payload = {
         ...updateData,
         birthday: updateData.birthday
@@ -127,10 +155,8 @@ const SurvivorController = {
           : undefined,
       };
 
-      // 4) Update survivor
       const updatedSurvivor = await SurvivorService.update(id, payload);
 
-      // 5) Detect if this was only a reactivation
       const onlyStatusChange =
         previousSurvivor.status === "inactive" &&
         updatedSurvivor.status === "active" &&
@@ -140,13 +166,12 @@ const SurvivorController = {
 
       const userEmail = req.user?.sub;
 
-      // 6) Log the change to the security log
       if (onlyStatusChange) {
         await SecurityLogService.log({
           email: userEmail,
           action: "REACTIVATE",
           description:
-            `Se reactivó el superviviente con ID "${id}". Datos:\n` +
+            `Se reactivó el superviviente con ID "${id}". Datos: ` +
             `Nombre: "${updatedSurvivor.survivorName}", Documento: "${updatedSurvivor.documentNumber}", ` +
             `Correo: "${updatedSurvivor.email}", Estado: "${updatedSurvivor.status}".`,
           affectedTable: "Survivor",
@@ -157,13 +182,13 @@ const SurvivorController = {
           action: "UPDATE",
           description:
             `Se actualizó el superviviente con ID "${id}".\n` +
-            `Versión previa:\n` +
+            `Versión previa: ` +
             `Nombre: "${previousSurvivor.survivorName}", Documento: "${previousSurvivor.documentNumber}", ` +
-            `País: "${previousSurvivor.country}", Email: "${previousSurvivor.email}", ` +
+            `País: "${previousSurvivor.country}", Correo: "${previousSurvivor.email}", ` +
             `Residencia: "${previousSurvivor.residence}", Estado: "${previousSurvivor.status}".\n` +
-            `Nueva versión:\n` +
+            `Nueva versión: ` +
             `Nombre: "${updatedSurvivor.survivorName}", Documento: "${updatedSurvivor.documentNumber}", ` +
-            `País: "${updatedSurvivor.country}", Email: "${updatedSurvivor.email}", ` +
+            `País: "${updatedSurvivor.country}", Correo: "${updatedSurvivor.email}", ` +
             `Residencia: "${updatedSurvivor.residence}", Estado: "${updatedSurvivor.status}".`,
           affectedTable: "Survivor",
         });
@@ -179,24 +204,20 @@ const SurvivorController = {
     }
   },
 
-  // Deactivate a survivor
   delete: async (req, res) => {
     const { id } = req.params;
 
     try {
-      // 1) Check if survivor exists
       const survivor = await SurvivorService.findById(id);
       if (!survivor) {
         return res.notFound("Superviviente");
       }
 
-      // 2) Determine the new status
       const newStatus = survivor.status === "active" ? "inactive" : "active";
       const updatedSurvivor = await SurvivorService.update(id, {
         status: newStatus,
       });
 
-      // 3) Log to the security log
       const userEmail = req.user?.sub;
       const action = newStatus === "inactive" ? "INACTIVE" : "REACTIVATE";
       const verb = newStatus === "inactive" ? "inactivó" : "reactivó";
@@ -214,7 +235,6 @@ const SurvivorController = {
         affectedTable: "Survivor",
       });
 
-      // 4) Prepare response
       const message =
         newStatus === "inactive"
           ? "Superviviente inactivado exitosamente"
@@ -233,7 +253,7 @@ const SurvivorController = {
     try {
       const survivor = await SurvivorService.findById(id);
       if (!survivor) {
-        return res.notFound("Survivor");
+        return res.notFound("Superviviente");
       }
 
       const reactivated = await SurvivorService.reactivate(id);
@@ -243,15 +263,15 @@ const SurvivorController = {
         email: userEmail,
         action: "REACTIVATE",
         description:
-          `Survivor with ID "${id}" was reactivated, Name: "${reactivated.survivorName}", ` +
-          `Document: "${reactivated.documentNumber}", Status: "${reactivated.status}".`,
+          `Se reactivó el superviviente con ID "${id}", Nombre: "${reactivated.survivorName}", ` +
+          `Documento: "${reactivated.documentNumber}", Estado: "${reactivated.status}".`,
         affectedTable: "Survivor",
       });
 
-      return res.success(reactivated, "Survivor reactivated successfully");
+      return res.success(reactivated, "Superviviente reactivado exitosamente");
     } catch (error) {
       console.error("[SURVIVORS] reactivate error:", error);
-      return res.error("Error reactivating survivor");
+      return res.error("Error al reactivar el superviviente");
     }
   },
 };

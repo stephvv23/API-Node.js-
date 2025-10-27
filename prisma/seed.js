@@ -248,10 +248,10 @@ async function main() {
       CONAPDIS: true,
       IMAS: false,
       physicalFileStatus: 'Completo',
-      medicalRecord: 'Activo',
-      dateHomeSINRUBE: '2023-10-05',
-      foodBank: 'Activo',
-      socioEconomicStudy: 'Completado',
+      medicalRecord: true,
+      dateHomeSINRUBE: true,
+      foodBank: true,
+      socioEconomicStudy: true,
       notes: 'Requiere apoyo de transporte',
       status: 'active',
     },
@@ -276,8 +276,8 @@ async function main() {
     data: {
       idCancer: cancer1.idCancer,
       idSurvivor: survivor.idSurvivor,
-      status: 'en recuperación',
-      aftermath: 'quimioterapia 2023, seguimiento 2024',
+      status: 'active',
+      stage: 'Etapa II',
     },
   });
 

@@ -71,17 +71,109 @@ const SurvivorRepository = {
       select: baseSelect
     }),
 
-  // Create a new survivor
-  create: (data) =>
-    prisma.survivor.create({
-      data,
-      select: baseSelect
-    }),
+  create: async (survivorData, relationalData) => {
+    return prisma.$transaction(async (tx) => {
+      const survivor = await tx.survivor.create({
+        data: survivorData,
+        select: baseSelect
+      });
 
-  // Update survivor data
+      // Create cancer relations (required, minimum 1)
+      if (relationalData.cancers && relationalData.cancers.length > 0) {
+        await tx.cancerSurvivor.createMany({
+          data: relationalData.cancers.map(cancer => ({
+            idSurvivor: survivor.idSurvivor,
+            idCancer: cancer.idCancer,
+            status: cancer.status,
+            stage: cancer.stage
+          }))
+        });
+      }
+
+      // Create/link phones (optional)
+      if (relationalData.phones && relationalData.phones.length > 0) {
+        for (const phoneNumber of relationalData.phones) {
+          let phone = await tx.phone.findFirst({
+            where: { phone: phoneNumber }
+          });
+
+          if (!phone) {
+            phone = await tx.phone.create({
+              data: { phone: phoneNumber }
+            });
+          }
+
+          await tx.phoneSurvivor.create({
+            data: {
+              idPhone: phone.idPhone,
+              idSurvivor: survivor.idSurvivor
+            }
+          });
+        }
+      }
+
+      // Link emergency contacts (optional)
+      if (relationalData.emergencyContacts && relationalData.emergencyContacts.length > 0) {
+        await tx.emergencyContactSurvivor.createMany({
+          data: relationalData.emergencyContacts.map(idEmergencyContact => ({
+            idEmergencyContact,
+            idSurvivor: survivor.idSurvivor
+          }))
+        });
+      }
+
+      // Return complete survivor with all relations
+      return tx.survivor.findUnique({
+        where: { idSurvivor: survivor.idSurvivor },
+        select: {
+          ...baseSelect,
+          cancerSurvivor: {
+            select: {
+              status: true,
+              stage: true,
+              cancer: {
+                select: {
+                  idCancer: true,
+                  cancerName: true,
+                  description: true
+                }
+              }
+            }
+          },
+          phoneSurvivor: {
+            select: {
+              phone: {
+                select: {
+                  idPhone: true,
+                  phone: true
+                }
+              }
+            }
+          },
+          emergencyContactSurvivor: {
+            select: {
+              emergencyContact: {
+                select: {
+                  idEmergencyContact: true,
+                  nameEmergencyContact: true,
+                  emailEmergencyContact: true,
+                  relationship: true
+                }
+              }
+            }
+          }
+        }
+      });
+    });
+  },
+
+  // Update survivor data (only active survivors)
   update: (id, data) =>
     prisma.survivor.update({
-      where: { idSurvivor: Number(id) },
+      where: { 
+        idSurvivor: Number(id),
+        status: "active"
+      },
       data,
       select: baseSelect
     }),

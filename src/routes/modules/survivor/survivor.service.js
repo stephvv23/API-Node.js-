@@ -1,24 +1,20 @@
 const { SurvivorRepository } = require('./survivor.repository');
 
 const SurvivorService = {
-  // List all active survivors
   listActive: async () => {
     return SurvivorRepository.listActive();
   },
 
-  // List survivors (supports status filter, pagination, etc.)
   list: async ({ status = 'active', take, skip } = {}) => {
     return SurvivorRepository.list({ status, take, skip });
   },
 
-  // Find a survivor by ID
   findById: async (id) => {
     return SurvivorRepository.findById(id);
   },
 
-  // Create a new survivor
   create: async (data) => {
-    return SurvivorRepository.create({
+    const survivorData = {
       idHeadquarter: data.idHeadquarter,
       survivorName: data.survivorName,
       documentNumber: data.documentNumber,
@@ -31,31 +27,35 @@ const SurvivorService = {
       CONAPDIS: data.CONAPDIS,
       IMAS: data.IMAS,
       physicalFileStatus: data.physicalFileStatus,
-      medicalRecord: data.medicalRecord,
-      dateHomeSINRUBE: data.dateHomeSINRUBE,
-      foodBank: data.foodBank,
-      socioEconomicStudy: data.socioEconomicStudy,
+      medicalRecord: data.medicalRecord || false,
+      dateHomeSINRUBE: data.dateHomeSINRUBE || false,
+      foodBank: data.foodBank || false,
+      socioEconomicStudy: data.socioEconomicStudy || false,
       notes: data.notes,
       status: data.status || "active"
-    });
+    };
+
+    const relationalData = {
+      cancers: data.cancers || [],
+      phones: data.phones || [],
+      emergencyContacts: data.emergencyContacts || []
+    };
+
+    return SurvivorRepository.create(survivorData, relationalData);
   },
 
-  // Update an existing survivor
   update: async (id, data) => {
     return SurvivorRepository.update(id, data);
   },
 
-  // Change only the survivor's status (active/inactive)
   updateStatus: async (id, status) => {
     return SurvivorRepository.update(id, { status });
   },
 
-  // Deactivate a survivor
   remove: async (id) => {
     return SurvivorRepository.update(id, { status: "inactive" });
   },
 
-  // Reactivate a survivor
   reactivate: async (id) => {
     return SurvivorRepository.update(id, { status: "active" });
   },

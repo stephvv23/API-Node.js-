@@ -221,11 +221,11 @@ model Survivor {
   workingCondition String @db.VarChar(50)
   CONAPDIS      Boolean
   IMAS          Boolean
-  physicalFileStatus String @db.VarChar(25)
-  medicalRecord  String @db.VarChar(25)
-  dateHomeSINRUBE String @db.VarChar(25)
-  foodBank       String @db.VarChar(25)
-  socioEconomicStudy String @db.VarChar(25)
+  physicalFileStatus String @db.VarChar(50) // Estado del expediente físico (ej: "Completo", "Incompleto", "En proceso")
+  medicalRecord  Boolean 
+  dateHomeSINRUBE Boolean 
+  foodBank       Boolean 
+  socioEconomicStudy Boolean 
   notes          String? @db.VarChar(250)
   status       String @default("active") @db.VarChar(25)
 
@@ -415,8 +415,8 @@ model EmergencyContactPhone {
 model CancerSurvivor {
   idCancer   Int // Foreign key: references Cancer.idCancer
   idSurvivor Int // Foreign key: references Survivor.idSurvivor
-  status     String
-  aftermath  String
+  status  String @default("active") @db.VarChar(25)
+  stage      String
   // Relations
   cancer   Cancer   @relation(fields: [idCancer], references: [idCancer])     // Connects cancerSurvivor to Cancer
   survivor Survivor @relation(fields: [idSurvivor], references: [idSurvivor]) // Connects cancerSurvivor to Survivor

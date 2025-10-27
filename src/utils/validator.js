@@ -1125,35 +1125,35 @@ const EntityValidators = {
     if (shouldValidateField(data.physicalFileStatus)) {
       const physicalValidator = validator.field('physicalFileStatus', data.physicalFileStatus);
       if (!options.partial) physicalValidator.required();
-      physicalValidator.string().minLength(1).internationalText().maxLength(25);
+      physicalValidator.string().minLength(1).internationalText().maxLength(50);
     }
 
     // Medical record validation
     if (shouldValidateField(data.medicalRecord)) {
       const medicalValidator = validator.field('medicalRecord', data.medicalRecord);
       if (!options.partial) medicalValidator.required();
-      medicalValidator.string().minLength(1).internationalText().maxLength(25);
+      medicalValidator.boolean();
     }
 
     // Date home SINRUBE validation
     if (shouldValidateField(data.dateHomeSINRUBE)) {
       const sinrubeValidator = validator.field('dateHomeSINRUBE', data.dateHomeSINRUBE);
       if (!options.partial) sinrubeValidator.required();
-      sinrubeValidator.string().minLength(1).internationalText().maxLength(25);
+      sinrubeValidator.boolean();
     }
 
     // Food bank validation
     if (shouldValidateField(data.foodBank)) {
       const foodBankValidator = validator.field('foodBank', data.foodBank);
       if (!options.partial) foodBankValidator.required();
-      foodBankValidator.string().minLength(1).internationalText().maxLength(25);
+      foodBankValidator.boolean();
     }
 
     // Socio economic study validation
     if (shouldValidateField(data.socioEconomicStudy)) {
       const socioValidator = validator.field('socioEconomicStudy', data.socioEconomicStudy);
       if (!options.partial) socioValidator.required();
-      socioValidator.string().minLength(1).internationalText().maxLength(25);
+      socioValidator.boolean();
     }
 
     // Notes validation (optional field)
