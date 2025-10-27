@@ -30,7 +30,7 @@ const roleWindowRepository = {
             where: {
                 ...where,
                 NOT: {
-                    idWindow: 12 
+                    idWindow: 6 
                 }
             },
             select: baseWindow,
