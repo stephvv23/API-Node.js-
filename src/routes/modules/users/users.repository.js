@@ -125,6 +125,12 @@ const UsersRepository = {
     },
     select: { idWindow: true, windowName: true, status: true }
   }),
+
+  invalidateToken: async (token) => {
+    return prisma.tokenBlacklist.create({
+      data: { token },
+    });
+  },
   
 };
 
