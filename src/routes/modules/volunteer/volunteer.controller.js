@@ -419,9 +419,18 @@ const VolunteerController = {
     }
 
     try {
-      await VolunteerService.addHeadquarters(validId, validHqIds);
-      return res.status(201).success(null, 'sede(s) asociada(s) al voluntario exitosamente');
-      
+      const result = await VolunteerService.addHeadquarters(validId, validHqIds);
+      const added = (result && Array.isArray(result.addedIds)) ? result.addedIds : [];
+      const ignored = (result && Array.isArray(result.ignoredInactiveIds)) ? result.ignoredInactiveIds : [];
+      if (ignored.length) {
+        res.set('X-Ignored-Ids', ignored.join(','));
+      }
+      let message = 'sede(s) asociada(s) al voluntario exitosamente';
+      if (ignored.length) {
+        const ignoredPart = `Rechazadas (inactivas): ${ignored.length}` + (ignored.length ? ` (IDs: ${ignored.join(',')})` : '');
+        message = `${message}. ${ignoredPart}.`;
+      }
+      return res.status(201).success(null, message);
     } catch (error) {
       console.error('[VOLUNTEERS] addHeadquarters error:', error);
       if (error.message === 'Voluntario no encontrado') {
@@ -475,7 +484,6 @@ const VolunteerController = {
     try {
       const result = await VolunteerService.removeHeadquarters(validId, validHqIds);
       return res.success(null, 'sede(s) eliminada(s) al voluntario exitosamente');
-      
     } catch (error) {
       console.error('[VOLUNTEERS] removeHeadquarters error:', error);
       if (error.code === 'P2025') {
@@ -542,9 +550,18 @@ const VolunteerController = {
     }
 
     try {
-      await VolunteerService.addEmergencyContacts(validId, validContactIds);
-      return res.status(201).success(null, 'contacto(s) de emergencia asociado(s) al voluntario exitosamente');
-      
+      const result = await VolunteerService.addEmergencyContacts(validId, validContactIds);
+      const added = (result && Array.isArray(result.addedIds)) ? result.addedIds : [];
+      const ignored = (result && Array.isArray(result.ignoredInactiveIds)) ? result.ignoredInactiveIds : [];
+      if (ignored.length) {
+        res.set('X-Ignored-Ids', ignored.join(','));
+      }
+      let message = 'contacto(s) de emergencia asociado(s) al voluntario exitosamente';
+      if (ignored.length) {
+        const ignoredPart = `Rechazados (inactivos): ${ignored.length}` + (ignored.length ? ` (IDs: ${ignored.join(',')})` : '');
+        message = `${message}. ${ignoredPart}.`;
+      }
+      return res.status(201).success(null, message);
     } catch (error) {
       console.error('[VOLUNTEERS] addEmergencyContacts error:', error);
       if (error.message === 'Voluntario no encontrado') {
@@ -598,7 +615,6 @@ const VolunteerController = {
     try {
       const result = await VolunteerService.removeEmergencyContacts(validId, validContactIds);
       return res.success(null, 'contacto(s) de emergencia eliminada(s) al voluntario exitosamente');
-      
     } catch (error) {
       console.error('[VOLUNTEERS] removeEmergencyContacts error:', error);
       if (error.code === 'P2025') {

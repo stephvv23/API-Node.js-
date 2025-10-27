@@ -74,36 +74,49 @@ const VolunteerService = {
 
   // Add headquarters to volunteer (single or multiple)
   addHeadquarters: async (idVolunteer, idHeadquarters) => {
-    // Validate that volunteer exists
     const volunteer = await VolunteerRepository.findById(idVolunteer);
     if (!volunteer) {
       throw new Error('Voluntario no encontrado');
     }
-    
-    // Normalize to array
+
     const headquarterIds = Array.isArray(idHeadquarters) ? idHeadquarters : [idHeadquarters];
-    
-    // Validate each headquarter exists and is active
-    const validationErrors = [];
+
+    const missing = [];
+    const inactive = [];
+    const activeIds = [];
+
     for (const idHq of headquarterIds) {
       const headquarterStatus = await VolunteerRepository.headquarterExists(idHq);
       if (!headquarterStatus.exists) {
-        validationErrors.push(`La sede con ID ${idHq} no existe`);
+        missing.push(idHq);
       } else if (!headquarterStatus.active) {
-        validationErrors.push(`La sede con ID ${idHq} está inactiva`);
+        inactive.push(idHq);
+      } else {
+        activeIds.push(idHq);
       }
     }
-    
-    if (validationErrors.length > 0) {
-      throw new Error(validationErrors.join(', '));
+
+    if (missing.length > 0) {
+      throw new Error(`La sede con ID ${missing.join(', ')} no existe`);
     }
-    
-    // Use batch insert for multiple, single insert for one
-    if (headquarterIds.length === 1) {
-      return VolunteerRepository.addHeadquarter(idVolunteer, headquarterIds[0]);
+
+    if (activeIds.length === 0) {
+      // Nothing active to add
+      throw new Error('Todas las sedes proporcionadas están inactivas');
+    }
+
+    let result;
+    if (activeIds.length === 1) {
+      result = await VolunteerRepository.addHeadquarter(idVolunteer, activeIds[0]);
     } else {
-      return VolunteerRepository.addHeadquarters(idVolunteer, headquarterIds);
+      result = await VolunteerRepository.addHeadquarters(idVolunteer, activeIds);
     }
+
+    return {
+      addedCount: Array.isArray(result) ? result.length : (result ? 1 : 0),
+      addedIds: activeIds,
+      ignoredInactiveIds: inactive,
+    };
   },
 
   // Remove headquarters from volunteer (single or multiple)
@@ -130,36 +143,48 @@ const VolunteerService = {
 
   // Add emergency contacts to volunteer (single or multiple)
   addEmergencyContacts: async (idVolunteer, idEmergencyContacts) => {
-    // Validate that volunteer exists
     const volunteer = await VolunteerRepository.findById(idVolunteer);
     if (!volunteer) {
       throw new Error('Voluntario no encontrado');
     }
-    
-    // Normalize to array
+
     const contactIds = Array.isArray(idEmergencyContacts) ? idEmergencyContacts : [idEmergencyContacts];
-    
-    // Validate each emergency contact exists and is active
-    const validationErrors = [];
+
+    const missing = [];
+    const inactive = [];
+    const activeIds = [];
+
     for (const idContact of contactIds) {
       const contactStatus = await VolunteerRepository.emergencyContactExists(idContact);
       if (!contactStatus.exists) {
-        validationErrors.push(`El contacto de emergencia con ID ${idContact} no existe`);
+        missing.push(idContact);
       } else if (!contactStatus.active) {
-        validationErrors.push(`El contacto de emergencia con ID ${idContact} está inactivo`);
+        inactive.push(idContact);
+      } else {
+        activeIds.push(idContact);
       }
     }
-    
-    if (validationErrors.length > 0) {
-      throw new Error(validationErrors.join(', '));
+
+    if (missing.length > 0) {
+      throw new Error(`El contacto de emergencia con ID ${missing.join(', ')} no existe`);
     }
-    
-    // Use batch insert for multiple, single insert for one
-    if (contactIds.length === 1) {
-      return VolunteerRepository.addEmergencyContact(idVolunteer, contactIds[0]);
+
+    if (activeIds.length === 0) {
+      throw new Error('Todos los contactos de emergencia proporcionados están inactivos');
+    }
+
+    let result;
+    if (activeIds.length === 1) {
+      result = await VolunteerRepository.addEmergencyContact(idVolunteer, activeIds[0]);
     } else {
-      return VolunteerRepository.addEmergencyContacts(idVolunteer, contactIds);
+      result = await VolunteerRepository.addEmergencyContacts(idVolunteer, activeIds);
     }
+
+    return {
+      addedCount: Array.isArray(result) ? result.length : (result ? 1 : 0),
+      addedIds: activeIds,
+      ignoredInactiveIds: inactive,
+    };
   },
 
   // Remove emergency contacts from volunteer (single or multiple)
