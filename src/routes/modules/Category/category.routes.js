@@ -1,29 +1,30 @@
+const { authorizeWindow, authenticate } = require('../../../middlewares/auth.middleware');
 const { categoryController } = require('./category.controller');
 
 module.exports = [
     {
         method: 'GET',
         path: '/api/categories',
-        handler: categoryController.list
+        handler: authenticate(authorizeWindow('Categorías', 'read')(categoryController.list))
     },
     {
         method: 'GET',
         path: '/api/categories/:id',
-        handler: categoryController.getById
+        handler: authenticate(authorizeWindow('Categorías', 'read')(categoryController.getById))
     },
     {
         method: 'POST',
         path: '/api/categories',
-        handler: categoryController.create
+        handler: authenticate(authorizeWindow('Categorías', 'create')(categoryController.create))
     },
     {
         method: 'PUT',
         path: '/api/categories/:id',
-        handler: categoryController.update
+        handler: authenticate(authorizeWindow('Categorías', 'update')(categoryController.update))
     },
     {
         method: 'DELETE',
         path: '/api/categories/:id',
-        handler: categoryController.delete
+        handler: authenticate(authorizeWindow('Categorías', 'delete')(categoryController.delete))
     }
 ];
