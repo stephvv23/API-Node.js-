@@ -58,9 +58,11 @@ const AssetsRepository = {
       select: baseSelect,
     }),
 
+  // Soft delete: sets status to 'inactive' instead of physically deleting
   remove: (idAsset) =>
-    prisma.asset.delete({
+    prisma.asset.update({
       where: { idAsset: Number(idAsset) },
+      data: { status: 'inactive' },
       select: baseSelect,
     }),
 

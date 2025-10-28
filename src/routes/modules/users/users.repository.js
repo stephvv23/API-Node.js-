@@ -47,22 +47,34 @@ const UsersRepository = {
 
   // Finds a user by email (primary key)
   findByEmailWithHeadquarters: (email) => prisma.user.findUnique({ where: { email },include: {headquarterUser: { select: { idHeadquarter: true, headquarter: true } },roles: { select: { idRole: true, role: true } }}}),
-  // Login roles and permissions with database-level filtering for active roles/windows
-  findAuthWithRoles: (email) => prisma.user.findUnique({
+  // Login roles and permissions for the window - only includes active roles
+  findAuthWithRoles: (email) =>prisma.user.findUnique({
     where: { email }, 
     select: {
-      email: true, name: true, status: true, password: true,
+      email: true, 
+      name: true, 
+      status: true, 
+      password: true, 
       roles: {
-        where: { role: { status: 'active' } }, // Filter active roles at database level
-        select: {
+        where: {
+          role: {
+            status: 'active' // Only include active roles
+          }
+        },
+        include: {
           role: {
             select: {
-              idRole: true, rolName: true, status: true,
+              idRole: true,
+              rolName: true,
+              status: true,
               windows: { 
-                where: { window: { status: 'active' } }, // Filter active windows at database level
-                select: {
-                  create: true, read: true, update: true, delete: true,
-                  window: { select: { idWindow: true, windowName: true, status: true } }
+                where: {
+                  window: {
+                    status: 'active' // Only include active windows
+                  }
+                },
+                include: { 
+                  window: true 
                 }
               }
             }
@@ -113,6 +125,12 @@ const UsersRepository = {
     },
     select: { idWindow: true, windowName: true, status: true }
   }),
+
+  invalidateToken: async (token) => {
+    return prisma.tokenBlacklist.create({
+      data: { token },
+    });
+  },
   
 };
 

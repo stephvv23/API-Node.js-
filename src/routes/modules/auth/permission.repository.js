@@ -2,18 +2,38 @@ const prisma = require("../../../lib/prisma.js");
 
 const PermissionRepository = {
   async getWindowsForUser(email) {
-    // search roles for that user
-    const roles = await prisma.userRole.findMany({
+    
+    // First, let's check ALL roles for this user (without filtering by status)
+    const allUserRoles = await prisma.userRole.findMany({
       where: { email },
-      select: { idRole: true },
+      include: { role: true }
+    });
+    
+    // search active roles for that user
+    const roles = await prisma.userRole.findMany({
+      where: { 
+        email,
+        role: {
+          status: 'active' // Only include active roles
+        }
+      },
+      select: { idRole: true, role: { select: { idRole: true, rolName: true, status: true } } },
     });
 
-    const roleIds = roles.map((r) => r.idRole);
-    if (roleIds.length === 0) return [];
 
-    // search windows for those roles
+    const roleIds = roles.map((r) => r.idRole);
+    if (roleIds.length === 0) {
+      return [];
+    }
+
+    // search windows for those active roles, only including active windows
     const rows = await prisma.roleWindow.findMany({
-      where: { idRole: { in: roleIds } },
+      where: { 
+        idRole: { in: roleIds },
+        window: {
+          status: 'active' // Only include active windows
+        }
+      },
       select: {
         read: true,
         create: true,
@@ -55,7 +75,8 @@ const PermissionRepository = {
       });
     }
 
-    return Array.from(combined.values());
+    const result = Array.from(combined.values());
+    return result;
   },
 };
 

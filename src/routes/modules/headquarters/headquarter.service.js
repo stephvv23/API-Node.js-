@@ -1,14 +1,10 @@
 const { HeadquarterRepository } = require('./headquarter.repository');
 
 const HeadquarterService = {
-  // Lists all active headquarters
-  listActive: async () => {
-    return HeadquarterRepository.listActive();
+  // Lists all headquarters (active and inactive)
+  list: async () => {
+    return HeadquarterRepository.list();
   },
-  // Lists headquarters with optional status filter
-  list: async ({status = 'active', take, skip} = {}) => {
-        return HeadquarterRepository.list({status, take, skip});
-    },
   // Retrieves a headquarter by id
   findById: async (id) => {
     return HeadquarterRepository.findById(id);

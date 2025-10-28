@@ -14,11 +14,13 @@
  * These rules can be reused across different entity validators
  */
 const ValidationRules = {
+  // Hardcoded offset for timezone adjustment (6 hours)
+  TIMEZONE_OFFSET_HOURS: 6,
   // Email format validation using regex pattern
   email: (value) => {
     if (value === undefined || value === null) return true; // Skip if value is not provided
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(value) || 'Formato de email inválido';
+    return emailRegex.test(value) || 'Formato de Correo inválido';
   },
 
   // String length validations
@@ -46,6 +48,13 @@ const ValidationRules = {
   isInteger: (value) => {
     if (value === undefined || value === null) return true; // Skip if value is not provided
     return Number.isInteger(Number(value)) || 'Debe ser un número entero';
+  },
+
+  // Strict integer validation - only accepts number type, not strings
+  isStrictInteger: (value) => {
+    if (value === undefined || value === null) return true; // Skip if value is not provided
+    if (typeof value !== 'number') return 'Debe ser un número, no texto u otro tipo';
+    return Number.isInteger(value) || 'Debe ser un número entero sin decimales';
   },
 
   // Content format validations
@@ -92,17 +101,217 @@ const ValidationRules = {
     return regex.test(value) || 'Solo se permiten letras, números, espacios, apostrofes, guiones, puntos y comas';
   },
 
-  // Date validation
+  // Date validation with strict day/month checking
+  // Parse a date value into a Date object treating plain date strings as local dates at midnight.
+  // Supports: 'YYYY-MM-DD', 'YYYY/MM/DD', 'DD-MM-YYYY', 'DD/MM/YYYY', and Date objects.
+  // Now also supports times: 'YYYY-MM-DDTHH:mm:ss', 'YYYY-MM-DD HH:mm:ss', etc., treated as local.
+  parseDate: (value) => {
+    if (value === undefined || value === null) return null;
+    // If it's already a Date
+    if (value instanceof Date) return isNaN(value.getTime()) ? null : value;
+
+    // If it's a number (timestamp)
+    if (typeof value === 'number') {
+      const d = new Date(value);
+      return isNaN(d.getTime()) ? null : d;
+    }
+
+    if (typeof value === 'string') {
+      const s = value.trim();
+
+      // Try ISO-like YYYY-MM-DDTHH:mm:ss or YYYY-MM-DD HH:mm:ss (treat as local date/time, not UTC)
+      const isoTimeMatch = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:[T\s](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/);
+      if (isoTimeMatch) {
+        const year = Number(isoTimeMatch[1]);
+        const month = Number(isoTimeMatch[2]);
+        const day = Number(isoTimeMatch[3]);
+        const hour = isoTimeMatch[4] ? Number(isoTimeMatch[4]) : 0;
+        const minute = isoTimeMatch[5] ? Number(isoTimeMatch[5]) : 0;
+        const second = isoTimeMatch[6] ? Number(isoTimeMatch[6]) : 0;
+        const d = new Date(year, month - 1, day, hour, minute, second);
+        // Hardcoded timezone adjustment: subtract 6 hours if time was specified
+        if (isoTimeMatch[4]) {
+          d.setHours(d.getHours() - ValidationRules.TIMEZONE_OFFSET_HOURS);
+        }
+        return isNaN(d.getTime()) ? null : d;
+      }
+
+      // Try DD-MM-YYYY HH:mm:ss or DD/MM/YYYY HH:mm:ss
+      const dmTimeMatch = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})(?:[T\s](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/);
+      if (dmTimeMatch) {
+        const day = Number(dmTimeMatch[1]);
+        const month = Number(dmTimeMatch[2]);
+        const year = Number(dmTimeMatch[3]);
+        const hour = dmTimeMatch[4] ? Number(dmTimeMatch[4]) : 0;
+        const minute = dmTimeMatch[5] ? Number(dmTimeMatch[5]) : 0;
+        const second = dmTimeMatch[6] ? Number(dmTimeMatch[6]) : 0;
+        const d = new Date(year, month - 1, day, hour, minute, second);
+        // Hardcoded timezone adjustment: subtract 6 hours if time was specified
+        if (dmTimeMatch[4]) {
+          d.setHours(d.getHours() - ValidationRules.TIMEZONE_OFFSET_HOURS);
+        }
+        return isNaN(d.getTime()) ? null : d;
+      }
+
+      // Fallback: let Date try parsing (may interpret timezone)
+      const fallback = new Date(s);
+      return isNaN(fallback.getTime()) ? null : fallback;
+    }
+
+    return null;
+  },
+
+  // Date validation with strict day/month checking
   isValidDate: (value) => {
     if (value === undefined || value === null) return true; // Skip if value is not provided
-    const date = new Date(value);
-    return !isNaN(date.getTime()) || 'Fecha inválida';
+    
+    // Use parseDate to reliably get a Date treated as local
+    const date = ValidationRules.parseDate(value);
+    if (!date) return 'La fecha debe incluir año, mes y día completos (ej: 2024-01-15, 2024-01-15T10:30:00 o 15/01/2024 10:30)';
+    
+    // For string inputs, validate the components (day, month, year, and optionally hour, minute, second)
+    if (typeof value === 'string') {
+      const dateStr = value.trim();
+      
+      // Reject incomplete date formats (year only or year-month only)
+      // Must have at least year, month, and day
+      if (!/^\d{4}[-/]\d{1,2}[-/]\d{1,2}(?:\s\d{1,2}:\d{1,2}(?::\d{1,2})?)?$/.test(dateStr) && 
+          !/^\d{1,2}[-/]\d{1,2}[-/]\d{4}(?:[T\s]\d{1,2}:\d{1,2}(?::\d{1,2})?)?$/.test(dateStr) &&
+          !/^\d{4}[-/]\d{1,2}[-/]\d{1,2}T\d{1,2}:\d{1,2}(?::\d{1,2})?$/.test(dateStr)) {
+        return 'La fecha debe incluir año, mes y día completos (ej: 2024-01-15, 2024-01-15T10:30:00 o 15/01/2024 10:30)';
+      }
+      
+      let day, month, year, hour, minute, second, hasTime = false;
+      
+      // Try ISO format with optional time (YYYY-MM-DD or YYYY/MM/DD [T]HH:mm[:ss])
+      const isoMatch = dateStr.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:[T\s](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/);
+      if (isoMatch) {
+        year = parseInt(isoMatch[1]);
+        month = parseInt(isoMatch[2]);
+        day = parseInt(isoMatch[3]);
+        if (isoMatch[4]) {
+          hour = parseInt(isoMatch[4]);
+          minute = parseInt(isoMatch[5]);
+          second = isoMatch[6] ? parseInt(isoMatch[6]) : 0;
+          hasTime = true;
+        }
+      }
+      // Try DD-MM-YYYY or DD/MM/YYYY with optional time
+      else {
+        const dmMatch = dateStr.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})(?:[T\s](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/);
+        if (dmMatch) {
+          day = parseInt(dmMatch[1]);
+          month = parseInt(dmMatch[2]);
+          year = parseInt(dmMatch[3]);
+          if (dmMatch[4]) {
+            hour = parseInt(dmMatch[4]);
+            minute = parseInt(dmMatch[5]);
+            second = dmMatch[6] ? parseInt(dmMatch[6]) : 0;
+            hasTime = true;
+          }
+        }
+      }
+      
+      // Validate month is between 1-12
+      if (month && (month < 1 || month > 12)) {
+        return 'El mes debe estar entre 1 y 12';
+      }
+      
+      // Validate day is valid for the given month/year
+      if (day && month && year) {
+        const maxDays = new Date(year, month, 0).getDate(); // Get max days in that month
+        if (day < 1 || day > maxDays) {
+          return `El día debe estar entre 1 y ${maxDays} para el mes especificado`;
+        }
+      }
+      
+      // Validate hour is between 0-23
+      if (hasTime && (hour < 0 || hour > 23)) {
+        return 'La hora debe estar entre 0 y 23';
+      }
+      
+      // Validate minute is between 0-59
+      if (hasTime && (minute < 0 || minute > 59)) {
+        return 'Los minutos deben estar entre 0 y 59';
+      }
+      
+      // Validate second is between 0-59
+      if (hasTime && (second < 0 || second > 59)) {
+        return 'Los segundos deben estar entre 0 y 59';
+      }
+      
+      // Additional check: verify the parsed date matches the input
+      // This catches cases like "2024-02-30" which JavaScript converts to "2024-03-01"
+      if (day && month && year) {
+        // Create reconstructed date with the timezone-adjusted time
+        let adjustedHour = hasTime ? hour - ValidationRules.TIMEZONE_OFFSET_HOURS : 0;
+        let adjustedMinute = hasTime ? minute : 0;
+        let adjustedSecond = hasTime ? second : 0;
+        let adjustedDay = day;
+        let adjustedMonth = month;
+        let adjustedYear = year;
+        
+        // Handle hour wrapping (negative hours wrap to previous day)
+        if (hasTime && adjustedHour < 0) {
+          adjustedHour += 24;
+          // Subtract one day
+          const tempDate = new Date(year, month - 1, day - 1);
+          adjustedDay = tempDate.getDate();
+          adjustedMonth = tempDate.getMonth() + 1;
+          adjustedYear = tempDate.getFullYear();
+        }
+        
+        const reconstructed = new Date(adjustedYear, adjustedMonth - 1, adjustedDay, adjustedHour, adjustedMinute, adjustedSecond);
+        
+        // The parsed date should match the reconstructed date
+        const parsed = ValidationRules.parseDate(value);
+        if (!parsed || 
+            parsed.getDate() !== reconstructed.getDate() || 
+            parsed.getMonth() !== reconstructed.getMonth() || 
+            parsed.getFullYear() !== reconstructed.getFullYear() ||
+            (hasTime && parsed.getHours() !== reconstructed.getHours()) ||
+            (hasTime && parsed.getMinutes() !== reconstructed.getMinutes()) ||
+            (hasTime && parsed.getSeconds() !== reconstructed.getSeconds())) {
+          return 'Fecha u hora inválida para el mes especificado';
+        }
+      }
+    }
+    
+    return true;
+  },  // Date not in future validation (birthday, etc.)
+  dateNotInFuture: (value) => {
+    if (value === undefined || value === null) return true; // Skip if value is not provided
+    
+    // First validate it's a valid date
+    const validDateResult = ValidationRules.isValidDate(value);
+    if (validDateResult !== true) return validDateResult;
+
+    const date = ValidationRules.parseDate(value);
+    const now = new Date();
+    return date <= now || 'La fecha no puede ser en el futuro';
+  },
+
+  // Positive number validation (for hours, quantities, etc.)
+  positiveNumber: (value) => {
+    if (value === undefined || value === null) return true; // Skip if value is not provided
+    const num = Number(value);
+    return num >= 0 || 'El valor debe ser mayor o igual a cero';
+  },
+
+  // Compare two dates: first date must be before second date
+  dateBefore: (firstDate, secondDate, firstFieldName = 'Fecha de inicio', secondFieldName = 'Fecha de finalización') => {
+    if (firstDate === undefined || firstDate === null || secondDate === undefined || secondDate === null) return true;
+    const date1 = ValidationRules.parseDate(firstDate);
+    const date2 = ValidationRules.parseDate(secondDate);
+
+    if (!date1 || !date2) return `${firstFieldName} o ${secondFieldName} inválida(s)`;
+    return date1 < date2 || `${firstFieldName} debe ser anterior a ${secondFieldName}`;
   },
 
   // Boolean validation
   isBoolean: (value) => {
     if (value === undefined || value === null) return true; // Skip if value is not provided
-    return typeof value === 'boolean' || 'Debe ser verdadero o falso';
+    return typeof value === 'boolean' || 'Debe ser "true" o "false"';
   },
 
   // Entity status validation (common across all entities)
@@ -114,14 +323,44 @@ const ValidationRules = {
 
   // Required field validation (skipped in partial mode)
   required: (value) => {
-    return (value !== undefined && value !== null && value !== '') || 'Este campo es obligatorio';
+    if (value === undefined || value === null) return 'Este campo es obligatorio';
+    if (typeof value === 'string') {
+      return value.trim() !== '' || 'Este campo es obligatorio';
+    }
+    return true; // For non-string values, just check that they're not null/undefined
   },
 
   // ---- CONTROLLER HELPER FUNCTIONS ----
   
+  /**
+   * Trims all string fields in an object and normalizes multiple spaces to single space
+   * Useful for cleaning user input before validation
+   * Examples:
+   * - "  alberto  " → "alberto"
+   * - "alberto                gomes    gonzales            " → "alberto gomes gonzales"
+   * @param {Object} data - The object with fields to trim
+   * @returns {Object} New object with trimmed and normalized string values
+   */
+  trimStringFields: (data) => {
+    if (!data || typeof data !== 'object') return data;
+    
+    const trimmedData = {};
+    for (const key in data) {
+      if (data.hasOwnProperty(key)) {
+        const value = data[key];
+        // Only process if it's a string and not null/undefined
+        if (typeof value === 'string') {
+          // Trim leading/trailing spaces and replace multiple spaces with single space
+          trimmedData[key] = value.trim().replace(/\s+/g, ' ');
+        } else {
+          trimmedData[key] = value;
+        }
+      }
+    }
+    return trimmedData;
+  },
  
   parseIdParam: (id) => {
-    if (!id || typeof id !== 'string') return null;
     const trimmed = id.trim();
     
     // Use existing ValidationRules
@@ -233,6 +472,12 @@ class FieldValidator {
     return this;
   }
 
+  // Strict integer validation - only accepts number type
+  strictInteger() {
+    this.rules.push(ValidationRules.isStrictInteger);
+    return this;
+  }
+
   // Content format validations
   alphanumeric() {
     this.rules.push(ValidationRules.onlyAlphanumeric);
@@ -267,6 +512,16 @@ class FieldValidator {
 
   date() {
     this.rules.push(ValidationRules.isValidDate);
+    return this;
+  }
+
+  dateNotInFuture() {
+    this.rules.push(ValidationRules.dateNotInFuture);
+    return this;
+  }
+
+  positiveNumber() {
+    this.rules.push(ValidationRules.positiveNumber);
     return this;
   }
 
@@ -770,7 +1025,7 @@ const EntityValidators = {
     if (shouldValidateField(data.birthday)) {
       const birthdayValidator = validator.field('birthday', data.birthday);
       if (!options.partial) birthdayValidator.required();
-      birthdayValidator.date();
+      birthdayValidator.date().dateNotInFuture();
     }
 
     // Email validation
@@ -808,9 +1063,9 @@ const EntityValidators = {
       scheduleValidator.string().minLength(1).internationalText().maxLength(300);
     }
 
-    // Required hours validation (optional field)
+    // Required hours validation (optional field, must be non-negative integer)
     if (shouldValidateField(data.requiredHours)) {
-      validator.field('requiredHours', data.requiredHours).integer();
+      validator.field('requiredHours', data.requiredHours).strictInteger().positiveNumber();
     }
 
     // Start date validation
@@ -840,6 +1095,20 @@ const EntityValidators = {
     // Status validation
     if (shouldValidateField(data.status)) {
       validator.field('status', data.status).validStatus();
+    }
+
+    // Cross-field validation: startDate must be before finishDate
+    // Only validate if both dates are provided
+    if (shouldValidateField(data.startDate) && shouldValidateField(data.finishDate)) {
+      const startDate = ValidationRules.parseDate(data.startDate);
+      const finishDate = ValidationRules.parseDate(data.finishDate);
+
+      if (startDate && finishDate) {
+        if (startDate > finishDate) {
+          const congruenceValidator = validator.field('dateCongruence', null);
+          congruenceValidator.custom(() => 'La fecha de inicio no puede ser posterior a la fecha de finalización');
+        }
+      }
     }
     
     return validator.validate();
@@ -872,7 +1141,7 @@ const EntityValidators = {
 
   /**
    * Activity entity validator
-   * Schema: idActivity (PK), idHeadquarter, tittle (150), description (750), type (50), 
+   * Schema: idActivity (PK), idHeadquarter, title (150), description (750), type (50), 
    * modality (25), capacity (Int), location (300), date (DateTime), status (25)
    * @param {Object} data - The activity data to validate
    * @param {Object} options - Validation options
@@ -894,17 +1163,10 @@ const EntityValidators = {
     }
 
     // Title validation
-    if (shouldValidateField(data.tittle)) {
-      const titleValidator = validator.field('tittle', data.tittle);
+    if (shouldValidateField(data.title)) {
+      const titleValidator = validator.field('title', data.title);
       if (!options.partial) titleValidator.required();
       titleValidator.string().minLength(1).internationalText().maxLength(150);
-    }
-
-    // Description validation
-    if (shouldValidateField(data.description)) {
-      const descValidator = validator.field('description', data.description);
-      if (!options.partial) descValidator.required();
-      descValidator.string().minLength(1).internationalText().maxLength(750);
     }
 
     // Type validation
@@ -925,7 +1187,7 @@ const EntityValidators = {
     if (shouldValidateField(data.capacity)) {
       const capacityValidator = validator.field('capacity', data.capacity);
       if (!options.partial) capacityValidator.required();
-      capacityValidator.integer();
+      capacityValidator.integer().positiveNumber();
     }
 
     // Location validation
@@ -939,7 +1201,31 @@ const EntityValidators = {
     if (shouldValidateField(data.date)) {
       const dateValidator = validator.field('date', data.date);
       if (!options.partial) dateValidator.required();
-      dateValidator.date();
+      dateValidator.date().custom((value) => {
+        if (value === undefined || value === null) return true;
+        
+        // Parse the date using the existing parseDate function
+        const date = ValidationRules.parseDate(value);
+        if (!date) return 'Fecha inválida';
+        
+        const now = new Date();
+        // Add a small buffer (1 minute) to account for timezone differences and processing time
+        const bufferTime = new Date(now.getTime() + 60000); // 1 minute buffer
+        
+        // Check if the date is in the past (before now + buffer)
+        if (date < bufferTime) {
+          return 'La fecha de la actividad no puede ser en el pasado';
+        }
+        
+        return true;
+      });
+    }
+
+    // Description validation
+    if (shouldValidateField(data.description)) {
+      const descValidator = validator.field('description', data.description);
+      if (!options.partial) descValidator.required();
+      descValidator.string().minLength(1).internationalText().maxLength(750);
     }
 
     // Status validation
@@ -1011,11 +1297,28 @@ const EntityValidators = {
       validator.field('finishDate', data.finishDate).date();
     }
 
+    // Date congruence validation: startDate should be before or equal to finishDate
+    if (shouldValidateField(data.startDate) && shouldValidateField(data.finishDate)) {
+      const startDate = ValidationRules.parseDate(data.startDate);
+      const finishDate = ValidationRules.parseDate(data.finishDate);
+
+      if (startDate && finishDate) {
+        if (startDate > finishDate) {
+          const congruenceValidator = validator.field('dateCongruence', null);
+          congruenceValidator.custom(() => 'La fecha de inicio no puede ser posterior a la fecha de finalización');
+        }
+      }
+    }
+
     // Description validation
     if (shouldValidateField(data.description)) {
       const descValidator = validator.field('description', data.description);
       if (!options.partial) descValidator.required();
-      descValidator.string().internationalText().maxLength(250);
+      descValidator.string().custom((value) => {
+        if (value === undefined || value === null) return true;
+        const regex = /^[\p{L}\p{N}\p{P}\p{Z}\p{S}]+$/u;
+        return regex.test(value) || 'Solo se permiten letras, números, espacios, signos de puntuación y símbolos';
+      }).maxLength(250);
     }
 
     // Status validation

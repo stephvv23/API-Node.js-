@@ -4,6 +4,7 @@ const { authenticate, authorizeWindow } = require('../../../middlewares/auth.mid
 module.exports = [
   // Login not protected with token because is to get the token
   { method: 'POST', path: '/api/users/login', handler: UsersController.login },
+  { method: 'POST', path: '/api/users/logout', handler: authenticate(UsersController.logout)},
 
   // protected routes with window-based permissions
   { method: 'GET', path: '/api/users', handler: authenticate(authorizeWindow('Usuarios', 'read')(UsersController.list)) },
