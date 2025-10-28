@@ -67,7 +67,12 @@ const roleWindowRepository = {
         const roleId = Number(idRole);
 
         const windows = await prisma.window.findMany({
-            where: { status: 'active' },
+            where: { 
+                status: 'active',
+                NOT: {
+                    idWindow: 5 // Exclude PrincipalPage
+                }
+            },
             select: {
             idWindow: true,
             windowName: true,
@@ -95,53 +100,88 @@ const roleWindowRepository = {
 
 
     // Create or update (upsert) a role-window permission
-    create: (data) =>
-        prisma.roleWindow.upsert({
+    create: async (data) => {
+        const idRole = Number(data.idRole);
+        const idWindow = Number(data.idWindow);
+        
+        // Try to find existing record
+        const existing = await prisma.roleWindow.findUnique({
             where: {
                 idRole_idWindow: {
-                    idRole: Number(data.idRole),
-                    idWindow: Number(data.idWindow),
+                    idRole,
+                    idWindow,
                 }
-            },
-            create: {
-                idRole: Number(data.idRole),
-                idWindow: Number(data.idWindow),
-                create: data.create,
-                read: data.read,
-                update: data.update,
-                delete: data.remove, 
-            },
-            update: {
-                create: data.create,
-                read: data.read,
-                update: data.update,
-                delete: data.remove,
-            },
-            select: baseSelect,
-        }),
+            }
+        });
 
-    // Update a role-window permission (upsert)
-    update: (idRole, idWindow, flags) =>
-    prisma.roleWindow.upsert({
-        where: {
-            idRole_idWindow: { idRole, idWindow },
-        },
-        update: {
+        const permissionData = {
+            create: data.create,
+            read: data.read,
+            update: data.update,
+            delete: data.remove,
+        };
+
+        if (existing) {
+            // Update existing
+            return prisma.roleWindow.update({
+                where: {
+                    idRole_idWindow: {
+                        idRole,
+                        idWindow,
+                    }
+                },
+                data: permissionData,
+                select: baseSelect,
+            });
+        } else {
+            // Create new
+            return prisma.roleWindow.create({
+                data: {
+                    idRole,
+                    idWindow,
+                    ...permissionData,
+                },
+                select: baseSelect,
+            });
+        }
+    },
+
+    // Update a role-window permission (or create if not exists)
+    update: async (idRole, idWindow, flags) => {
+        const existing = await prisma.roleWindow.findUnique({
+            where: {
+                idRole_idWindow: { idRole, idWindow },
+            }
+        });
+
+        const permissionData = {
             create: flags.create,
-            read:   flags.read,
-            update: flags.update,
-            delete: flags.remove,   
-        },
-        create: {
-            idRole,
-            idWindow,
-            create: flags.create,
-            read:   flags.read,
+            read: flags.read,
             update: flags.update,
             delete: flags.remove,
-        },
-        select: baseSelect,
-    }),
+        };
+
+        if (existing) {
+            // Update existing
+            return prisma.roleWindow.update({
+                where: {
+                    idRole_idWindow: { idRole, idWindow },
+                },
+                data: permissionData,
+                select: baseSelect,
+            });
+        } else {
+            // Create new
+            return prisma.roleWindow.create({
+                data: {
+                    idRole,
+                    idWindow,
+                    ...permissionData,
+                },
+                select: baseSelect,
+            });
+        }
+    },
 
     // Delete a role-window permission by composite IDs
     delete: (idRole, idWindow) => 

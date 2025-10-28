@@ -121,8 +121,8 @@ const roleController = {
                         email: userEmail,
                         action,
                         description: `Role updated: ID: "${id}", ` +
-                            `Name: "${payload.rolName}", ` +
-                            `Status: "${payload.status}"`,
+                            `Name: "${updated.rolName}", ` +
+                            `Status: "${updated.status}"`,
                         affectedTable: 'Role',
                     });
                 } else {
@@ -130,8 +130,8 @@ const roleController = {
                         email: userEmail,
                         action: 'UPDATE',
                         description: `Role updated: ID: "${id}", ` +
-                            `Name: "${payload.rolName}", ` +
-                            `Status: "${payload.status}"`,
+                            `Name: "${updated.rolName}", ` +
+                            `Status: "${updated.status}"`,
                         affectedTable: 'Role',
                     });
                 }

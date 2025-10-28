@@ -119,11 +119,9 @@ const roleWindowController = {
                     `[create: ${newRoleWindow.create}, ` +
                     `read: ${newRoleWindow.read}, ` +
                     `update: ${newRoleWindow.update}, ` +
-                    `remove: ${newRoleWindow.remove}]`,
+                    `remove: ${newRoleWindow.delete}]`,
                 affectedTable: 'RoleWindow',
             });
-
-            await roleWindowService.assignReadPermissionToPrincipalPage();
 
             return res.status(201).success(newRoleWindow, 'Role-Window created successfully');
         } catch (error) {
@@ -167,7 +165,7 @@ const roleWindowController = {
                             `[create: ${flags.create}, ` +
                             `read: ${flags.read}, ` +
                             `update: ${flags.update}, ` +
-                            `remove: ${flags.remove}]`,
+                            `remove: ${flags.delete}]`,
                         affectedTable: 'RoleWindow',
                     });
                     return res.success(updated, 'Role-Window updated successfully');

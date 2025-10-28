@@ -65,24 +65,22 @@ const roleWindowService = {
         return roleWindowRepository.delete(idRole, idWindow);
     }, 
 
-    assignReadPermissionToPrincipalPage: async () => {
-        // Assign the "read" permission for "PrincipalPage" to ALL roles
-        const allRoles = await roleWindowRepository.list({}); // Get all roles
-
-        const promises = allRoles.map(role => {
-            return roleWindowRepository.create({
-                idRole: role.idRole,
-                idWindow: 12, // ID of `PrincipalPage` in the `Window` table (adjust if necessary)
+    // Assign read permission for PrincipalPage (window 5) to a specific role
+    // This should be called when creating a NEW ROLE, not when creating role-window permissions
+    assignReadPermissionToPrincipalPage: async (idRole) => {
+        try {
+            return await roleWindowRepository.create({
+                idRole: idRole,
+                idWindow: 5, // PrincipalPage
                 create: false,
                 read: true,
                 update: false,
                 remove: false
             });
-        });
-
-        // Wait for the permission assignments for all roles to complete
-        await Promise.all(promises);
-
+        } catch (error) {
+            // If it already exists, that's okay
+            console.log(`PrincipalPage permission already exists for role ${idRole}`);
+        }
     }
 }
 module.exports = { roleWindowService };

@@ -27,14 +27,12 @@ const roleService = {
         // Assign read permission to "PrincipalPage" window for the new role
         await roleWindowService.create({
             idRole: newRole.idRole,
-            idWindow: 12, // Assuming 12 is the ID for "PrincipalPage"
+            idWindow: 5, // PrincipalPage window ID (as per seed.js)
             create: false,
             read: true,
             update: false,
             remove: false
         });
-
-        await roleWindowService.assignReadPermissionToPrincipalPage();  // Llamamos al método para asignar a todos los roles
 
         return newRole;
     },
