@@ -79,6 +79,15 @@ const ValidationRules = {
     return regex.test(value) || 'Solo se permiten letras, números, espacios y signos de puntuación';
   },
 
+  // Name validation (only letters, spaces, hyphens, and apostrophes)
+  personName: (value) => {
+    if (value === undefined || value === null) return true; // Skip if value is not provided
+    // Allows letters (including accented), spaces, single hyphens, and apostrophes
+    // Does not allow consecutive special characters or names made only of symbols
+    const regex = /^[\p{L}]+([\p{L}\s'-]*[\p{L}]+)*$/u;
+    return regex.test(value) || 'El nombre solo puede contener letras, espacios, guiones y apóstrofes. Debe comenzar y terminar con una letra';
+  },
+
   // Phone number validation (international format support)
   phoneNumber: (value) => {
     if (value === undefined || value === null) return true; // Skip if value is not provided
@@ -492,6 +501,11 @@ class FieldValidator {
   // New international text validations
   internationalText() {
     this.rules.push(ValidationRules.internationalText);
+    return this;
+  }
+
+  personName() {
+    this.rules.push(ValidationRules.personName);
     return this;
   }
 
@@ -1358,7 +1372,7 @@ const EntityValidators = {
     if (shouldValidateField(data.survivorName)) {
       const nameValidator = validator.field('survivorName', data.survivorName);
       if (!options.partial) nameValidator.required();
-      nameValidator.string().minLength(1).internationalText().maxLength(200);
+      nameValidator.string().minLength(1).personName().maxLength(200);
     }
 
     // Document number validation

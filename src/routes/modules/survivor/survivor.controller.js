@@ -1,6 +1,9 @@
 const { SurvivorService } = require("./survivor.service");
 const { SecurityLogService } = require("../../../services/securitylog.service");
 const { EntityValidators } = require("../../../utils/validator");
+const { HeadquarterService } = require("../headquarters/headquarter.service");
+const { CancerService } = require("../cancer/cancer.service");
+const { EmergencyContactService } = require("../emergencyContact/emergencyContact.service");
 
 const SurvivorController = {
   // List all active survivors
@@ -58,18 +61,37 @@ const SurvivorController = {
     try {
       const errors = [];
 
+      // Validate headquarter exists and is active
+      if (data.idHeadquarter) {
+        const headquarter = await HeadquarterService.findById(data.idHeadquarter);
+        if (!headquarter) {
+          errors.push("La sede especificada no existe");
+        } else if (headquarter.status !== "active") {
+          errors.push("La sede especificada no está activa");
+        }
+      }
+
       // Validate cancers array (required, minimum 1)
       if (!data.cancers || !Array.isArray(data.cancers) || data.cancers.length === 0) {
         errors.push("Debe proporcionar al menos un tipo de cáncer");
       } else {
-        data.cancers.forEach((cancer, index) => {
+        for (let i = 0; i < data.cancers.length; i++) {
+          const cancer = data.cancers[i];
           if (!cancer.idCancer || typeof cancer.idCancer !== 'number') {
-            errors.push(`Cáncer ${index + 1}: idCancer es requerido y debe ser un número`);
+            errors.push(`Cáncer ${i + 1}: idCancer es requerido y debe ser un número`);
+          } else {
+            // Validate cancer exists and is active
+            const cancerExists = await CancerService.get(cancer.idCancer);
+            if (!cancerExists) {
+              errors.push(`Cáncer ${i + 1}: El tipo de cáncer con ID ${cancer.idCancer} no existe`);
+            } else if (cancerExists.status !== "active") {
+              errors.push(`Cáncer ${i + 1}: El tipo de cáncer "${cancerExists.cancerName}" no está activo`);
+            }
           }
           if (!cancer.stage || typeof cancer.stage !== 'string') {
-            errors.push(`Cáncer ${index + 1}: stage (etapa) es requerido y debe ser texto`);
+            errors.push(`Cáncer ${i + 1}: stage (etapa) es requerido y debe ser texto`);
           }
-        });
+        }
       }
 
       // Validate phones (optional, but must be array if provided)
@@ -80,6 +102,17 @@ const SurvivorController = {
       // Validate emergency contacts (optional, but must be array if provided)
       if (data.emergencyContacts && !Array.isArray(data.emergencyContacts)) {
         errors.push("emergencyContacts debe ser un array de IDs");
+      } else if (data.emergencyContacts && data.emergencyContacts.length > 0) {
+        // Validate each emergency contact exists and is active
+        for (let i = 0; i < data.emergencyContacts.length; i++) {
+          const idContact = data.emergencyContacts[i];
+          const contact = await EmergencyContactService.get(idContact);
+          if (!contact) {
+            errors.push(`Contacto de emergencia ${i + 1}: El contacto con ID ${idContact} no existe`);
+          } else if (contact.status !== "active") {
+            errors.push(`Contacto de emergencia ${i + 1}: El contacto "${contact.nameEmergencyContact}" no está activo`);
+          }
+        }
       }
 
       if (errors.length > 0) {
@@ -148,10 +181,53 @@ const SurvivorController = {
         return res.badRequest("No se puede actualizar un superviviente inactivo");
       }
 
+      // Validate headquarter if being updated
+      if (updateData.idHeadquarter !== undefined && updateData.idHeadquarter !== null) {
+        // Convert to integer if it's a string
+        const headquarterId = parseInt(updateData.idHeadquarter, 10);
+        
+        if (isNaN(headquarterId) || headquarterId <= 0) {
+          return res.validationErrors(["El ID de la sede debe ser un número entero positivo"]);
+        }
+        
+        const headquarter = await HeadquarterService.findById(headquarterId);
+        if (!headquarter) {
+          return res.validationErrors([`La sede con ID ${headquarterId} no existe`]);
+        }
+        if (headquarter.status !== "active") {
+          return res.validationErrors([`La sede "${headquarter.name}" no está activa`]);
+        }
+      }
+
+      // Warn if trying to update relations (not supported in UPDATE endpoint)
+      const relationFields = ['cancers', 'phones', 'emergencyContacts', 'cancerSurvivor', 'phoneSurvivor', 'emergencyContactSurvivor'];
+      const attemptedRelations = relationFields.filter(field => updateData[field] !== undefined);
+      
+      if (attemptedRelations.length > 0) {
+        return res.validationErrors([
+          `No se pueden actualizar relaciones en este endpoint: ${attemptedRelations.join(', ')}. ` +
+          `Para actualizar cánceres, teléfonos o contactos de emergencia, use los endpoints específicos correspondientes.`
+        ]);
+      }
+
+      // Clean payload: remove relation fields and nested objects that aren't allowed in update
+      const { 
+        headquarter, 
+        cancerSurvivor, 
+        phoneSurvivor, 
+        emergencyContactSurvivor,
+        activitySurvivor,
+        godparent,
+        cancers,
+        phones,
+        emergencyContacts,
+        ...cleanData 
+      } = updateData;
+
       const payload = {
-        ...updateData,
-        birthday: updateData.birthday
-          ? new Date(updateData.birthday)
+        ...cleanData,
+        birthday: cleanData.birthday
+          ? new Date(cleanData.birthday)
           : undefined,
       };
 

@@ -1,0 +1,186 @@
+const { EmergencyContactSurvivorService } = require('./emergencyContactSurvivor.service');
+const { SurvivorService } = require('../survivor/survivor.service');
+const { EmergencyContactService } = require('../emergencyContact/emergencyContact.service');
+const { SecurityLogService } = require('../../../services/securitylog.service');
+
+const EmergencyContactSurvivorController = {
+  /**
+   * GET /api/survivors/:id/emergency-contacts
+   * List all emergency contacts for a specific survivor
+   * Query params: ?status=active|inactive|all (default: active)
+   */
+  list: async (req, res) => {
+    const { id } = req.params;
+    const status = (req.query?.status || 'active').toLowerCase();
+
+    // Validate status parameter
+    const validStatuses = ['active', 'inactive', 'all'];
+    if (!validStatuses.includes(status)) {
+      return res.validationErrors([
+        `El parámetro status debe ser: ${validStatuses.join(', ')}`
+      ]);
+    }
+
+    try {
+      // Validate survivor exists
+      const survivor = await SurvivorService.findById(id);
+      if (!survivor) {
+        return res.notFound('Superviviente');
+      }
+
+      const contacts = await EmergencyContactSurvivorService.getBySurvivor(id, status);
+      return res.success(contacts);
+    } catch (error) {
+      console.error('[EMERGENCY-CONTACT-SURVIVOR] list error:', error);
+      return res.error('Error al obtener los contactos de emergencia del superviviente');
+    }
+  },
+
+  /**
+   * GET /api/survivors/:id/emergency-contacts/:idEmergencyContact
+   * Get a specific emergency contact of a survivor
+   */
+  getOne: async (req, res) => {
+    const { id, idEmergencyContact } = req.params;
+
+    try {
+      // Validate survivor exists
+      const survivor = await SurvivorService.findById(id);
+      if (!survivor) {
+        return res.notFound('Superviviente');
+      }
+
+      const contactSurvivor = await EmergencyContactSurvivorService.findOne(id, idEmergencyContact);
+      if (!contactSurvivor) {
+        return res.notFound('Relación contacto de emergencia-superviviente');
+      }
+
+      return res.success(contactSurvivor);
+    } catch (error) {
+      console.error('[EMERGENCY-CONTACT-SURVIVOR] getOne error:', error);
+      return res.error('Error al obtener el contacto de emergencia del superviviente');
+    }
+  },
+
+  /**
+   * POST /api/survivors/:id/emergency-contacts
+   * Add an emergency contact to a survivor
+   */
+  create: async (req, res) => {
+    const { id } = req.params;
+    const { idEmergencyContact } = req.body;
+
+    // Validations
+    const errors = [];
+
+    if (!idEmergencyContact || typeof idEmergencyContact !== 'number') {
+      errors.push('idEmergencyContact es requerido y debe ser un número');
+    }
+
+    if (errors.length > 0) {
+      return res.validationErrors(errors);
+    }
+
+    try {
+      // Validate survivor exists and is active
+      const survivor = await SurvivorService.findById(id);
+      if (!survivor) {
+        return res.notFound('Superviviente');
+      }
+
+      if (survivor.status !== 'active') {
+        return res.badRequest('No se pueden agregar contactos de emergencia a un superviviente inactivo');
+      }
+
+      // Validate emergency contact exists and is active
+      const contact = await EmergencyContactService.get(idEmergencyContact);
+      if (!contact) {
+        return res.validationErrors([`El contacto de emergencia con ID ${idEmergencyContact} no existe`]);
+      }
+
+      if (contact.status !== 'active') {
+        return res.validationErrors([`El contacto de emergencia "${contact.nameEmergencyContact}" no está activo`]);
+      }
+
+      // Check if relation already exists
+      const existing = await EmergencyContactSurvivorService.findOne(id, idEmergencyContact);
+      
+      if (existing) {
+        // Check if the emergency contact itself is active
+        if (existing.emergencyContact.status === 'active') {
+          return res.validationErrors([
+            `El superviviente ya tiene registrado el contacto de emergencia "${contact.nameEmergencyContact}".`
+          ]);
+        } else {
+          // If the emergency contact is inactive, we can't reactivate the relation
+          // because EmergencyContactSurvivor doesn't have a status field
+          return res.validationErrors([
+            `Ya existe una relación con este contacto de emergencia, pero el contacto está inactivo. ` +
+            `Active primero el contacto de emergencia para poder usarlo.`
+          ]);
+        }
+      }
+
+      // Create relation
+      const newContactSurvivor = await EmergencyContactSurvivorService.create(id, idEmergencyContact);
+
+      // Security log
+      const userEmail = req.user?.sub;
+      await SecurityLogService.log({
+        email: userEmail,
+        action: 'CREATE',
+        description:
+          `Se agregó el contacto de emergencia "${contact.nameEmergencyContact}" (ID: ${idEmergencyContact}) al superviviente "${survivor.survivorName}" (ID: ${id}). ` +
+          `Relación: "${contact.relationship}", Email: "${contact.emailEmergencyContact}".`,
+        affectedTable: 'EmergencyContactSurvivor'
+      });
+
+      return res.status(201).success(newContactSurvivor, 'Contacto de emergencia agregado exitosamente');
+    } catch (error) {
+      console.error('[EMERGENCY-CONTACT-SURVIVOR] create error:', error);
+      return res.error('Error al agregar el contacto de emergencia al superviviente');
+    }
+  },
+
+  /**
+   * DELETE /api/survivors/:id/emergency-contacts/:idEmergencyContact
+   * Remove an emergency contact from a survivor
+   */
+  delete: async (req, res) => {
+    const { id, idEmergencyContact } = req.params;
+
+    try {
+      // Validate survivor exists
+      const survivor = await SurvivorService.findById(id);
+      if (!survivor) {
+        return res.notFound('Superviviente');
+      }
+
+      // Validate emergency contact-survivor relation exists
+      const contactSurvivor = await EmergencyContactSurvivorService.findOne(id, idEmergencyContact);
+      if (!contactSurvivor) {
+        return res.notFound('El superviviente no tiene registrado este contacto de emergencia');
+      }
+
+      await EmergencyContactSurvivorService.delete(id, idEmergencyContact);
+
+      // Security log
+      const userEmail = req.user?.sub;
+      await SecurityLogService.log({
+        email: userEmail,
+        action: 'DELETE',
+        description:
+          `Se eliminó el contacto de emergencia "${contactSurvivor.emergencyContact.nameEmergencyContact}" (ID: ${idEmergencyContact}) del superviviente "${survivor.survivorName}" (ID: ${id}). ` +
+          `Relación: "${contactSurvivor.emergencyContact.relationship}".`,
+        affectedTable: 'EmergencyContactSurvivor'
+      });
+
+      return res.success(null, 'Contacto de emergencia eliminado exitosamente');
+    } catch (error) {
+      console.error('[EMERGENCY-CONTACT-SURVIVOR] delete error:', error);
+      return res.error('Error al eliminar el contacto de emergencia del superviviente');
+    }
+  }
+};
+
+module.exports = { EmergencyContactSurvivorController };
