@@ -26,13 +26,26 @@ const EmergencyContactSurvivorService = {
 
   /**
    * Add an emergency contact to a survivor
+   * @param {number} idSurvivor - Survivor ID
+   * @param {number} idEmergencyContact - Emergency Contact ID
+   * @param {string} status - Status (default: 'active')
    */
-  create: async (idSurvivor, idEmergencyContact) => {
-    return EmergencyContactSurvivorRepository.create(idSurvivor, idEmergencyContact);
+  create: async (idSurvivor, idEmergencyContact, status = 'active') => {
+    return EmergencyContactSurvivorRepository.create(idSurvivor, idEmergencyContact, status);
   },
 
   /**
-   * Remove an emergency contact from a survivor
+   * Update emergency contact-survivor relation status
+   * @param {number} idSurvivor - Survivor ID
+   * @param {number} idEmergencyContact - Emergency Contact ID
+   * @param {Object} data - Data to update
+   */
+  update: async (idSurvivor, idEmergencyContact, data) => {
+    return EmergencyContactSurvivorRepository.update(idSurvivor, idEmergencyContact, data);
+  },
+
+  /**
+   * Remove an emergency contact from a survivor (soft delete)
    */
   delete: async (idSurvivor, idEmergencyContact) => {
     return EmergencyContactSurvivorRepository.delete(idSurvivor, idEmergencyContact);

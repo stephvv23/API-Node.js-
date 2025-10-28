@@ -10,14 +10,17 @@ const EmergencyContactSurvivorRepository = {
   getBySurvivor: (idSurvivor, status = 'active') => {
     const where = { idSurvivor: Number(idSurvivor) };
     
-    // Note: EmergencyContactSurvivor doesn't have a status field in schema
-    // So we filter by the status of the related EmergencyContact
+    // Add status filter if not 'all'
+    if (status !== 'all') {
+      where.status = status;
+    }
     
     return prisma.emergencyContactSurvivor.findMany({
       where,
       select: {
         idEmergencyContact: true,
         idSurvivor: true,
+        status: true,
         emergencyContact: {
           select: {
             idEmergencyContact: true,
@@ -48,6 +51,7 @@ const EmergencyContactSurvivorRepository = {
       select: {
         idEmergencyContact: true,
         idSurvivor: true,
+        status: true,
         emergencyContact: {
           select: {
             idEmergencyContact: true,
@@ -64,17 +68,20 @@ const EmergencyContactSurvivorRepository = {
    * Add an emergency contact to a survivor
    * @param {number} idSurvivor - Survivor ID
    * @param {number} idEmergencyContact - Emergency Contact ID
+   * @param {string} status - Status (default: 'active')
    * @returns {Promise<Object>} Created emergency contact-survivor relation
    */
-  create: (idSurvivor, idEmergencyContact) =>
+  create: (idSurvivor, idEmergencyContact, status = 'active') =>
     prisma.emergencyContactSurvivor.create({
       data: {
         idSurvivor: Number(idSurvivor),
-        idEmergencyContact: Number(idEmergencyContact)
+        idEmergencyContact: Number(idEmergencyContact),
+        status
       },
       select: {
         idEmergencyContact: true,
         idSurvivor: true,
+        status: true,
         emergencyContact: {
           select: {
             idEmergencyContact: true,
@@ -88,18 +95,65 @@ const EmergencyContactSurvivorRepository = {
     }),
 
   /**
-   * Delete (remove) an emergency contact from a survivor
-   * Hard delete since EmergencyContactSurvivor doesn't have status field
+   * Update emergency contact-survivor relation status
    * @param {number} idSurvivor - Survivor ID
    * @param {number} idEmergencyContact - Emergency Contact ID
-   * @returns {Promise<Object>} Deleted emergency contact-survivor relation
+   * @param {Object} data - Data to update (status)
+   * @returns {Promise<Object>} Updated emergency contact-survivor relation
    */
-  delete: (idSurvivor, idEmergencyContact) =>
-    prisma.emergencyContactSurvivor.delete({
+  update: (idSurvivor, idEmergencyContact, data) =>
+    prisma.emergencyContactSurvivor.update({
       where: {
         idEmergencyContact_idSurvivor: {
           idEmergencyContact: Number(idEmergencyContact),
           idSurvivor: Number(idSurvivor)
+        }
+      },
+      data,
+      select: {
+        idEmergencyContact: true,
+        idSurvivor: true,
+        status: true,
+        emergencyContact: {
+          select: {
+            idEmergencyContact: true,
+            nameEmergencyContact: true,
+            emailEmergencyContact: true,
+            relationship: true,
+            status: true
+          }
+        }
+      }
+    }),
+
+  /**
+   * Delete (soft delete) an emergency contact from a survivor
+   * Changes status to 'inactive' instead of removing the record
+   * @param {number} idSurvivor - Survivor ID
+   * @param {number} idEmergencyContact - Emergency Contact ID
+   * @returns {Promise<Object>} Updated emergency contact-survivor relation with inactive status
+   */
+  delete: (idSurvivor, idEmergencyContact) =>
+    prisma.emergencyContactSurvivor.update({
+      where: {
+        idEmergencyContact_idSurvivor: {
+          idEmergencyContact: Number(idEmergencyContact),
+          idSurvivor: Number(idSurvivor)
+        }
+      },
+      data: { status: 'inactive' },
+      select: {
+        idEmergencyContact: true,
+        idSurvivor: true,
+        status: true,
+        emergencyContact: {
+          select: {
+            idEmergencyContact: true,
+            nameEmergencyContact: true,
+            emailEmergencyContact: true,
+            relationship: true,
+            status: true
+          }
         }
       }
     })

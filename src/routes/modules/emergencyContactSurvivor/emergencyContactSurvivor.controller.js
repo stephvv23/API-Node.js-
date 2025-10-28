@@ -1,6 +1,6 @@
 const { EmergencyContactSurvivorService } = require('./emergencyContactSurvivor.service');
 const { SurvivorService } = require('../survivor/survivor.service');
-const { EmergencyContactService } = require('../emergencyContact/emergencyContact.service');
+const { EmergencyContactsService } = require('../emergencyContact/emergencyContact.service');
 const { SecurityLogService } = require('../../../services/securitylog.service');
 
 const EmergencyContactSurvivorController = {
@@ -64,7 +64,7 @@ const EmergencyContactSurvivorController = {
 
   /**
    * POST /api/survivors/:id/emergency-contacts
-   * Add an emergency contact to a survivor
+   * Add an emergency contact to a survivor or reactivate if previously removed
    */
   create: async (req, res) => {
     const { id } = req.params;
@@ -93,7 +93,7 @@ const EmergencyContactSurvivorController = {
       }
 
       // Validate emergency contact exists and is active
-      const contact = await EmergencyContactService.get(idEmergencyContact);
+      const contact = await EmergencyContactsService.get(idEmergencyContact);
       if (!contact) {
         return res.validationErrors([`El contacto de emergencia con ID ${idEmergencyContact} no existe`]);
       }
@@ -106,23 +106,36 @@ const EmergencyContactSurvivorController = {
       const existing = await EmergencyContactSurvivorService.findOne(id, idEmergencyContact);
       
       if (existing) {
-        // Check if the emergency contact itself is active
-        if (existing.emergencyContact.status === 'active') {
+        // If relation exists and is active, return error
+        if (existing.status === 'active') {
           return res.validationErrors([
             `El superviviente ya tiene registrado el contacto de emergencia "${contact.nameEmergencyContact}".`
           ]);
-        } else {
-          // If the emergency contact is inactive, we can't reactivate the relation
-          // because EmergencyContactSurvivor doesn't have a status field
-          return res.validationErrors([
-            `Ya existe una relación con este contacto de emergencia, pero el contacto está inactivo. ` +
-            `Active primero el contacto de emergencia para poder usarlo.`
-          ]);
+        }
+
+        // If relation exists but is inactive, reactivate it
+        if (existing.status === 'inactive') {
+          const reactivated = await EmergencyContactSurvivorService.update(id, idEmergencyContact, {
+            status: 'active'
+          });
+
+          // Security log for reactivation
+          const userEmail = req.user?.sub;
+          await SecurityLogService.log({
+            email: userEmail,
+            action: 'REACTIVATE',
+            description:
+              `Se reactivó el contacto de emergencia "${contact.nameEmergencyContact}" (ID: ${idEmergencyContact}) para el superviviente "${survivor.survivorName}" (ID: ${id}). ` +
+              `Relación: "${contact.relationship}", Email: "${contact.emailEmergencyContact}".`,
+            affectedTable: 'EmergencyContactSurvivor'
+          });
+
+          return res.success(reactivated, 'Contacto de emergencia reactivado exitosamente');
         }
       }
 
-      // Create relation
-      const newContactSurvivor = await EmergencyContactSurvivorService.create(id, idEmergencyContact);
+      // Create new relation
+      const newContactSurvivor = await EmergencyContactSurvivorService.create(id, idEmergencyContact, 'active');
 
       // Security log
       const userEmail = req.user?.sub;
@@ -144,7 +157,7 @@ const EmergencyContactSurvivorController = {
 
   /**
    * DELETE /api/survivors/:id/emergency-contacts/:idEmergencyContact
-   * Remove an emergency contact from a survivor
+   * Remove an emergency contact from a survivor (soft delete)
    */
   delete: async (req, res) => {
     const { id, idEmergencyContact } = req.params;
@@ -162,15 +175,29 @@ const EmergencyContactSurvivorController = {
         return res.notFound('El superviviente no tiene registrado este contacto de emergencia');
       }
 
+      // Check if already inactive
+      if (contactSurvivor.status === 'inactive') {
+        return res.badRequest('Este contacto de emergencia ya ha sido eliminado');
+      }
+
+      // Count active emergency contacts before deleting
+      const activeContacts = await EmergencyContactSurvivorService.getBySurvivor(id, 'active');
+      
+      // Don't allow inactivation if it's the last active emergency contact
+      if (activeContacts.length <= 1) {
+        return res.badRequest('No se puede eliminar el único contacto de emergencia activo del superviviente');
+      }
+
+      // Soft delete (set status to inactive)
       await EmergencyContactSurvivorService.delete(id, idEmergencyContact);
 
       // Security log
       const userEmail = req.user?.sub;
       await SecurityLogService.log({
         email: userEmail,
-        action: 'DELETE',
+        action: 'INACTIVE',
         description:
-          `Se eliminó el contacto de emergencia "${contactSurvivor.emergencyContact.nameEmergencyContact}" (ID: ${idEmergencyContact}) del superviviente "${survivor.survivorName}" (ID: ${id}). ` +
+          `Se desactivó el contacto de emergencia "${contactSurvivor.emergencyContact.nameEmergencyContact}" (ID: ${idEmergencyContact}) del superviviente "${survivor.survivorName}" (ID: ${id}). ` +
           `Relación: "${contactSurvivor.emergencyContact.relationship}".`,
         affectedTable: 'EmergencyContactSurvivor'
       });
