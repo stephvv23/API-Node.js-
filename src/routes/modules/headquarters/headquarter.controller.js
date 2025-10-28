@@ -3,27 +3,10 @@ const { SecurityLogService } = require('../../../services/securitylog.service');
 const { EntityValidators, ValidationRules } = require('../../../utils/validator');
 
 const HeadquarterController = {
-  // Lists all active headquarters
-  getAllActive: async (_req, res) => {
+  // Lists all headquarters (active and inactive)
+  getAll: async (_req, res) => {
     try {
-      const headquarters = await HeadquarterService.listActive();
-      return res.success(headquarters);
-    } catch (error) {
-      console.error('[HEADQUARTERS] getAllActive error:', error);
-      return res.error('Error al obtener las sedes activas');
-    }
-  },
-
-  // Lists all headquarters with status filter
-  getAll: async (req, res, next) => {
-    try {
-      const status = (req.query.status || 'active').toLowerCase();
-      const allowed = ['active', 'inactive', 'all'];
-      if (!allowed.includes(status)) {
-        return res.validationErrors(['El estado debe ser "active", "inactive" o "all"']);
-      }
-
-      const headquarters = await HeadquarterService.list({ status });
+      const headquarters = await HeadquarterService.list();
       return res.success(headquarters);
     } catch (error) {
       console.error('[HEADQUARTERS] getAll error:', error);
@@ -63,7 +46,7 @@ const HeadquarterController = {
 
     try {
       // Check duplicates
-      const allHeadquarters = await HeadquarterService.list({ status: 'all' });
+      const allHeadquarters = await HeadquarterService.list();
       const duplicateErrors = [];
       
       if (allHeadquarters.some(h => h.name === name)) {

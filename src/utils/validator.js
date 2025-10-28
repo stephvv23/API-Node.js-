@@ -20,7 +20,7 @@ const ValidationRules = {
   email: (value) => {
     if (value === undefined || value === null) return true; // Skip if value is not provided
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(value) || 'Formato de email inválido';
+    return emailRegex.test(value) || 'Formato de Correo inválido';
   },
 
   // String length validations
@@ -167,7 +167,7 @@ const ValidationRules = {
     
     // Use parseDate to reliably get a Date treated as local
     const date = ValidationRules.parseDate(value);
-    if (!date) return 'Fecha inválida';
+    if (!date) return 'La fecha debe incluir año, mes y día completos (ej: 2024-01-15, 2024-01-15T10:30:00 o 15/01/2024 10:30)';
     
     // For string inputs, validate the components (day, month, year, and optionally hour, minute, second)
     if (typeof value === 'string') {
@@ -1187,7 +1187,7 @@ const EntityValidators = {
     if (shouldValidateField(data.capacity)) {
       const capacityValidator = validator.field('capacity', data.capacity);
       if (!options.partial) capacityValidator.required();
-      capacityValidator.integer();
+      capacityValidator.integer().positiveNumber();
     }
 
     // Location validation
@@ -1201,7 +1201,24 @@ const EntityValidators = {
     if (shouldValidateField(data.date)) {
       const dateValidator = validator.field('date', data.date);
       if (!options.partial) dateValidator.required();
-      dateValidator.date();
+      dateValidator.date().custom((value) => {
+        if (value === undefined || value === null) return true;
+        
+        // Parse the date using the existing parseDate function
+        const date = ValidationRules.parseDate(value);
+        if (!date) return 'Fecha inválida';
+        
+        const now = new Date();
+        // Add a small buffer (1 minute) to account for timezone differences and processing time
+        const bufferTime = new Date(now.getTime() + 60000); // 1 minute buffer
+        
+        // Check if the date is in the past (before now + buffer)
+        if (date < bufferTime) {
+          return 'La fecha de la actividad no puede ser en el pasado';
+        }
+        
+        return true;
+      });
     }
 
     // Description validation
@@ -1297,7 +1314,11 @@ const EntityValidators = {
     if (shouldValidateField(data.description)) {
       const descValidator = validator.field('description', data.description);
       if (!options.partial) descValidator.required();
-      descValidator.string().internationalText().maxLength(250);
+      descValidator.string().custom((value) => {
+        if (value === undefined || value === null) return true;
+        const regex = /^[\p{L}\p{N}\p{P}\p{Z}\p{S}]+$/u;
+        return regex.test(value) || 'Solo se permiten letras, números, espacios, signos de puntuación y símbolos';
+      }).maxLength(250);
     }
 
     // Status validation

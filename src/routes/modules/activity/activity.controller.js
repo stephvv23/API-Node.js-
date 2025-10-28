@@ -82,7 +82,10 @@ const ActivityController = {
 
   // Create a new activity
   create: async (req, res) => {
-    const { idHeadquarter, title, description, type, modality, capacity, location, date, status } = req.body;
+    // Trim all string fields to prevent leading/trailing spaces and normalize multiple spaces
+    const trimmedBody = ValidationRules.trimStringFields(req.body);
+    
+    const { idHeadquarter, title, description, type, modality, capacity, location, date, status } = trimmedBody;
     
     // Validation for CREATE - all fields required
     const validation = EntityValidators.activity({
@@ -94,17 +97,6 @@ const ActivityController = {
     }
 
     try {
-      // Check duplicates
-      const allActivities = await ActivityService.list();
-      const duplicateErrors = [];
-      
-      if (allActivities.some(a => a.title === title)) {
-        duplicateErrors.push('Ya existe una actividad con ese título');
-      }
-
-      if (duplicateErrors.length > 0) {
-        return res.validationErrors(duplicateErrors);
-      }
 
       const newActivity = await ActivityService.create({ 
         idHeadquarter: parseInt(idHeadquarter),
@@ -146,7 +138,9 @@ const ActivityController = {
   // Update activity data by idActivity
   update: async (req, res) => {
     const { idActivity } = req.params;
-    const updateData = req.body;
+    
+    // Trim all string fields to prevent leading/trailing spaces and normalize multiple spaces
+    const updateData = ValidationRules.trimStringFields(req.body);
 
     // Validation for UPDATE - only validate provided fields
     const validation = EntityValidators.activity(updateData, { partial: true });
@@ -156,26 +150,12 @@ const ActivityController = {
     }
 
     try {
-      // Check duplicates (excluding current record)
-      const duplicateErrors = [];
-      
-      if (updateData.title) {
-        const existsTitle = await ActivityService.findByTitle(updateData.title);
-        if (existsTitle && existsTitle.idActivity !== idActivity) {
-          duplicateErrors.push('Ya existe una actividad con ese título');
-        }
-      }
-
       // Check if headquarter exists if provided
       if (updateData.idHeadquarter) {
         const headquarterExists = await ActivityService.checkHeadquarterExists(updateData.idHeadquarter);
         if (!headquarterExists) {
-          duplicateErrors.push(`La sede con ID ${updateData.idHeadquarter} no existe`);
+          return res.validationErrors([`La sede con ID ${updateData.idHeadquarter} no existe`]);
         }
-      }
-
-      if (duplicateErrors.length > 0) {
-        return res.validationErrors(duplicateErrors);
       }
 
       // gets the previous activity data
