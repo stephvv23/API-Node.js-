@@ -14,25 +14,28 @@ async function main() {
     data: { rolName: 'COORDINATOR', status: 'active' },
   });
 
+  const windowNames = [
+    { id: 1, name: 'Activos' },
+    { id: 2, name: 'Supervivientes' },
+    { id: 3, name: 'Proveedores' },
+    { id: 4, name: 'Actividades' },
+    { id: 5, name: 'PrincipalPage' },
+    { id: 6, name: 'Usuarios' },
+    { id: 7, name: 'Cánceres' },
+    { id: 8, name: 'Contactos de emergencia' },
+    { id: 9, name: 'Sedes' },
+    { id: 10, name: 'Categorías' },
+    { id: 11, name: 'Voluntarios' },
+    { id: 12, name: 'Padrinos' },
+    { id: 13, name: 'Roles' },
+  ];
+
   const windows = await Promise.all(
-    [
-      'Activos',
-      'Supervivientes',
-      'Proveedores',
-      'Actividades',
-      'PrincipalPage',
-      'Usuarios',
-      'Cancers',
-      'ContactosEmergencia',
-      'Sedes',
-      'Categorias',
-      'Voluntarios',
-      'Padrinos',
-      'Roles',
-    ].map((w) =>
+    windowNames.map((w) =>
       prisma.window.create({
         data: {
-          windowName: w,
+          idWindow: w.id,
+          windowName: w.name,
           status: 'active',
         },
       })

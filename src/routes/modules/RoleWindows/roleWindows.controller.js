@@ -1,5 +1,6 @@
 const { roleWindowService } = require('./roleWindows.service');
 const { ValidationRules } = require('../../../utils/validator');
+const { SecurityLogService } = require('../../../services/securitylog.service');
 
 const roleWindowController = {
     // List all windows with status filter
@@ -107,6 +108,21 @@ const roleWindowController = {
                 update: Number(update),
                 remove: Number(remove),
             });
+
+            const userEmail = req.user?.sub || 'unknown';
+            await SecurityLogService.log({
+                email: userEmail,
+                action: 'CREATE',
+                description: `Role-Window created: Role ID: "${newRoleWindow.idRole}", ` +
+                    `Window ID: "${newRoleWindow.idWindow}", ` +
+                    `Permissions: ` +
+                    `[create: ${newRoleWindow.create}, ` +
+                    `read: ${newRoleWindow.read}, ` +
+                    `update: ${newRoleWindow.update}, ` +
+                    `remove: ${newRoleWindow.delete}]`,
+                affectedTable: 'RoleWindow',
+            });
+
             return res.status(201).success(newRoleWindow, 'Role-Window created successfully');
         } catch (error) {
             console.error('[ROLEWINDOWS] create error:', error);
@@ -138,6 +154,20 @@ const roleWindowController = {
                 };
                 try {
                     const updated = await roleWindowService.update(idRole, idWindow, flags);
+
+                    const userEmail = req.user?.sub || 'unknown';
+                    await SecurityLogService.log({
+                        email: userEmail,
+                        action: 'UPDATE',
+                        description: `Role-Window updated: Role ID: "${idRole}", ` +
+                            `Window ID: "${idWindow}", ` +
+                            `New Permissions: ` +
+                            `[create: ${flags.create}, ` +
+                            `read: ${flags.read}, ` +
+                            `update: ${flags.update}, ` +
+                            `remove: ${flags.delete}]`,
+                        affectedTable: 'RoleWindow',
+                    });
                     return res.success(updated, 'Role-Window updated successfully');
                 } catch (error) {
                     if (error.code === 'P2025') {
@@ -165,6 +195,14 @@ const roleWindowController = {
                 }
                 try {
                     const deletedRoleWindow = await roleWindowService.delete(idRole, idWindow);
+
+                    const userEmail = req.user?.sub || 'unknown';
+                    await SecurityLogService.log({
+                        email: userEmail,
+                        action: 'DELETE',
+                        description: `Role-Window deleted: Role ID: "${idRole}", Window ID: "${idWindow}"`,
+                        affectedTable: 'RoleWindow',
+                    });
                     return res.success(deletedRoleWindow, 'Role-Window deleted successfully');
                 } catch (error) {
                     if (error.code === 'P2025') {

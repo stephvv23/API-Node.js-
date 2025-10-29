@@ -63,6 +63,24 @@ const roleWindowService = {
     // Delete a role-window permission by composite IDs.
     delete: async (idRole, idWindow) => {
         return roleWindowRepository.delete(idRole, idWindow);
+    }, 
+
+    // Assign read permission for PrincipalPage (window 5) to a specific role
+    // This should be called when creating a NEW ROLE, not when creating role-window permissions
+    assignReadPermissionToPrincipalPage: async (idRole) => {
+        try {
+            return await roleWindowRepository.create({
+                idRole: idRole,
+                idWindow: 5, // PrincipalPage
+                create: false,
+                read: true,
+                update: false,
+                remove: false
+            });
+        } catch (error) {
+            // If it already exists, that's okay
+            console.log(`PrincipalPage permission already exists for role ${idRole}`);
+        }
     }
 }
 module.exports = { roleWindowService };
