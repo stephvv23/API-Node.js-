@@ -82,7 +82,7 @@ const roleWindowRepository = {
                 take: 1,
             },
             },
-            orderBy: { idWindow: 'asc' },
+            orderBy: { windowName: 'asc' },
         });
 
         return windows.map(w => {
