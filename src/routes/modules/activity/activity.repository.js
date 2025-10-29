@@ -535,7 +535,7 @@ const ActivityRepository = {
     const existingVolunteers = await prisma.volunteer.findMany({
       where: {
         idVolunteer: { in: integerIds },
-        status: 'active' // Solo voluntarios activos
+        status: 'active' // Only active volunteers
       },
       select: { idVolunteer: true, status: true }
     });
@@ -567,7 +567,7 @@ const ActivityRepository = {
     const existingVolunteers = await prisma.volunteer.findMany({
       where: {
         idVolunteer: { in: integerIds },
-        status: 'active' // Solo voluntarios activos
+        status: 'active' // Only active volunteers
       },
       select: { idVolunteer: true, status: true }
     });
@@ -591,7 +591,7 @@ const ActivityRepository = {
     const existingSurvivors = await prisma.survivor.findMany({
       where: {
         idSurvivor: { in: integerIds },
-        status: 'active' // Solo supervivientes activos
+        status: 'active' // Only active survivors
       },
       select: { idSurvivor: true, status: true }
     });
@@ -623,7 +623,7 @@ const ActivityRepository = {
     const existingSurvivors = await prisma.survivor.findMany({
       where: {
         idSurvivor: { in: integerIds },
-        status: 'active' // Solo supervivientes activos
+        status: 'active' // Only active survivors
       },
       select: { idSurvivor: true, status: true }
     });
@@ -647,7 +647,7 @@ const ActivityRepository = {
     const existingGodparents = await prisma.godparent.findMany({
       where: {
         idGodparent: { in: integerIds },
-        status: 'active' // Solo padrinos activos
+        status: 'active' // Only active godparents
       },
       select: { idGodparent: true, status: true }
     });
@@ -679,7 +679,7 @@ const ActivityRepository = {
     const existingGodparents = await prisma.godparent.findMany({
       where: {
         idGodparent: { in: integerIds },
-        status: 'active' // Solo padrinos activos
+        status: 'active' // Only active godparents
       },
       select: { idGodparent: true, status: true }
     });
