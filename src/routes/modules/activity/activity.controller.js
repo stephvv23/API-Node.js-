@@ -154,7 +154,7 @@ const ActivityController = {
       if (updateData.idHeadquarter) {
         const headquarterExists = await ActivityService.checkHeadquarterExists(updateData.idHeadquarter);
         if (!headquarterExists) {
-          return res.validationErrors([`La sede con ID ${updateData.idHeadquarter} no existe`]);
+          return res.validationErrors([`The headquarters with ID ${updateData.idHeadquarter} does not exist or is not active`]);
         }
       }
 
@@ -462,22 +462,35 @@ const ActivityController = {
     }
     
     try {
-      // Validate that all volunteers exist
-      const validation = await ActivityService.validateVolunteersExist(volunteerIds);
-      if (!validation.allExist) {
-        const missingIds = validation.missingIds.join(', ');
-        return res.validationErrors([`Los siguientes voluntarios no existen: ${missingIds}`]);
+      // Get valid volunteers and filter out invalid ones
+      const { validIds, invalidIds } = await ActivityService.getValidVolunteers(volunteerIds);
+      
+      if (validIds.length === 0) {
+        const missingIds = invalidIds.join(', ');
+        return res.validationErrors([`No valid volunteers found. The following volunteers do not exist or are not active: ${missingIds}`]);
       }
       
-      const result = await ActivityService.assignVolunteers(validId, volunteerIds);
+      const result = await ActivityService.assignVolunteers(validId, validIds);
       const userEmail = req.user?.sub;
+      
+      let message = `Successfully assigned ${result.count} volunteers to activity ID "${idActivity}"`;
+      if (invalidIds.length > 0) {
+        const rejectedIds = invalidIds.join(', ');
+        message += `. Note: The following volunteers were not assigned because they do not exist or are not active: ${rejectedIds}`;
+      }
+      
       await SecurityLogService.log({
         email: userEmail,
         action: 'ASSIGN_VOLUNTEERS',
-        description: `Se asignaron ${result.count} voluntarios a la actividad ID "${idActivity}"`,
+        description: `Se asignaron ${result.count} voluntarios a la actividad ID "${idActivity}". IDs asignados: ${validIds.join(', ')}${invalidIds.length > 0 ? `. IDs rechazados: ${invalidIds.join(', ')}` : ''}`,
         affectedTable: 'ActivityVolunteer',
       });
-      return res.success(result, 'Voluntarios asignados exitosamente');
+      
+      return res.success({
+        ...result,
+        assignedIds: validIds,
+        rejectedIds: invalidIds
+      }, message);
     } catch (error) {
       console.error('[ACTIVITY] assignVolunteers error:', error);
       return res.error('Error al asignar voluntarios a la actividad');
@@ -509,7 +522,7 @@ const ActivityController = {
       const validation = await ActivityService.validateVolunteersExist(volunteerIds);
       if (!validation.allExist) {
         const missingIds = validation.missingIds.join(', ');
-        return res.validationErrors([`Los siguientes voluntarios no existen: ${missingIds}`]);
+        return res.validationErrors([`Los siguientes voluntarios no existen o no están activos: ${missingIds}`]);
       }
       
       const result = await ActivityService.removeVolunteers(validActivityId, volunteerIds);
@@ -542,22 +555,35 @@ const ActivityController = {
     }
     
     try {
-      // Validate that all survivors exist
-      const validation = await ActivityService.validateSurvivorsExist(survivorIds);
-      if (!validation.allExist) {
-        const missingIds = validation.missingIds.join(', ');
-        return res.validationErrors([`Los siguientes supervivientes no existen: ${missingIds}`]);
+      // Get valid survivors and filter out invalid ones
+      const { validIds, invalidIds } = await ActivityService.getValidSurvivors(survivorIds);
+      
+      if (validIds.length === 0) {
+        const missingIds = invalidIds.join(', ');
+        return res.validationErrors([`No valid survivors found. The following survivors do not exist or are not active: ${missingIds}`]);
       }
       
-      const result = await ActivityService.assignSurvivors(validId, survivorIds);
+      const result = await ActivityService.assignSurvivors(validId, validIds);
       const userEmail = req.user?.sub;
+      
+      let message = `Successfully assigned ${result.count} survivors to activity ID "${idActivity}"`;
+      if (invalidIds.length > 0) {
+        const rejectedIds = invalidIds.join(', ');
+        message += `. Note: The following survivors were not assigned because they do not exist or are not active: ${rejectedIds}`;
+      }
+      
       await SecurityLogService.log({
         email: userEmail,
         action: 'ASSIGN_SURVIVORS',
-        description: `Se asignaron ${result.count} supervivientes a la actividad ID "${idActivity}"`,
+        description: `Se asignaron ${result.count} supervivientes a la actividad ID "${idActivity}". IDs asignados: ${validIds.join(', ')}${invalidIds.length > 0 ? `. IDs rechazados: ${invalidIds.join(', ')}` : ''}`,
         affectedTable: 'ActivitySurvivor',
       });
-      return res.success(result, 'Sobrevivientes asignados exitosamente');
+      
+      return res.success({
+        ...result,
+        assignedIds: validIds,
+        rejectedIds: invalidIds
+      }, message);
     } catch (error) {
       console.error('[ACTIVITY] assignSurvivors error:', error);
       return res.error('Error al asignar supervivientes a la actividad');
@@ -589,7 +615,7 @@ const ActivityController = {
       const validation = await ActivityService.validateSurvivorsExist(survivorIds);
       if (!validation.allExist) {
         const missingIds = validation.missingIds.join(', ');
-        return res.validationErrors([`Los siguientes supervivientes no existen: ${missingIds}`]);
+        return res.validationErrors([`Los siguientes supervivientes no existen o no están activos: ${missingIds}`]);
       }
       
       const result = await ActivityService.removeSurvivors(validActivityId, survivorIds);
@@ -622,22 +648,35 @@ const ActivityController = {
     }
     
     try {
-      // Validate that all godparents exist
-      const validation = await ActivityService.validateGodparentsExist(godparentIds);
-      if (!validation.allExist) {
-        const missingIds = validation.missingIds.join(', ');
-        return res.validationErrors([`Los siguientes padrinos no existen: ${missingIds}`]);
+      // Get valid godparents and filter out invalid ones
+      const { validIds, invalidIds } = await ActivityService.getValidGodparents(godparentIds);
+      
+      if (validIds.length === 0) {
+        const missingIds = invalidIds.join(', ');
+        return res.validationErrors([`No valid godparents found. The following godparents do not exist or are not active: ${missingIds}`]);
       }
       
-      const result = await ActivityService.assignGodparents(validId, godparentIds);
+      const result = await ActivityService.assignGodparents(validId, validIds);
       const userEmail = req.user?.sub;
+      
+      let message = `Successfully assigned ${result.count} godparents to activity ID "${idActivity}"`;
+      if (invalidIds.length > 0) {
+        const rejectedIds = invalidIds.join(', ');
+        message += `. Note: The following godparents were not assigned because they do not exist or are not active: ${rejectedIds}`;
+      }
+      
       await SecurityLogService.log({
         email: userEmail,
         action: 'ASSIGN_GODPARENTS',
-        description: `Se asignaron ${result.count} padrinos a la actividad ID "${idActivity}"`,
+        description: `Se asignaron ${result.count} padrinos a la actividad ID "${idActivity}". IDs asignados: ${validIds.join(', ')}${invalidIds.length > 0 ? `. IDs rechazados: ${invalidIds.join(', ')}` : ''}`,
         affectedTable: 'ActivityGodparent',
       });
-      return res.success(result, 'Padrinos asignados exitosamente');
+      
+      return res.success({
+        ...result,
+        assignedIds: validIds,
+        rejectedIds: invalidIds
+      }, message);
     } catch (error) {
       console.error('[ACTIVITY] assignGodparents error:', error);
       return res.error('Error al asignar padrinos a la actividad');
@@ -669,7 +708,7 @@ const ActivityController = {
       const validation = await ActivityService.validateGodparentsExist(godparentIds);
       if (!validation.allExist) {
         const missingIds = validation.missingIds.join(', ');
-        return res.validationErrors([`Los siguientes padrinos no existen: ${missingIds}`]);
+        return res.validationErrors([`Los siguientes padrinos no existen o no están activos: ${missingIds}`]);
       }
       
       const result = await ActivityService.removeGodparents(validActivityId, godparentIds);
