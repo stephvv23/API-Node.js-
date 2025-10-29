@@ -2,18 +2,12 @@ const { PhoneSurvivorRepository } = require('./phoneSurvivor.repository');
 
 const PhoneSurvivorService = {
   /**
-   * Get all phones for a survivor
+   * Get the phone for a survivor (only one allowed)
    * @param {number} idSurvivor - Survivor ID
+   * @returns {Promise<Object|null>} Phone-survivor relation or null
    */
   getBySurvivor: async (idSurvivor) => {
     return PhoneSurvivorRepository.getBySurvivor(idSurvivor);
-  },
-
-  /**
-   * Get a specific phone-survivor relation
-   */
-  findOne: async (idSurvivor, idPhone) => {
-    return PhoneSurvivorRepository.findOne(idSurvivor, idPhone);
   },
 
   /**
@@ -26,11 +20,12 @@ const PhoneSurvivorService = {
   },
 
   /**
-   * Remove a phone from a survivor (hard delete)
+   * Delete all phone relations for a survivor
    */
-  delete: async (idSurvivor, idPhone) => {
-    return PhoneSurvivorRepository.delete(idSurvivor, idPhone);
+  deleteAllBySurvivor: async (idSurvivor) => {
+    return PhoneSurvivorRepository.deleteAllBySurvivor(idSurvivor);
   }
 };
 
 module.exports = { PhoneSurvivorService };
+

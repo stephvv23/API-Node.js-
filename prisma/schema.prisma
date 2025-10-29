@@ -249,7 +249,7 @@ model Cancer {
 
 model Phone {
   idPhone       Int @id @default(autoincrement())
-  phone         Int
+  phone         String @db.VarChar(12) @unique
 
   phoneVolunteers PhoneVolunteer[] // relational table
   phoneSurvivor   PhoneSurvivor[]   // relational table

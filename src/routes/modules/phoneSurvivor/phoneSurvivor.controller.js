@@ -5,10 +5,10 @@ const { SecurityLogService } = require('../../../services/securitylog.service');
 
 const PhoneSurvivorController = {
   /**
-   * GET /api/survivors/:id/phones
-   * List all phones for a specific survivor
+   * GET /api/survivors/:id/phone
+   * Get the phone for a survivor (only one allowed)
    */
-  list: async (req, res) => {
+  get: async (req, res) => {
     const { id } = req.params;
 
     try {
@@ -18,44 +18,22 @@ const PhoneSurvivorController = {
         return res.notFound('Superviviente');
       }
 
-      const phones = await PhoneSurvivorService.getBySurvivor(id);
-      return res.success(phones, 'Teléfonos del superviviente obtenidos exitosamente');
-    } catch (error) {
-      console.error('[PHONE-SURVIVOR] list error:', error);
-      return res.error('Error al obtener los teléfonos del superviviente');
-    }
-  },
-
-  /**
-   * GET /api/survivors/:id/phones/:idPhone
-   * Get a specific phone for a survivor
-   */
-  getOne: async (req, res) => {
-    const { id, idPhone } = req.params;
-
-    try {
-      // Validate survivor exists
-      const survivor = await SurvivorService.findById(id);
-      if (!survivor) {
-        return res.notFound('Superviviente');
-      }
-
-      const phoneSurvivor = await PhoneSurvivorService.findOne(id, idPhone);
+      const phoneSurvivor = await PhoneSurvivorService.getBySurvivor(id);
       
       if (!phoneSurvivor) {
-        return res.notFound('El superviviente no tiene registrado este teléfono');
+        return res.success(null, 'El superviviente no tiene teléfono registrado');
       }
 
       return res.success(phoneSurvivor, 'Teléfono del superviviente obtenido exitosamente');
     } catch (error) {
-      console.error('[PHONE-SURVIVOR] getOne error:', error);
+      console.error('[PHONE-SURVIVOR] get error:', error);
       return res.error('Error al obtener el teléfono del superviviente');
     }
   },
 
   /**
-   * POST /api/survivors/:id/phones
-   * Add a phone to a survivor
+   * POST /api/survivors/:id/phone
+   * Add a phone to a survivor (only if they don't have one)
    * Body: { "phone": 50312345678 }
    * Automatically finds or creates the phone in the Phone table
    */
@@ -66,8 +44,17 @@ const PhoneSurvivorController = {
     // Validations
     const errors = [];
 
-    if (!phone || typeof phone !== 'number') {
-      errors.push('phone es requerido y debe ser un número');
+    if (!phone) {
+      errors.push('phone es requerido');
+    } else if (typeof phone !== 'string' && typeof phone !== 'number') {
+      errors.push('phone debe ser un string o número');
+    } else {
+      const phoneStr = String(phone);
+      if (!/^\d+$/.test(phoneStr)) {
+        errors.push('phone debe contener solo dígitos');
+      } else if (phoneStr.length > 12) {
+        errors.push('phone no puede tener más de 12 dígitos');
+      }
     }
 
     if (errors.length > 0) {
@@ -85,19 +72,20 @@ const PhoneSurvivorController = {
         return res.badRequest('No se pueden agregar teléfonos a un superviviente inactivo');
       }
 
+      // Check if survivor already has a phone
+      const existingPhone = await PhoneSurvivorService.getBySurvivor(id);
+      
+      if (existingPhone) {
+        return res.badRequest(
+          `El superviviente ya tiene un teléfono registrado (${existingPhone.phone.phone}). ` +
+          `Use PUT para cambiarlo o DELETE para eliminarlo primero.`
+        );
+      }
+
       // Find or create phone (immutable phone record)
       const phoneRecord = await PhoneService.findOrCreate(phone);
 
-      // Check if relation already exists
-      const existing = await PhoneSurvivorService.findOne(id, phoneRecord.idPhone);
-      
-      if (existing) {
-        return res.validationErrors([
-          `El superviviente ya tiene registrado el teléfono ${phone}.`
-        ]);
-      }
-
-      // Create new relation
+      // Create relation
       const newPhoneSurvivor = await PhoneSurvivorService.create(id, phoneRecord.idPhone);
 
       // Security log
@@ -118,23 +106,29 @@ const PhoneSurvivorController = {
   },
 
   /**
-   * PUT /api/survivors/:id/phones/:idPhone
-   * Update (change) a phone for a survivor
-   * Body: { "idPhone": 5 }
-   * This will:
-   * 1. Delete the old phone relation
-   * 2. Create the new phone relation
-   * Note: The phone must already exist in the Phone table
+   * PUT /api/survivors/:id/phone
+   * Update (replace) the phone for a survivor
+   * Body: { "phone": 50387654321 }
+   * Automatically finds or creates the new phone and replaces the old one
    */
   update: async (req, res) => {
-    const { id, idPhone } = req.params;
-    const { idPhone: newIdPhone } = req.body;
+    const { id } = req.params;
+    const { phone: newPhoneNumber } = req.body;
 
     // Validations
     const errors = [];
 
-    if (!newIdPhone || typeof newIdPhone !== 'number') {
-      errors.push('idPhone es requerido y debe ser un número');
+    if (!newPhoneNumber) {
+      errors.push('phone es requerido');
+    } else if (typeof newPhoneNumber !== 'string' && typeof newPhoneNumber !== 'number') {
+      errors.push('phone debe ser un string o número');
+    } else {
+      const phoneStr = String(newPhoneNumber);
+      if (!/^\d+$/.test(phoneStr)) {
+        errors.push('phone debe contener solo dígitos');
+      } else if (phoneStr.length > 12) {
+        errors.push('phone no puede tener más de 12 dígitos');
+      }
     }
 
     if (errors.length > 0) {
@@ -152,39 +146,26 @@ const PhoneSurvivorController = {
         return res.badRequest('No se pueden actualizar teléfonos de un superviviente inactivo');
       }
 
-      // Validate old phone-survivor relation exists
-      const oldPhoneSurvivor = await PhoneSurvivorService.findOne(id, idPhone);
+      // Check if survivor has a phone
+      const oldPhoneSurvivor = await PhoneSurvivorService.getBySurvivor(id);
+      
       if (!oldPhoneSurvivor) {
-        return res.notFound('El superviviente no tiene registrado este teléfono');
+        return res.notFound('El superviviente no tiene un teléfono registrado. Use POST para agregar uno.');
       }
 
+      // Find or create new phone
+      const newPhoneRecord = await PhoneService.findOrCreate(newPhoneNumber);
+
       // Check if trying to update to the same phone
-      if (Number(idPhone) === Number(newIdPhone)) {
+      if (oldPhoneSurvivor.idPhone === newPhoneRecord.idPhone) {
         return res.badRequest('El nuevo teléfono es el mismo que el actual');
       }
 
-      // Validate new phone exists
-      const newPhone = await PhoneService.findById(newIdPhone);
-      if (!newPhone) {
-        return res.validationErrors([
-          `El teléfono con ID ${newIdPhone} no existe. Debe crearlo primero o usar el número en el POST.`
-        ]);
-      }
-
-      // Check if new phone relation already exists for this survivor
-      const existingNewRelation = await PhoneSurvivorService.findOne(id, newIdPhone);
-      
-      if (existingNewRelation) {
-        return res.validationErrors([
-          `El superviviente ya tiene registrado el teléfono ${newPhone.phone}.`
-        ]);
-      }
-
       // Step 1: Delete old phone relation
-      await PhoneSurvivorService.delete(id, idPhone);
+      await PhoneSurvivorService.deleteAllBySurvivor(id);
 
       // Step 2: Create new phone relation
-      const result = await PhoneSurvivorService.create(id, newIdPhone);
+      const result = await PhoneSurvivorService.create(id, newPhoneRecord.idPhone);
 
       // Security log
       const userEmail = req.user?.sub;
@@ -193,8 +174,8 @@ const PhoneSurvivorController = {
         action: 'UPDATE',
         description:
           `Se cambió el teléfono del superviviente "${survivor.survivorName}" (ID: ${id}). ` +
-          `Teléfono anterior: ${oldPhoneSurvivor.phone.phone} (ID: ${idPhone}). ` +
-          `Teléfono nuevo: ${newPhone.phone} (ID: ${newIdPhone}).`,
+          `Teléfono anterior: ${oldPhoneSurvivor.phone.phone} (ID: ${oldPhoneSurvivor.idPhone}). ` +
+          `Teléfono nuevo: ${newPhoneNumber} (ID: ${newPhoneRecord.idPhone}).`,
         affectedTable: 'PhoneSurvivor'
       });
 
@@ -206,11 +187,11 @@ const PhoneSurvivorController = {
   },
 
   /**
-   * DELETE /api/survivors/:id/phones/:idPhone
-   * Remove a phone from a survivor (hard delete)
+   * DELETE /api/survivors/:id/phone
+   * Remove the phone from a survivor
    */
   delete: async (req, res) => {
-    const { id, idPhone } = req.params;
+    const { id } = req.params;
 
     try {
       // Validate survivor exists
@@ -219,14 +200,15 @@ const PhoneSurvivorController = {
         return res.notFound('Superviviente');
       }
 
-      // Validate phone-survivor relation exists
-      const phoneSurvivor = await PhoneSurvivorService.findOne(id, idPhone);
+      // Check if survivor has a phone
+      const phoneSurvivor = await PhoneSurvivorService.getBySurvivor(id);
+      
       if (!phoneSurvivor) {
-        return res.notFound('El superviviente no tiene registrado este teléfono');
+        return res.notFound('El superviviente no tiene un teléfono registrado');
       }
 
-      // Hard delete
-      await PhoneSurvivorService.delete(id, idPhone);
+      // Delete relation
+      await PhoneSurvivorService.deleteAllBySurvivor(id);
 
       // Security log
       const userEmail = req.user?.sub;
@@ -234,7 +216,7 @@ const PhoneSurvivorController = {
         email: userEmail,
         action: 'DELETE',
         description:
-          `Se eliminó el teléfono ${phoneSurvivor.phone.phone} (ID: ${idPhone}) del superviviente "${survivor.survivorName}" (ID: ${id}).`,
+          `Se eliminó el teléfono ${phoneSurvivor.phone.phone} (ID: ${phoneSurvivor.idPhone}) del superviviente "${survivor.survivorName}" (ID: ${id}).`,
         affectedTable: 'PhoneSurvivor'
       });
 
@@ -247,3 +229,4 @@ const PhoneSurvivorController = {
 };
 
 module.exports = { PhoneSurvivorController };
+

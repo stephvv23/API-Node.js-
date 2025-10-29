@@ -32,12 +32,12 @@ const PhoneRepository = {
 
   /**
    * Find a phone by phone number
-   * @param {number} phoneNumber - Phone number to search
+   * @param {string} phoneNumber - Phone number to search
    * @returns {Promise<Object|null>} Phone or null
    */
   findByPhoneNumber: (phoneNumber) =>
     prisma.phone.findFirst({
-      where: { phone: Number(phoneNumber) },
+      where: { phone: String(phoneNumber) },
       select: {
         idPhone: true,
         phone: true
@@ -46,13 +46,13 @@ const PhoneRepository = {
 
   /**
    * Create a new phone
-   * @param {number} phoneNumber - Phone number
+   * @param {string} phoneNumber - Phone number
    * @returns {Promise<Object>} Created phone
    */
   create: (phoneNumber) =>
     prisma.phone.create({
       data: {
-        phone: Number(phoneNumber)
+        phone: String(phoneNumber)
       },
       select: {
         idPhone: true,

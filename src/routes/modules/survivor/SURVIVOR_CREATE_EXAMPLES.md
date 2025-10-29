@@ -38,7 +38,7 @@ Authorization: Bearer YOUR_TOKEN_HERE
       "stage": "Etapa I"
     }
   ],
-  "phones": [22334455, 88776655],
+  "phone": "22334455",
   "emergencyContacts": [1, 2]
 }
 ```

@@ -3,7 +3,7 @@ const { SecurityLogService } = require("../../../services/securitylog.service");
 const { EntityValidators } = require("../../../utils/validator");
 const { HeadquarterService } = require("../headquarters/headquarter.service");
 const { CancerService } = require("../cancer/cancer.service");
-const { EmergencyContactService } = require("../emergencyContact/emergencyContact.service");
+const { EmergencyContactsService } = require("../emergencyContact/emergencyContact.service");
 
 const SurvivorController = {
   // List all active survivors
@@ -94,9 +94,18 @@ const SurvivorController = {
         }
       }
 
-      // Validate phones (optional, but must be array if provided)
-      if (data.phones && !Array.isArray(data.phones)) {
-        errors.push("phones debe ser un array");
+      // Validate phone (optional, but must be string if provided)
+      if (data.phone) {
+        if (typeof data.phone !== 'string' && typeof data.phone !== 'number') {
+          errors.push("phone debe ser un string o número");
+        } else {
+          const phoneStr = String(data.phone);
+          if (!/^\d+$/.test(phoneStr)) {
+            errors.push('phone debe contener solo dígitos');
+          } else if (phoneStr.length > 12) {
+            errors.push('phone no puede tener más de 12 dígitos');
+          }
+        }
       }
 
       // Validate emergency contacts (optional, but must be array if provided)
@@ -106,7 +115,7 @@ const SurvivorController = {
         // Validate each emergency contact exists and is active
         for (let i = 0; i < data.emergencyContacts.length; i++) {
           const idContact = data.emergencyContacts[i];
-          const contact = await EmergencyContactService.get(idContact);
+          const contact = await EmergencyContactsService.get(idContact);
           if (!contact) {
             errors.push(`Contacto de emergencia ${i + 1}: El contacto con ID ${idContact} no existe`);
           } else if (contact.status !== "active") {
@@ -200,7 +209,7 @@ const SurvivorController = {
       }
 
       // Warn if trying to update relations (not supported in UPDATE endpoint)
-      const relationFields = ['cancers', 'phones', 'emergencyContacts', 'cancerSurvivor', 'phoneSurvivor', 'emergencyContactSurvivor'];
+      const relationFields = ['cancers', 'phone', 'emergencyContacts', 'cancerSurvivor', 'phoneSurvivor', 'emergencyContactSurvivor'];
       const attemptedRelations = relationFields.filter(field => updateData[field] !== undefined);
       
       if (attemptedRelations.length > 0) {
@@ -219,7 +228,7 @@ const SurvivorController = {
         activitySurvivor,
         godparent,
         cancers,
-        phones,
+        phone,
         emergencyContacts,
         ...cleanData 
       } = updateData;

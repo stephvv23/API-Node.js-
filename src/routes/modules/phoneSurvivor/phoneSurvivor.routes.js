@@ -2,50 +2,42 @@ const { PhoneSurvivorController } = require('./phoneSurvivor.controller');
 const { authenticate, authorizeWindow } = require('../../../middlewares/auth.middleware');
 
 module.exports = [
-  // List all phones for a survivor
+  // Get the phone for a survivor (only one allowed)
   {
     method: 'GET',
-    path: '/api/survivors/:id/phones',
+    path: '/api/survivors/:id/phone',
     handler: authenticate(
-      authorizeWindow('Supervivientes', 'read')(PhoneSurvivorController.list)
+      authorizeWindow('Supervivientes', 'read')(PhoneSurvivorController.get)
     )
   },
 
-  // Get specific phone for a survivor
-  {
-    method: 'GET',
-    path: '/api/survivors/:id/phones/:idPhone',
-    handler: authenticate(
-      authorizeWindow('Supervivientes', 'read')(PhoneSurvivorController.getOne)
-    )
-  },
-
-  // Add phone to survivor (finds or creates phone by number)
+  // Add phone to survivor (only if they don't have one)
   // Body: { "phone": 50312345678 }
   {
     method: 'POST',
-    path: '/api/survivors/:id/phones',
+    path: '/api/survivors/:id/phone',
     handler: authenticate(
       authorizeWindow('Supervivientes', 'create')(PhoneSurvivorController.create)
     )
   },
 
-  // Update phone for survivor (changes relation to existing phone)
-  // Body: { "idPhone": 5 }
+  // Update (replace) phone for survivor
+  // Body: { "phone": 50387654321 }
   {
     method: 'PUT',
-    path: '/api/survivors/:id/phones/:idPhone',
+    path: '/api/survivors/:id/phone',
     handler: authenticate(
       authorizeWindow('Supervivientes', 'update')(PhoneSurvivorController.update)
     )
   },
 
-  // Delete phone from survivor (hard delete)
+  // Delete phone from survivor
   {
     method: 'DELETE',
-    path: '/api/survivors/:id/phones/:idPhone',
+    path: '/api/survivors/:id/phone',
     handler: authenticate(
       authorizeWindow('Supervivientes', 'delete')(PhoneSurvivorController.delete)
     )
   }
 ];
+

@@ -37,7 +37,7 @@ const SurvivorService = {
 
     const relationalData = {
       cancers: data.cancers || [],
-      phones: data.phones || [],
+      phone: data.phone || null,
       emergencyContacts: data.emergencyContacts || []
     };
 

@@ -2,12 +2,12 @@ const prisma = require('../../../lib/prisma');
 
 const PhoneSurvivorRepository = {
   /**
-   * Get all phones for a survivor
+   * Get the phone for a survivor (only one allowed)
    * @param {number} idSurvivor - Survivor ID
-   * @returns {Promise<Array>} List of phone-survivor relations
+   * @returns {Promise<Object|null>} Phone-survivor relation or null
    */
   getBySurvivor: (idSurvivor) => {
-    return prisma.phoneSurvivor.findMany({
+    return prisma.phoneSurvivor.findFirst({
       where: { idSurvivor: Number(idSurvivor) },
       select: {
         idPhone: true,
@@ -18,38 +18,9 @@ const PhoneSurvivorRepository = {
             phone: true
           }
         }
-      },
-      orderBy: {
-        idPhone: 'desc'
       }
     });
   },
-
-  /**
-   * Find a specific phone-survivor relation
-   * @param {number} idSurvivor - Survivor ID
-   * @param {number} idPhone - Phone ID
-   * @returns {Promise<Object|null>} Phone-survivor relation or null
-   */
-  findOne: (idSurvivor, idPhone) =>
-    prisma.phoneSurvivor.findUnique({
-      where: {
-        idPhone_idSurvivor: {
-          idPhone: Number(idPhone),
-          idSurvivor: Number(idSurvivor)
-        }
-      },
-      select: {
-        idPhone: true,
-        idSurvivor: true,
-        phone: {
-          select: {
-            idPhone: true,
-            phone: true
-          }
-        }
-      }
-    }),
 
   /**
    * Create a phone-survivor relation
@@ -76,20 +47,15 @@ const PhoneSurvivorRepository = {
     }),
 
   /**
-   * Delete (hard delete) a phone-survivor relation
+   * Delete all phone relations for a survivor
    * @param {number} idSurvivor - Survivor ID
-   * @param {number} idPhone - Phone ID
-   * @returns {Promise<Object>} Deleted phone-survivor relation
+   * @returns {Promise<Object>} Batch delete result
    */
-  delete: (idSurvivor, idPhone) =>
-    prisma.phoneSurvivor.delete({
-      where: {
-        idPhone_idSurvivor: {
-          idPhone: Number(idPhone),
-          idSurvivor: Number(idSurvivor)
-        }
-      }
+  deleteAllBySurvivor: (idSurvivor) =>
+    prisma.phoneSurvivor.deleteMany({
+      where: { idSurvivor: Number(idSurvivor) }
     })
 };
 
 module.exports = { PhoneSurvivorRepository };
+

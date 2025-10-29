@@ -90,26 +90,26 @@ const SurvivorRepository = {
         });
       }
 
-      // Create/link phones (optional)
-      if (relationalData.phones && relationalData.phones.length > 0) {
-        for (const phoneNumber of relationalData.phones) {
-          let phone = await tx.phone.findFirst({
-            where: { phone: phoneNumber }
-          });
+      // Create/link phone (optional, only one allowed)
+      if (relationalData.phone) {
+        const phoneStr = String(relationalData.phone);
+        
+        let phone = await tx.phone.findFirst({
+          where: { phone: phoneStr }
+        });
 
-          if (!phone) {
-            phone = await tx.phone.create({
-              data: { phone: phoneNumber }
-            });
-          }
-
-          await tx.phoneSurvivor.create({
-            data: {
-              idPhone: phone.idPhone,
-              idSurvivor: survivor.idSurvivor
-            }
+        if (!phone) {
+          phone = await tx.phone.create({
+            data: { phone: phoneStr }
           });
         }
+
+        await tx.phoneSurvivor.create({
+          data: {
+            idPhone: phone.idPhone,
+            idSurvivor: survivor.idSurvivor
+          }
+        });
       }
 
       // Link emergency contacts (optional)
