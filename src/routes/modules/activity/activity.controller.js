@@ -541,7 +541,11 @@ const ActivityController = {
         description: `Se removieron ${result.count} voluntarios de la actividad ID "${idActivity}". IDs solicitados: ${volunteerIds.join(', ')}. IDs eliminados: ${validIds.join(', ')}${rejectedIds.length>0?`. IDs rechazados: ${rejectedIds.join(', ')}`:''}`,
         affectedTable: 'ActivityVolunteer',
       });
-      return res.success({ ...result, removedIds: validIds, rejectedIds }, 'Voluntarios removidos exitosamente');
+      let message = `Se removieron ${result.count} voluntarios de la actividad ID "${idActivity}"`;
+      if (rejectedIds.length > 0) {
+        message += `. Nota: Los siguientes IDs fueron rechazados por no ser válidos: ${rejectedIds.join(', ')}`;
+      }
+      return res.success({ ...result, removedIds: validIds, rejectedIds }, message);
     } catch (error) {
       console.error('[ACTIVITY] removeVolunteers error:', error);
       return res.error('Error al remover voluntarios de la actividad');
@@ -634,7 +638,11 @@ const ActivityController = {
         description: `Se removieron ${result.count} sobrevivientes de la actividad ID "${idActivity}". IDs solicitados: ${survivorIds.join(', ')}. IDs eliminados: ${validIds.join(', ')}${rejectedIds.length>0?`. IDs rechazados: ${rejectedIds.join(', ')}`:''}`,
         affectedTable: 'ActivitySurvivor',
       });
-      return res.success({ ...result, removedIds: validIds, rejectedIds }, 'Sobrevivientes removidos exitosamente');
+      let message = `Se removieron ${result.count} sobrevivientes de la actividad ID "${idActivity}"`;
+      if (rejectedIds.length > 0) {
+        message += `. Nota: Los siguientes IDs fueron rechazados por no ser válidos: ${rejectedIds.join(', ')}`;
+      }
+      return res.success({ ...result, removedIds: validIds, rejectedIds }, message);
     } catch (error) {
       console.error('[ACTIVITY] removeSurvivors error:', error);
       return res.error('Error al remover supervivientes de la actividad');
@@ -731,7 +739,11 @@ const ActivityController = {
         description: `Se removieron ${result.count} padrinos de la actividad ID "${idActivity}". IDs solicitados: ${godparentIds.join(', ')}. IDs eliminados: ${validIds.join(', ')}${rejectedIds.length>0?`. IDs rechazados: ${rejectedIds.join(', ')}`:''}`,
         affectedTable: 'ActivityGodparent',
       });
-      return res.success({ ...result, removedIds: validIds, rejectedIds }, 'Padrinos removidos exitosamente');
+      let message = `Se removieron ${result.count} padrinos de la actividad ID "${idActivity}"`;
+      if (rejectedIds.length > 0) {
+        message += `. Nota: Los siguientes IDs fueron rechazados por no ser válidos: ${rejectedIds.join(', ')}`;
+      }
+      return res.success({ ...result, removedIds: validIds, rejectedIds }, message);
     } catch (error) {
       console.error('[ACTIVITY] removeGodparents error:', error);
       return res.error('Error al remover padrinos de la actividad');
