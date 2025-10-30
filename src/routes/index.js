@@ -22,7 +22,6 @@ const permissionRoutes = require('./modules/auth/permission.routes');
 const godParentRoutes = require('./modules/GodParent/godParent.routes');
 const activityRoutes = require('./modules/activity/activity.routes');
 const volunteerRoutes = require('./modules/volunteer/volunteer.routes');
-const suppliersRoutes = require('./modules/suppliers/suppliers.routes');
 
 // const patientsRoutes = require('./modules/patients.routes');
 // 2) Concatenate and compile paths → { method, pattern, paramNames, handler }
@@ -40,7 +39,6 @@ function buildRoutes() {
     ...godParentRoutes,
     ...activityRoutes,
     ...volunteerRoutes,
-    ...suppliersRoutes,
   ];
 
   // Sort by specificity ("/login" before "/:email")
