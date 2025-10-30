@@ -57,7 +57,7 @@ const ActivityController = {
       return res.success(activities);
     } catch (error) {
       console.error('[ACTIVITY] list error:', error);
-      return res.error('Error retrieving activities');
+      return res.error('Error al obtener actividades');
     }
   },
 
@@ -71,12 +71,12 @@ const ActivityController = {
     try {
       const activity = await ActivityService.get(validId);
       if (!activity) {
-        return res.notFound('Activity');
+        return res.notFound('Actividad');
       }
       return res.success(activity);
     } catch (error) {
       console.error('[ACTIVITY] get error:', error);
-      return res.error('Error retrieving activity');
+      return res.error('Error al obtener la actividad');
     }
   },
 
@@ -166,7 +166,7 @@ const ActivityController = {
       // gets the previous activity data
       const previousActivity = await ActivityService.get(idActivity);
       if (!previousActivity) {
-        return res.notFound('Activity');
+        return res.notFound('Actividad');
       }
 
       // Process data before update
@@ -272,12 +272,12 @@ const ActivityController = {
     }
     
     const { status } = req.body || {};
-    if (!status) return res.validationErrors(['status is required']);
+    if (!status) return res.validationErrors(['status es requerido']);
     
     // Check existence before update
     const previousActivity = await ActivityService.get(validId);
     if (!previousActivity) {
-      return res.notFound('Activity');
+      return res.notFound('Actividad');
     }
     
     try {
@@ -306,12 +306,12 @@ const ActivityController = {
         });
       }
       
-      return res.success(updatedWithRelations, 'Activity status updated successfully');
+      return res.success(updatedWithRelations, 'Estado de la actividad actualizado exitosamente');
     } catch (e) {
       if (e && e.code === 'P2025')
-        return res.notFound('Activity');
+        return res.notFound('Actividad');
       console.error('[ACTIVITY] updateStatus error:', e);
-      return res.error('Error updating activity status');
+      return res.error('Error al actualizar el estado de la actividad');
     }
   },
 
@@ -321,7 +321,7 @@ const ActivityController = {
     
     const exists = await ActivityService.get(idActivity);
     if (!exists) {
-      return res.notFound('Activity');
+      return res.notFound('Actividad');
     }
     try {
       const deletedActivity = await ActivityService.delete(idActivity);
@@ -361,11 +361,11 @@ const ActivityController = {
     
     try {
       const activity = await ActivityService.getWithRelations(validId);
-      if (!activity) return res.notFound('Activity');
+      if (!activity) return res.notFound('Actividad');
       return res.success(activity);
     } catch (error) {
       console.error('[ACTIVITY] getWithRelations error:', error);
-      return res.error('Error retrieving activity with relations');
+      return res.error('Error al obtener la actividad con sus relaciones');
     }
   },
 
@@ -393,7 +393,7 @@ const ActivityController = {
       // First check if activity exists
       const activity = await ActivityService.get(validId);
       if (!activity) {
-        return res.notFound('Activity');
+        return res.notFound('Actividad');
       }
       
       const volunteers = await ActivityService.getVolunteers(validId);
@@ -417,7 +417,7 @@ const ActivityController = {
       // First check if activity exists
       const activity = await ActivityService.get(validId);
       if (!activity) {
-        return res.notFound('Activity');
+        return res.notFound('Actividad');
       }
       
       const survivors = await ActivityService.getSurvivors(validId);
@@ -441,7 +441,7 @@ const ActivityController = {
       // First check if activity exists
       const activity = await ActivityService.get(validId);
       if (!activity) {
-        return res.notFound('Activity');
+        return res.notFound('Actividad');
       }
       
       const godparents = await ActivityService.getGodparents(validId);
@@ -522,7 +522,7 @@ const ActivityController = {
     try {
       // QA: check if the activity exists
       const activity = await ActivityService.get(validActivityId);
-      if (!activity) return res.notFound('Activity');
+      if (!activity) return res.notFound('Actividad');
 
       // Partial deletion: filter valid IDs and proceed
       const parsedIds = Array.isArray(volunteerIds) ? volunteerIds.map(id => parseInt(id)) : [];
@@ -568,16 +568,16 @@ const ActivityController = {
       
       if (validIds.length === 0) {
         const missingIds = invalidIds.join(', ');
-        return res.validationErrors([`No valid survivors found. The following survivors do not exist or are not active: ${missingIds}`]);
+        return res.validationErrors([`No se encontraron sobrevivientes válidos. Los siguientes sobrevivientes no existen o no están activos: ${missingIds}`]);
       }
       
       const result = await ActivityService.assignSurvivors(validId, validIds);
       const userEmail = req.user?.sub;
       
-      let message = `Successfully assigned ${result.count} survivors to activity ID "${idActivity}"`;
+      let message = `Se asignaron ${result.count} sobrevivientes a la actividad ID "${idActivity}"`;
       if (invalidIds.length > 0) {
         const rejectedIds = invalidIds.join(', ');
-        message += `. Note: The following survivors were not assigned because they do not exist or are not active: ${rejectedIds}`;
+        message += `. Nota: Los siguientes sobrevivientes no fueron asignados porque no existen o no están activos: ${rejectedIds}`;
       }
       
       await SecurityLogService.log({
@@ -615,7 +615,7 @@ const ActivityController = {
     try {
       // QA: check if the activity exists
       const activity = await ActivityService.get(validActivityId);
-      if (!activity) return res.notFound('Activity');
+      if (!activity) return res.notFound('Actividad');
 
       // Partial deletion: filter valid IDs and proceed
       const parsedIds = Array.isArray(survivorIds) ? survivorIds.map(id => parseInt(id)) : [];
@@ -658,7 +658,7 @@ const ActivityController = {
     try {
       // QA: check if the activity exists
       const activity = await ActivityService.get(validId);
-      if (!activity) return res.notFound('Activity');
+      if (!activity) return res.notFound('Actividad');
 
       // Get valid godparents and filter out invalid ones
       const { validIds, invalidIds } = await ActivityService.getValidGodparents(godparentIds);
