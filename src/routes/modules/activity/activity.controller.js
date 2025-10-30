@@ -541,9 +541,14 @@ const ActivityController = {
         description: `Se removieron ${result.count} voluntarios de la actividad ID "${idActivity}". IDs solicitados: ${volunteerIds.join(', ')}. IDs eliminados: ${validIds.join(', ')}${rejectedIds.length>0?`. IDs rechazados: ${rejectedIds.join(', ')}`:''}`,
         affectedTable: 'ActivityVolunteer',
       });
-      let message = `Se removieron ${result.count} voluntarios de la actividad ID "${idActivity}"`;
-      if (rejectedIds.length > 0) {
-        message += `. Nota: Los siguientes IDs fueron rechazados por no ser válidos: ${rejectedIds.join(', ')}`;
+      let message;
+      if (result.count === 0) {
+        message = `No se encontraron relaciones de voluntarios para eliminar en la actividad ID "${idActivity}". Es posible que no existan o ya hayan sido eliminadas.`;
+      } else {
+        message = `Se removieron ${result.count} voluntarios de la actividad ID "${idActivity}"`;
+        if (rejectedIds.length > 0) {
+          message += `. Nota: Los siguientes IDs fueron rechazados por no ser válidos: ${rejectedIds.join(', ')}`;
+        }
       }
       return res.success({ ...result, removedIds: validIds, rejectedIds }, message);
     } catch (error) {
@@ -638,9 +643,14 @@ const ActivityController = {
         description: `Se removieron ${result.count} sobrevivientes de la actividad ID "${idActivity}". IDs solicitados: ${survivorIds.join(', ')}. IDs eliminados: ${validIds.join(', ')}${rejectedIds.length>0?`. IDs rechazados: ${rejectedIds.join(', ')}`:''}`,
         affectedTable: 'ActivitySurvivor',
       });
-      let message = `Se removieron ${result.count} sobrevivientes de la actividad ID "${idActivity}"`;
-      if (rejectedIds.length > 0) {
-        message += `. Nota: Los siguientes IDs fueron rechazados por no ser válidos: ${rejectedIds.join(', ')}`;
+      let message;
+      if (result.count === 0) {
+        message = `No se encontraron relaciones de sobrevivientes para eliminar en la actividad ID "${idActivity}". Es posible que no existan o ya hayan sido eliminadas.`;
+      } else {
+        message = `Se removieron ${result.count} sobrevivientes de la actividad ID "${idActivity}"`;
+        if (rejectedIds.length > 0) {
+          message += `. Nota: Los siguientes IDs fueron rechazados por no ser válidos: ${rejectedIds.join(', ')}`;
+        }
       }
       return res.success({ ...result, removedIds: validIds, rejectedIds }, message);
     } catch (error) {
@@ -739,9 +749,14 @@ const ActivityController = {
         description: `Se removieron ${result.count} padrinos de la actividad ID "${idActivity}". IDs solicitados: ${godparentIds.join(', ')}. IDs eliminados: ${validIds.join(', ')}${rejectedIds.length>0?`. IDs rechazados: ${rejectedIds.join(', ')}`:''}`,
         affectedTable: 'ActivityGodparent',
       });
-      let message = `Se removieron ${result.count} padrinos de la actividad ID "${idActivity}"`;
-      if (rejectedIds.length > 0) {
-        message += `. Nota: Los siguientes IDs fueron rechazados por no ser válidos: ${rejectedIds.join(', ')}`;
+      let message;
+      if (result.count === 0) {
+        message = `No se encontraron relaciones de padrinos para eliminar en la actividad ID "${idActivity}". Es posible que no existan o ya hayan sido eliminadas.`;
+      } else {
+        message = `Se removieron ${result.count} padrinos de la actividad ID "${idActivity}"`;
+        if (rejectedIds.length > 0) {
+          message += `. Nota: Los siguientes IDs fueron rechazados por no ser válidos: ${rejectedIds.join(', ')}`;
+        }
       }
       return res.success({ ...result, removedIds: validIds, rejectedIds }, message);
     } catch (error) {
