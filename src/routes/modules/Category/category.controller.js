@@ -1,6 +1,8 @@
 // Controller for Category entity. Handles HTTP requests and responses, input validation, and calls the service layer.
 const { categoryService } = require('./category.service');
 const ApiError = require('../../../utils/apiResponse').ApiError;
+const { EntityValidators } = require('../../../utils/validator');
+const { SecurityLogService } = require('../../../services/securitylog.service');
 
 const categoryController = {
     // List categories, with status filter and validation.
@@ -48,6 +50,17 @@ const categoryController = {
         }
         try {
             const newCategory = await categoryService.create(req.body);
+
+            const userEmail = req.user?.sub;
+            await SecurityLogService.log({
+                email: userEmail,
+                action: 'CREATE',
+                description: `Categoría creada: ` +
+                `ID: "${newCategory.idCategory}", ` +
+                `Nombre: "${newCategory.name}", ` +
+                `Estado: "${newCategory.status}"`,
+                affectedTable: 'Category',
+            });
             return res.status(201).success(newCategory, 'Categoría creada exitosamente');
         } catch (error) {
             return res.error('Error al crear la categoría');
@@ -81,8 +94,44 @@ const categoryController = {
                 return res.validationErrors(['Ya existe una categoría con ese nombre']);
             }
         }
+
+        const previousCategory = await categoryService.getById(id);
+
+        
+        const userEmail = req.user?.sub;
         try {
             const updatedCategory = await categoryService.update(id, req.body);
+            const nameUnchanged = previousCategory.name === updatedCategory.name;
+            const movedInactiveToActive =
+            previousCategory.status === 'inactive' && updatedCategory.status === 'active';
+            const movedActiveToInactive =
+            previousCategory.status === 'active' && updatedCategory.status === 'inactive';
+            const statusChanged = movedInactiveToActive || movedActiveToInactive;
+
+            if (statusChanged && nameUnchanged) {
+            const action = movedInactiveToActive ? 'REACTIVATE' : 'DEACTIVATE';
+            await SecurityLogService.log({
+                email: userEmail,
+                action,
+                description:
+                `Categoría ${action === 'REACTIVATE' ? 'reactivada' : 'desactivada'}: ` +
+                `ID: "${id}", ` +
+                `Nombre: "${updatedCategory.name}", ` +
+                `Estado: "${updatedCategory.status}"`,
+                affectedTable: 'Category',
+            });
+            } else {
+            await SecurityLogService.log({
+                email: userEmail,
+                action: 'UPDATE',
+                description:
+                `Categoría actualizada: ` +
+                `ID: "${id}", ` +
+                `Nombre: "${updatedCategory.name}", ` +
+                `Estado: "${updatedCategory.status}"`,
+                affectedTable: 'Category',
+            });
+            }
             return res.success(updatedCategory, 'Categoría actualizada exitosamente');
         } catch (error) {
             return res.error('Error al actualizar la categoría');
@@ -100,6 +149,16 @@ const categoryController = {
         }
         try {
             const deletedCategory = await categoryService.delete(id);
+            const userEmail = req.user?.sub;
+            await SecurityLogService.log({
+                email: userEmail,
+                action: 'DELETE',
+                description: `Categoría eliminada: ` +
+                `ID: "${deletedCategory.idCategory}", ` +
+                `Nombre: "${deletedCategory.name}", ` +
+                `Estado: "${deletedCategory.status}"`,
+                affectedTable: 'Category',
+            });
             return res.success(deletedCategory, 'Categoría eliminada exitosamente');
         } catch (error) {
             return res.error('Error al eliminar la categoría');

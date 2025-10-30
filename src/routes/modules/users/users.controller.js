@@ -343,33 +343,71 @@ const UsersController = {
    * Required fields: email, name, windowName
    */
   login: async (req, res, next) => {
-  try {
-    const { email, password, windowName, clientDate } = req.body || {};
-    if (!email || !password || !windowName) 
-      return next(ApiError.badRequest('email, password y windowName requeridos'));
+    try {
+      const { email, password, windowName, clientDate } = req.body || {};
+      if (!email || !password || !windowName) 
+        return next(ApiError.badRequest('email, password y windowName requeridos'));
 
-    const user = await UsersService.login(email, password, windowName, clientDate);
+      const user = await UsersService.login(email, password, windowName, clientDate);
 
-    if (!process.env.JWT_SECRET) return next(ApiError.internal('Falta JWT_SECRET'));
-   // data of token - subject,name,roles. Email its sub because a standard of jwt
-    const token = jwt.sign(
-    {
-      sub: user.email,
-      name: user.name,
-      roles: user.roles.map(ur => ur.role.rolName), // save the roles the user ['admin', 'editor']
-    },
-    process.env.JWT_SECRET,
-    { expiresIn: '1h' });
-    // Log the login access
-      await LoginAccessService.log({
-        email: email,
+      if (!process.env.JWT_SECRET) return next(ApiError.internal('Falta JWT_SECRET'));
+    // data of token - subject,name,roles. Email its sub because a standard of jwt
+      const token = jwt.sign(
+      {
+        sub: user.email,
+        name: user.name,
+        roles: user.roles.map(ur => ur.role.rolName), // save the roles the user ['admin', 'editor']
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' });
+      // Log the login access
+        await LoginAccessService.log({
+          email: email,
+        });
+
+      res.json({ message: 'Login exitoso', token, user });
+    } catch (e) {
+      next(e);
+    }
+  },
+
+
+  /**
+ * Logout a user (invalidate token client-side and server-side)
+ * POST /users/logout
+ * Requires: Authorization header with Bearer token
+ */
+  logout: async (req, res, next) => {
+    try {
+      const authHeader = req.headers['authorization'];
+      const token = authHeader && authHeader.split(' ')[1];
+      const { clientDate } = req.body || {};
+
+      if (!token) return next(ApiError.unauthorized('Token requerido para cerrar sesión.'));
+
+      const userEmail = req.user?.sub;
+      const userName = req.user?.name;
+
+      await SecurityLogService.log({
+        email: userEmail || 'unknown',
+        action: 'LOGOUT',
+        description: `El usuario "${userName || userEmail}" cerró sesión.`,
+        clientDate: clientDate || new Date().toISOString(),
+        affectedTable: 'User',
       });
 
-    res.json({ message: 'Login exitoso', token, user });
-  } catch (e) {
-    next(e);
-  }
-},
+      await UsersService.invalidateToken(token);
+
+      return res.status(200).json({ message: 'Logout exitoso (token invalidado)' });
+    } catch (e) {
+      console.error(' Error en logout:', e);
+      next(e);
+    }
+  },
+
+
+
+
 
   //get headquarters related to user by using email
   getuserHeadquartersByEmail: async (req, res) => {
