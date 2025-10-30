@@ -97,7 +97,7 @@ const ActivityController = {
     }
 
     try {
-      // QA bloqueo creación si la sede no existe o no está activa
+      // QA: check if the headquarter exists
       const hq = await ActivityService.checkHeadquarterExists(idHeadquarter);
       if (!hq) {
         return res.validationErrors([`La sede con ID ${idHeadquarter} no existe o no está activa`]);
