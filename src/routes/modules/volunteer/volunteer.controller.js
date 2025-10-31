@@ -360,6 +360,268 @@ const VolunteerController = {
       console.error('[VOLUNTEERS] delete error:', error);
       return res.error('Error al inactivar el voluntario');
     }
+  },
+
+  // ===== HEADQUARTERS RELATIONSHIPS =====
+
+  // Get all headquarters for a volunteer
+  getHeadquarters: async (req, res) => {
+    const { id } = req.params;
+    
+    const validId = parseIdParam(id);
+    if (!validId) {
+      return res.validationErrors(['idVolunteer debe ser un entero positivo']);
+    }
+
+    try {
+      const volunteer = await VolunteerService.findById(validId);
+      if (!volunteer) {
+        return res.notFound('Voluntario');
+      }
+
+      const headquarters = await VolunteerService.getHeadquarters(validId);
+      return res.success(headquarters);
+    } catch (error) {
+      console.error('[VOLUNTEERS] getHeadquarters error:', error);
+      return res.error('Error al obtener las sedes del voluntario');
+    }
+  },
+
+  // Add headquarters to volunteer (single or multiple)
+  addHeadquarters: async (req, res) => {
+    const { id } = req.params;
+    const { idHeadquarters } = req.body;
+
+    const validId = parseIdParam(id);
+    if (!validId) {
+      return res.validationErrors(['idVolunteer debe ser un entero positivo']);
+    }
+
+    if (!idHeadquarters) {
+      return res.validationErrors(['El campo idHeadquarters es requerido']);
+    }
+
+    if (!Array.isArray(idHeadquarters)) {
+      return res.validationErrors(['idHeadquarters debe ser un array']);
+    }
+
+    if (idHeadquarters.length === 0) {
+      return res.validationErrors(['Debe proporcionar al menos un idHeadquarter en el array']);
+    }
+
+    const validHqIds = [];
+    for (const hqId of idHeadquarters) {
+      const validHqId = parseIdParam(hqId);
+      if (!validHqId) {
+        return res.validationErrors([`idHeadquarter ${hqId} debe ser un entero positivo`]);
+      }
+      validHqIds.push(validHqId);
+    }
+
+    try {
+      const result = await VolunteerService.addHeadquarters(validId, validHqIds);
+      const added = (result && Array.isArray(result.addedIds)) ? result.addedIds : [];
+      const ignored = (result && Array.isArray(result.ignoredInactiveIds)) ? result.ignoredInactiveIds : [];
+      if (ignored.length) {
+        res.set('X-Ignored-Ids', ignored.join(','));
+      }
+      let message = 'sede(s) asociada(s) al voluntario exitosamente';
+      if (ignored.length) {
+        const ignoredPart = `Rechazadas (inactivas): ${ignored.length}` + (ignored.length ? ` (IDs: ${ignored.join(',')})` : '');
+        message = `${message}. ${ignoredPart}.`;
+      }
+      return res.status(201).success(null, message);
+    } catch (error) {
+      console.error('[VOLUNTEERS] addHeadquarters error:', error);
+      if (error.message === 'Voluntario no encontrado') {
+        return res.notFound('Voluntario');
+      }
+      if (error.message && error.message.includes('no existe')) {
+        return res.validationErrors([error.message]);
+      }
+      if (error.message && error.message.includes('inactiva')) {
+        return res.validationErrors([error.message]);
+      }
+      // Prisma unique constraint error
+      if (error.code === 'P2002') {
+        return res.validationErrors(['Una o más sedes ya están asociadas al voluntario']);
+      }
+      return res.error('Error al asociar la sede al voluntario');
+    }
+  },
+
+  // Remove headquarters from volunteer (single or multiple)
+  removeHeadquarters: async (req, res) => {
+    const { id } = req.params;
+    const { idHeadquarters } = req.body;
+
+    const validId = parseIdParam(id);
+    if (!validId) {
+      return res.validationErrors(['idVolunteer debe ser un entero positivo']);
+    }
+
+    if (!idHeadquarters) {
+      return res.validationErrors(['El campo idHeadquarters es requerido']);
+    }
+
+    if (!Array.isArray(idHeadquarters)) {
+      return res.validationErrors(['idHeadquarters debe ser un array']);
+    }
+
+    if (idHeadquarters.length === 0) {
+      return res.validationErrors(['Debe proporcionar al menos un idHeadquarter en el array']);
+    }
+
+    const validHqIds = [];
+    for (const hqIdValue of idHeadquarters) {
+      const validHqId = parseIdParam(hqIdValue);
+      if (!validHqId) {
+        return res.validationErrors([`idHeadquarter ${hqIdValue} debe ser un entero positivo`]);
+      }
+      validHqIds.push(validHqId);
+    }
+
+    try {
+      const result = await VolunteerService.removeHeadquarters(validId, validHqIds);
+      return res.success(null, 'sede(s) eliminada(s) al voluntario exitosamente');
+    } catch (error) {
+      console.error('[VOLUNTEERS] removeHeadquarters error:', error);
+      if (error.code === 'P2025') {
+        return res.notFound('Relación entre voluntario y sede');
+      }
+      return res.error('Error al desasociar la sede del voluntario');
+    }
+  },
+
+  // ===== EMERGENCY CONTACT RELATIONSHIPS =====
+
+  // Get all emergency contacts for a volunteer
+  getEmergencyContacts: async (req, res) => {
+    const { id } = req.params;
+    
+    const validId = parseIdParam(id);
+    if (!validId) {
+      return res.validationErrors(['idVolunteer debe ser un entero positivo']);
+    }
+
+    try {
+      const volunteer = await VolunteerService.findById(validId);
+      if (!volunteer) {
+        return res.notFound('Voluntario');
+      }
+
+      const contacts = await VolunteerService.getEmergencyContacts(validId);
+      return res.success(contacts);
+    } catch (error) {
+      console.error('[VOLUNTEERS] getEmergencyContacts error:', error);
+      return res.error('Error al obtener los contactos de emergencia del voluntario');
+    }
+  },
+
+  // Add emergency contacts to volunteer (single or multiple)
+  addEmergencyContacts: async (req, res) => {
+    const { id } = req.params;
+    const { idEmergencyContacts } = req.body;
+
+    const validId = parseIdParam(id);
+    if (!validId) {
+      return res.validationErrors(['idVolunteer debe ser un entero positivo']);
+    }
+
+    if (!idEmergencyContacts) {
+      return res.validationErrors(['El campo idEmergencyContacts es requerido']);
+    }
+
+    if (!Array.isArray(idEmergencyContacts)) {
+      return res.validationErrors(['idEmergencyContacts debe ser un array']);
+    }
+
+    if (idEmergencyContacts.length === 0) {
+      return res.validationErrors(['Debe proporcionar al menos un idEmergencyContact en el array']);
+    }
+
+    const validContactIds = [];
+    for (const contactId of idEmergencyContacts) {
+      const validContactId = parseIdParam(contactId);
+      if (!validContactId) {
+        return res.validationErrors([`idEmergencyContact ${contactId} debe ser un entero positivo`]);
+      }
+      validContactIds.push(validContactId);
+    }
+
+    try {
+      const result = await VolunteerService.addEmergencyContacts(validId, validContactIds);
+      const added = (result && Array.isArray(result.addedIds)) ? result.addedIds : [];
+      const ignored = (result && Array.isArray(result.ignoredInactiveIds)) ? result.ignoredInactiveIds : [];
+      if (ignored.length) {
+        res.set('X-Ignored-Ids', ignored.join(','));
+      }
+      let message = 'contacto(s) de emergencia asociado(s) al voluntario exitosamente';
+      if (ignored.length) {
+        const ignoredPart = `Rechazados (inactivos): ${ignored.length}` + (ignored.length ? ` (IDs: ${ignored.join(',')})` : '');
+        message = `${message}. ${ignoredPart}.`;
+      }
+      return res.status(201).success(null, message);
+    } catch (error) {
+      console.error('[VOLUNTEERS] addEmergencyContacts error:', error);
+      if (error.message === 'Voluntario no encontrado') {
+        return res.notFound('Voluntario');
+      }
+      if (error.message && error.message.includes('no existe')) {
+        return res.validationErrors([error.message]);
+      }
+      if (error.message && error.message.includes('inactivo')) {
+        return res.validationErrors([error.message]);
+      }
+      // Prisma unique constraint error
+      if (error.code === 'P2002') {
+        return res.validationErrors(['Uno o más contactos de emergencia ya están asociados al voluntario']);
+      }
+      return res.error('Error al asociar el contacto de emergencia al voluntario');
+    }
+  },
+
+  // Remove emergency contacts from volunteer (single or multiple)
+  removeEmergencyContacts: async (req, res) => {
+    const { id } = req.params;
+    const { idEmergencyContacts } = req.body;
+
+    const validId = parseIdParam(id);
+    if (!validId) {
+      return res.validationErrors(['idVolunteer debe ser un entero positivo']);
+    }
+
+    if (!idEmergencyContacts) {
+      return res.validationErrors(['El campo idEmergencyContacts es requerido']);
+    }
+
+    if (!Array.isArray(idEmergencyContacts)) {
+      return res.validationErrors(['idEmergencyContacts debe ser un array']);
+    }
+
+    if (idEmergencyContacts.length === 0) {
+      return res.validationErrors(['Debe proporcionar al menos un idEmergencyContact en el array']);
+    }
+
+    const validContactIds = [];
+    for (const contactIdValue of idEmergencyContacts) {
+      const validContactId = parseIdParam(contactIdValue);
+      if (!validContactId) {
+        return res.validationErrors([`idEmergencyContact ${contactIdValue} debe ser un entero positivo`]);
+      }
+      validContactIds.push(validContactId);
+    }
+
+    try {
+      const result = await VolunteerService.removeEmergencyContacts(validId, validContactIds);
+      return res.success(null, 'contacto(s) de emergencia eliminada(s) al voluntario exitosamente');
+    } catch (error) {
+      console.error('[VOLUNTEERS] removeEmergencyContacts error:', error);
+      if (error.code === 'P2025') {
+        return res.notFound('Relación entre voluntario y contacto de emergencia');
+      }
+      return res.error('Error al desasociar el contacto de emergencia del voluntario');
+    }
   }
 };
 
