@@ -1,11 +1,6 @@
-// Import PrismaClient from Prisma ORM
-const { PrismaClient } = require('@prisma/client');
 
-// Create a Prisma client instance to interact with the database
-const prisma = new PrismaClient();
+let prisma = require('../../../lib/prisma.js');
 
-// Define a reusable selection of fields for queries
-// (Ensures only these properties are returned from the database)
 const baseSelect = {
   idSupplier: true,
   name: true,
@@ -16,53 +11,100 @@ const baseSelect = {
   paymentTerms: true,
   description: true,
   status: true,
+  categorySupplier: {
+    select: {
+      idCategory: true,
+      idSupplier: true,
+      category: {
+        select: {
+          idCategory: true,
+          name: true,
+          status: true
+        }
+      }
+    }
+  },
+  headquarterSupplier: {
+    select: {
+      idHeadquarter: true,
+      idSupplier: true,
+      headquarter: {
+        select: {
+          idHeadquarter: true,
+          name: true,
+          status: true,
+          location: true,
+          email: true
+        }
+      }
+    }
+  },
+  phoneSupplier: {
+    select: {
+      idPhone: true,
+      idSupplier: true,
+      phone: {
+        select: {
+          idPhone: true,
+          phone: true
+        }
+      }
+    }
+  }
 };
 
 const SupplierRepository = {
-  // Finds all suppliers
-  findAll: async () => {
-    return await prisma.supplier.findMany({
+  // List all suppliers (active and inactive)
+  list: () => {
+    return prisma.supplier.findMany({
       select: baseSelect,
+      orderBy: { name: 'asc' }
     });
   },
 
-  // Finds a single supplier by ID
-  findById: (idSupplier) =>
+  // Find supplier by ID
+  findById: (id) =>
     prisma.supplier.findUnique({
-      where: { idSupplier: Number(idSupplier) },
-      select: baseSelect,
+      where: { idSupplier: Number(id) },
+      select: baseSelect
     }),
 
-  // Creates a new supplier
+  // Find supplier by name
+  findByName: (name) =>
+    prisma.supplier.findFirst({
+      where: { name },
+      select: baseSelect
+    }),
+
+  // Find supplier by email
+  findByEmail: (email) =>
+    prisma.supplier.findFirst({
+      where: { email },
+      select: baseSelect
+    }),
+
+  // Create a new supplier
   create: (data) =>
     prisma.supplier.create({
       data,
-      select: baseSelect,
+      select: baseSelect
     }),
 
-  // Updates a supplier by ID
-  update: (idSupplier, data) =>
+  // Update an existing supplier
+  update: (id, data) =>
     prisma.supplier.update({
-      where: { idSupplier: Number(idSupplier) },
+      where: { idSupplier: Number(id) },
       data,
-      select: baseSelect,
+      select: baseSelect
     }),
 
-  // Removes a supplier by ID
-  remove: async (idSupplier) => {
-    try {
-      await prisma.supplier.delete({
-        where: { idSupplier: Number(idSupplier) },
-      });
-      return true; // Deletion was successful
-    } catch (error) {
-      if (error.code === 'P2025') {
-        // Record does not exist
-        return false;
-      }
-      throw error; // Unexpected errors
-    }
-  },
+  // Soft delete: set status to 'inactive'
+  remove: (id) =>
+    prisma.supplier.update({
+      where: { idSupplier: Number(id) },
+      data: { status: 'inactive' },
+      select: baseSelect
+    })
 };
 
 module.exports = { SupplierRepository };

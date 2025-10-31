@@ -1,50 +1,66 @@
-// modules/suppliers/supplierService.js
-const { SupplierRepository } = require('./suppliers.repository');
 
-// SupplierService contains the business logic for suppliers.
-// It interacts with SupplierRepository for all database actions.
+const { SupplierRepository } = require('./suppliers.repository');
+const { ValidationRules } = require('../../../utils/validator');
+
 const SupplierService = {
-  // Returns a list of all suppliers
-  list: () => SupplierRepository.findAll(),
+  // List all suppliers (active and inactive)
+  list: async () => {
+    return SupplierRepository.list();
+  },
 
   // Retrieves a supplier by id
-  get: (idSupplier) => SupplierRepository.findById(idSupplier),
+  findById: async (id) => {
+    return SupplierRepository.findById(id);
+  },
+
+  findByName: async (name) => {
+    return SupplierRepository.findByName(name);
+  },
+
+  findByEmail: async (email) => {
+    return SupplierRepository.findByEmail(email);
+  },
 
   // Creates a new supplier
   create: async (data) => {
-    try {
-      // Default taxId if not provided
-      if (!data.taxId || data.taxId.trim() === '') {
-        data.taxId = '0-000-000000';
-      }
-
-      return await SupplierRepository.create(data);
-    } catch (error) {
-      console.error('[SUPPLIER] create error:', error);
-      throw error;
-    }
+    return SupplierRepository.create({
+      name: data.name,
+      taxId: data.taxId,
+      type: data.type,
+      email: data.email,
+      address: data.address,
+      paymentTerms: data.paymentTerms,
+      description: data.description,
+      status: data.status || 'active'
+    });
   },
 
-  // Updates a supplier by id
-  update: async (idSupplier, data) => {
-    try {
-      // Apply default taxId if sending empty
-      if (data.taxId !== undefined && (!data.taxId || data.taxId.trim() === '')) {
-        data.taxId = '0-000-000000';
-      }
+  // Updates supplier data by id
+  update: async (id, data) => {
+    // Filter out relationship fields that are handled separately
+    const { categorySupplier, headquarterSupplier, phoneSupplier, ...updateData } = data;
 
-      return await SupplierRepository.update(idSupplier, data);
-    } catch (error) {
-      console.error('[SUPPLIER] update error:', error);
-      throw error;
+    // Filter to only include valid supplier fields
+    const validFields = ['name', 'taxId', 'type', 'email', 'address', 'paymentTerms', 'description', 'status'];
+    const filteredUpdateData = {};
+    for (const field of validFields) {
+      if (updateData[field] !== undefined) {
+        filteredUpdateData[field] = updateData[field];
+      }
     }
+
+    return SupplierRepository.update(id, filteredUpdateData);
   },
 
-  // Soft deletes a supplier by id (marks as inactive)
-  softDelete: async (idSupplier) => {
-    return await SupplierRepository.update(idSupplier, { status: 'inactive' });
-  }
+  // Updates only the supplier status by id
+  updateStatus: async (id, status) => {
+    return SupplierRepository.update(id, { status });
+  },
+
+  // Deletes a supplier by id (soft delete)
+  remove: async (id) => {
+    return SupplierRepository.update(id, { status: 'inactive' });
+  },
 };
 
-// Export the service for use in controllers
 module.exports = { SupplierService };

@@ -1,11 +1,13 @@
-// Import the SupplierController
-const { SupplierController } = require('./suppliers.controller');
 
-// Define the routes for suppliers
+const { SupplierController } = require('./suppliers.controller');
+const { authenticate, authorizeWindow } = require('../../../middlewares/auth.middleware');
+
 module.exports = [
-  { method: 'GET',    path: '/api/suppliers',                  handler: SupplierController.list },
-  { method: 'GET',    path: '/api/suppliers/:idSupplier',      handler: SupplierController.get },
-  { method: 'POST',   path: '/api/suppliers',                  handler: SupplierController.create },
-  { method: 'PUT',    path: '/api/suppliers/:idSupplier',      handler: SupplierController.update },
-  { method: 'DELETE', path: '/api/suppliers/:idSupplier',      handler: SupplierController.delete },
+  { method: 'GET', path: '/api/suppliers', handler: authenticate(authorizeWindow('Proveedores','read')(SupplierController.getAll)) },
+  { method: 'GET', path: '/api/suppliers/:id', handler: authenticate(authorizeWindow('Proveedores','read')(SupplierController.getById)) },
+  { method: 'POST', path: '/api/suppliers', handler: authenticate(authorizeWindow('Proveedores','create')(SupplierController.create)) },
+  { method: 'PUT', path: '/api/suppliers/:id', handler: authenticate(authorizeWindow('Proveedores','read','update')(SupplierController.update)) },
+  { method: 'DELETE', path: '/api/suppliers/:id', handler: authenticate(authorizeWindow('Proveedores','read','delete')(SupplierController.delete)) },
+  { method: 'GET', path: '/api/suppliers/lookup-data', handler: authenticate(authorizeWindow('Proveedores','read')(SupplierController.getLookupData)) },
+  { method: 'GET', path: '/api/suppliers/lookup-data-create', handler: authenticate(authorizeWindow('Proveedores','create')(SupplierController.getLookupData)) },
 ];
