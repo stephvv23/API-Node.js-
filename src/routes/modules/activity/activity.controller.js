@@ -496,8 +496,8 @@ const ActivityController = {
       
       return res.success({
         ...result,
-        assignedIds: validIds,
-        rejectedIds: invalidIds
+        validIdsForAssignment: validIds,
+        rejectedIdsForAssignment: invalidIds
       }, message);
     } catch (error) {
       console.error('[ACTIVITY] assignVolunteers error:', error);
@@ -550,7 +550,7 @@ const ActivityController = {
           message += `. Nota: Los siguientes IDs fueron rechazados por no ser válidos: ${rejectedIds.join(', ')}`;
         }
       }
-      return res.success({ ...result, removedIds: validIds, rejectedIds }, message);
+      return res.success({ ...result, validIdsForRemoval: validIds, invalidIdsForRemoval: rejectedIds }, message);
     } catch (error) {
       console.error('[ACTIVITY] removeVolunteers error:', error);
       return res.error('Error al remover voluntarios de la actividad');
@@ -598,8 +598,8 @@ const ActivityController = {
       
       return res.success({
         ...result,
-        assignedIds: validIds,
-        rejectedIds: invalidIds
+        validIdsForAssignment: validIds,
+        rejectedIdsForAssignment: invalidIds
       }, message);
     } catch (error) {
       console.error('[ACTIVITY] assignSurvivors error:', error);
@@ -652,7 +652,7 @@ const ActivityController = {
           message += `. Nota: Los siguientes IDs fueron rechazados por no ser válidos: ${rejectedIds.join(', ')}`;
         }
       }
-      return res.success({ ...result, removedIds: validIds, rejectedIds }, message);
+      return res.success({ ...result, validIdsForRemoval: validIds, invalidIdsForRemoval: rejectedIds }, message);
     } catch (error) {
       console.error('[ACTIVITY] removeSurvivors error:', error);
       return res.error('Error al remover supervivientes de la actividad');
@@ -704,8 +704,8 @@ const ActivityController = {
       
       return res.success({
         ...result,
-        assignedIds: validIds,
-        rejectedIds: invalidIds
+        validIdsForAssignment: validIds,
+        rejectedIdsForAssignment: invalidIds
       }, message);
     } catch (error) {
       console.error('[ACTIVITY] assignGodparents error:', error);
@@ -758,7 +758,7 @@ const ActivityController = {
           message += `. Nota: Los siguientes IDs fueron rechazados por no ser válidos: ${rejectedIds.join(', ')}`;
         }
       }
-      return res.success({ ...result, removedIds: validIds, rejectedIds }, message);
+      return res.success({ ...result, validIdsForRemoval: validIds, invalidIdsForRemoval: rejectedIds }, message);
     } catch (error) {
       console.error('[ACTIVITY] removeGodparents error:', error);
       return res.error('Error al remover padrinos de la actividad');
