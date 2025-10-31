@@ -1,8 +1,11 @@
 
-const { SupplierController } = require('./suppliers.controller');
-const { authenticate, authorizeWindow } = require('../../../middlewares/auth.middleware');
+
+const { SupplierController } = require('./suppliers.controller'); // Import the SupplierController
+const { authenticate, authorizeWindow } = require('../../../middlewares/auth.middleware'); // Import authentication and authorization middlewares
 
 module.exports = [
+
+  // Define the routes for suppliers with appropriate authentication and authorization
   { method: 'GET', path: '/api/suppliers', handler: authenticate(authorizeWindow('Proveedores','read')(SupplierController.getAll)) },
   { method: 'GET', path: '/api/suppliers/:id', handler: authenticate(authorizeWindow('Proveedores','read')(SupplierController.getById)) },
   { method: 'POST', path: '/api/suppliers', handler: authenticate(authorizeWindow('Proveedores','create')(SupplierController.create)) },

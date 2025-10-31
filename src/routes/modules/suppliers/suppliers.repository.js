@@ -1,7 +1,9 @@
 
-let prisma = require('../../../lib/prisma.js');
+let prisma = require('../../../lib/prisma.js'); // Import Prisma client
 
-const baseSelect = {
+// Define a reusable 'select' object to specify which fields to return
+// This prevents repeating field selections across multiple queries
+const baseSelect = { 
   idSupplier: true,
   name: true,
   taxId: true,
@@ -11,6 +13,8 @@ const baseSelect = {
   paymentTerms: true,
   description: true,
   status: true,
+
+  // Nested relationship: Supplier → CategorySupplier → Category
   categorySupplier: {
     select: {
       idCategory: true,
@@ -24,6 +28,8 @@ const baseSelect = {
       }
     }
   },
+
+  // Nested relationship: Supplier → CategorySupplier → Category
   headquarterSupplier: {
     select: {
       idHeadquarter: true,
@@ -39,6 +45,8 @@ const baseSelect = {
       }
     }
   },
+
+  // Nested relationship: Supplier → PhoneSupplier → Phone
   phoneSupplier: {
     select: {
       idPhone: true,
@@ -53,7 +61,9 @@ const baseSelect = {
   }
 };
 
+// SupplierRepository encapsulates all database operations related to suppliers
 const SupplierRepository = {
+
   // List all suppliers (active and inactive)
   list: () => {
     return prisma.supplier.findMany({
@@ -107,4 +117,4 @@ const SupplierRepository = {
     })
 };
 
-module.exports = { SupplierRepository };
+module.exports = { SupplierRepository }; // Export the SupplierRepository

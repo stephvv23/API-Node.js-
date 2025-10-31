@@ -1,13 +1,16 @@
 
-const { SupplierService } = require('./suppliers.service');
-const { SecurityLogService } = require('../../../services/securitylog.service');
-const { EntityValidators } = require('../../../utils/validator');
-let prisma = require('../../../lib/prisma.js');
+
+const { SupplierService } = require('./suppliers.service'); // Import the SupplierService
+const { SecurityLogService } = require('../../../services/securitylog.service'); // Import SecurityLogService
+const { EntityValidators } = require('../../../utils/validator'); // Import EntityValidators
+let prisma = require('../../../lib/prisma.js'); // Import Prisma client
 
 // Helper function to format logs
 const formatField = (field) => field || 'N/A';
 
+// SupplierController handles HTTP requests related to suppliers
 const SupplierController = {
+
   // List all suppliers
   getAll: async (req, res, next) => {
     try {
@@ -42,18 +45,23 @@ const SupplierController = {
       { partial: false }
     );
 
-    if (!validation.isValid) return res.validationErrors(validation.errors);
+    //if validation fails, return errors
+    if (!validation.isValid) return res.validationErrors(validation.errors); 
 
     try {
       // Check duplicates
-      const allSuppliers = await SupplierService.list();
-      const duplicateErrors = [];
+      const allSuppliers = await SupplierService.list(); // Fetch all suppliers to check for duplicates
+      const duplicateErrors = []; // Collect duplicate errors
+
+      // Check for name and email and if duplicates found, add to errors
       if (allSuppliers.some(s => s.name === name)) duplicateErrors.push('Ya existe un proveedor con ese nombre');
       if (allSuppliers.some(s => s.email === email)) duplicateErrors.push('Ya existe un proveedor con ese correo');
       if (duplicateErrors.length > 0) return res.validationErrors(duplicateErrors);
 
+      // Create supplier when no duplicates
       const newSupplier = await SupplierService.create({ name, taxId, type, email, address, paymentTerms, description, status });
 
+      // Log creation action
       const userEmail = req.user?.sub;
       await SecurityLogService.log({
         email: userEmail,
@@ -62,7 +70,10 @@ const SupplierController = {
         affectedTable: 'Supplier',
       });
 
-      return res.status(201).success(newSupplier, 'Proveedor creado exitosamente');
+      // Return success response
+      return res.status(201).success(newSupplier, 'Proveedor creado exitosamente'); 
+
+      //If error occurs while creating supplier
     } catch (error) {
       console.error('[SUPPLIERS] create error:', error);
       return res.error('Error al crear el proveedor');
@@ -74,11 +85,11 @@ const SupplierController = {
     const { id } = req.params;
     const updateData = req.body;
 
-    const validation = EntityValidators.supplier(updateData, { partial: true });
+    const validation = EntityValidators.supplier(updateData, { partial: true }); 
     if (!validation.isValid) return res.validationErrors(validation.errors);
 
     try {
-      // Check duplicates
+      // Check duplicates for name and email
       const duplicateErrors = [];
       if (updateData.name) {
         const existsName = await SupplierService.findByName(updateData.name);
@@ -95,6 +106,7 @@ const SupplierController = {
 
       const updatedSupplier = await SupplierService.update(id, updateData);
 
+      // Log update action that details previous and new values
       const userEmail = req.user?.sub;
       const onlyStatusChange = previousSupplier.status === 'inactive' && updatedSupplier.status === 'active' &&
         previousSupplier.name === updatedSupplier.name &&
@@ -104,6 +116,7 @@ const SupplierController = {
         previousSupplier.paymentTerms === updatedSupplier.paymentTerms &&
         previousSupplier.description === updatedSupplier.description;
 
+       // If only status changed from inactive to active, log as REACTIVATE 
       if (onlyStatusChange) {
         await SecurityLogService.log({
           email: userEmail,
@@ -111,6 +124,8 @@ const SupplierController = {
           description: `Se reactivó el proveedor: ID "${id}", Nombre: "${updatedSupplier.name}", Email: "${updatedSupplier.email}", Tipo: "${updatedSupplier.type}", Dirección: "${updatedSupplier.address}", Términos de pago: "${updatedSupplier.paymentTerms}", Descripción: "${updatedSupplier.description}", Estado: "${updatedSupplier.status}".`,
           affectedTable: 'Supplier',
         });
+
+        // Otherwise, log as UPDATE with detailed changes
       } else {
         await SecurityLogService.log({
           email: userEmail,
@@ -122,7 +137,6 @@ const SupplierController = {
           affectedTable: 'Supplier',
         });
       }
-
       return res.success(updatedSupplier, 'Proveedor actualizado exitosamente');
     } catch (error) {
       console.error('[SUPPLIERS] update error:', error);
@@ -134,9 +148,11 @@ const SupplierController = {
   delete: async (req, res) => {
     const { id } = req.params;
 
+    // Check if supplier exists by id before attempting deletion
     const exists = await SupplierService.findById(id);
     if (!exists) return res.notFound('Proveedor');
 
+    //If supplier exists, proceed to inactivate
     try {
       const deletedSupplier = await SupplierService.remove(id);
       const userEmail = req.user?.sub;
@@ -149,6 +165,8 @@ const SupplierController = {
       });
 
       return res.success(deletedSupplier, 'Proveedor inactivado exitosamente');
+
+      //If does not exist or error occurs while deleting supplier
     } catch (error) {
       console.error('[SUPPLIERS] delete error:', error);
       return res.error('Error al inactivar el proveedor');
@@ -171,4 +189,5 @@ const SupplierController = {
   }
 };
 
+// Export the SupplierController
 module.exports = { SupplierController };

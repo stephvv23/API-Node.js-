@@ -1,6 +1,6 @@
 
 const { SupplierRepository } = require('./suppliers.repository');
-const { ValidationRules } = require('../../../utils/validator');
+
 
 const SupplierService = {
   // List all suppliers (active and inactive)
@@ -63,4 +63,4 @@ const SupplierService = {
   },
 };
 
-module.exports = { SupplierService };
+module.exports = { SupplierService }; // Export the SupplierService
