@@ -167,6 +167,10 @@ const SurvivorController = {
         .success(newSurvivor, "Superviviente creado exitosamente");
     } catch (error) {
       console.error("[SURVIVORS] create error:", error);
+      // In development return the error message to help debugging.
+      if (process.env.NODE_ENV !== 'production') {
+        return res.error(`Error al crear el superviviente: ${error.message}`);
+      }
       return res.error("Error al crear el superviviente");
     }
   },
@@ -285,6 +289,9 @@ const SurvivorController = {
       );
     } catch (error) {
       console.error("[SURVIVORS] update error:", error);
+      if (process.env.NODE_ENV !== 'production') {
+        return res.error(`Error al actualizar el superviviente: ${error.message}`);
+      }
       return res.error("Error al actualizar el superviviente");
     }
   },
@@ -328,6 +335,9 @@ const SurvivorController = {
       return res.success(updatedSurvivor, message);
     } catch (error) {
       console.error("[SURVIVORS] delete/reactivate error:", error);
+      if (process.env.NODE_ENV !== 'production') {
+        return res.error(`Error al cambiar el estado del superviviente: ${error.message}`);
+      }
       return res.error("Error al cambiar el estado del superviviente");
     }
   },
@@ -356,6 +366,9 @@ const SurvivorController = {
       return res.success(reactivated, "Superviviente reactivado exitosamente");
     } catch (error) {
       console.error("[SURVIVORS] reactivate error:", error);
+      if (process.env.NODE_ENV !== 'production') {
+        return res.error(`Error al reactivar el superviviente: ${error.message}`);
+      }
       return res.error("Error al reactivar el superviviente");
     }
   },

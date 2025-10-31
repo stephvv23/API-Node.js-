@@ -80,11 +80,13 @@ const SurvivorRepository = {
 
       // Create cancer relations (required, minimum 1)
       if (relationalData.cancers && relationalData.cancers.length > 0) {
+        // Do not send `status` when creating CancerSurvivor rows — the model
+        // should provide a default (e.g. 'active'). This avoids overriding
+        // defaults and keeps creation simpler.
         await tx.cancerSurvivor.createMany({
           data: relationalData.cancers.map(cancer => ({
             idSurvivor: survivor.idSurvivor,
             idCancer: cancer.idCancer,
-            status: cancer.status,
             stage: cancer.stage
           }))
         });
@@ -92,24 +94,30 @@ const SurvivorRepository = {
 
       // Create/link phone (optional, only one allowed)
       if (relationalData.phone) {
-        const phoneStr = String(relationalData.phone);
-        
-        let phone = await tx.phone.findFirst({
-          where: { phone: phoneStr }
-        });
+        // Normalize phone to digits only to avoid duplicates like '123-456' vs '123456'
+        const phoneStrRaw = String(relationalData.phone || '').trim();
+        const phoneStr = phoneStrRaw.replace(/\D/g, '');
 
-        if (!phone) {
-          phone = await tx.phone.create({
-            data: { phone: phoneStr }
+        if (phoneStr.length > 0) {
+          // Use findUnique because `phone` has a unique constraint in the schema
+          let phone = await tx.phone.findUnique({ where: { phone: phoneStr } }).catch(() => null);
+
+          if (!phone) {
+            phone = await tx.phone.create({ data: { phone: phoneStr } });
+          }
+
+          // Sanity check: if phone or survivor id missing, throw to rollback transaction
+          if (!phone || !phone.idPhone || !survivor || !survivor.idSurvivor) {
+            throw new Error('Failed to create/link phone for survivor');
+          }
+
+          await tx.phoneSurvivor.create({
+            data: {
+              idPhone: phone.idPhone,
+              idSurvivor: survivor.idSurvivor
+            }
           });
         }
-
-        await tx.phoneSurvivor.create({
-          data: {
-            idPhone: phone.idPhone,
-            idSurvivor: survivor.idSurvivor
-          }
-        });
       }
 
       // Link emergency contacts (optional)
