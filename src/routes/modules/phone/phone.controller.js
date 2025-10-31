@@ -1,4 +1,5 @@
 const { PhoneService } = require('./phone.service');
+const { ValidationRules } = require('../../../utils/validator');
 
 const PhoneController = {
   /**
@@ -23,7 +24,11 @@ const PhoneController = {
     const { id } = req.params;
 
     try {
-      const phone = await PhoneService.findById(id);
+      // Validate numeric id
+      const idNum = ValidationRules.parseIdParam(String(id || ''));
+      if (!idNum) return res.validationErrors(['El parámetro id debe ser numérico']);
+
+      const phone = await PhoneService.findById(Number(idNum));
       
       if (!phone) {
         return res.notFound('Teléfono');

@@ -2,6 +2,7 @@ const { PhoneSurvivorService } = require('./phoneSurvivor.service');
 const { SurvivorService } = require('../survivor/survivor.service');
 const { PhoneService } = require('../phone/phone.service');
 const { SecurityLogService } = require('../../../services/securitylog.service');
+const { ValidationRules } = require('../../../utils/validator');
 
 const PhoneSurvivorController = {
   /**
@@ -12,13 +13,17 @@ const PhoneSurvivorController = {
     const { id } = req.params;
 
     try {
+      // Validate numeric id
+      const idNum = ValidationRules.parseIdParam(String(id || ''));
+      if (!idNum) return res.validationErrors(['El parámetro id debe ser numérico']);
+
       // Validate survivor exists
-      const survivor = await SurvivorService.findById(id);
+      const survivor = await SurvivorService.findById(Number(idNum));
       if (!survivor) {
         return res.notFound('Superviviente');
       }
 
-      const phoneSurvivor = await PhoneSurvivorService.getBySurvivor(id);
+      const phoneSurvivor = await PhoneSurvivorService.getBySurvivor(Number(idNum));
       
       if (!phoneSurvivor) {
         return res.success(null, 'El superviviente no tiene teléfono registrado');
@@ -44,17 +49,18 @@ const PhoneSurvivorController = {
     // Validations
     const errors = [];
 
-    if (!phone) {
+    const idNum = ValidationRules.parseIdParam(String(id || ''));
+    if (!idNum) errors.push('El parámetro id debe ser numérico');
+
+    // Normalize and validate phone
+    const phoneStr = phone != null ? String(phone).trim() : '';
+
+    if (!phoneStr) {
       errors.push('phone es requerido');
-    } else if (typeof phone !== 'string' && typeof phone !== 'number') {
-      errors.push('phone debe ser un string o número');
-    } else {
-      const phoneStr = String(phone);
-      if (!/^\d+$/.test(phoneStr)) {
-        errors.push('phone debe contener solo dígitos');
-      } else if (phoneStr.length > 12) {
-        errors.push('phone no puede tener más de 12 dígitos');
-      }
+    } else if (!/^\d+$/.test(phoneStr)) {
+      errors.push('phone debe contener solo dígitos');
+    } else if (phoneStr.length > 12) {
+      errors.push('phone no puede tener más de 12 dígitos');
     }
 
     if (errors.length > 0) {
@@ -63,7 +69,7 @@ const PhoneSurvivorController = {
 
     try {
       // Validate survivor exists and is active
-      const survivor = await SurvivorService.findById(id);
+      const survivor = await SurvivorService.findById(Number(idNum));
       if (!survivor) {
         return res.notFound('Superviviente');
       }
@@ -73,7 +79,7 @@ const PhoneSurvivorController = {
       }
 
       // Check if survivor already has a phone
-      const existingPhone = await PhoneSurvivorService.getBySurvivor(id);
+      const existingPhone = await PhoneSurvivorService.getBySurvivor(Number(idNum));
       
       if (existingPhone) {
         return res.badRequest(
@@ -82,11 +88,11 @@ const PhoneSurvivorController = {
         );
       }
 
-      // Find or create phone (immutable phone record)
-      const phoneRecord = await PhoneService.findOrCreate(phone);
+      // Find or create phone (immutable phone record) using normalized string
+      const phoneRecord = await PhoneService.findOrCreate(Number(phoneStr));
 
       // Create relation
-      const newPhoneSurvivor = await PhoneSurvivorService.create(id, phoneRecord.idPhone);
+      const newPhoneSurvivor = await PhoneSurvivorService.create(Number(idNum), phoneRecord.idPhone);
 
       // Security log
       const userEmail = req.user?.sub;
@@ -94,7 +100,7 @@ const PhoneSurvivorController = {
         email: userEmail,
         action: 'CREATE',
         description:
-          `Se agregó el teléfono ${phone} (ID Phone: ${phoneRecord.idPhone}) al superviviente "${survivor.survivorName}" (ID: ${id}).`,
+          `Se agregó el teléfono ${phoneStr} (ID Phone: ${phoneRecord.idPhone}) al superviviente "${survivor.survivorName}" (ID: ${id}).`,
         affectedTable: 'PhoneSurvivor'
       });
 
@@ -118,17 +124,18 @@ const PhoneSurvivorController = {
     // Validations
     const errors = [];
 
-    if (!newPhoneNumber) {
+    const idNum = ValidationRules.parseIdParam(String(id || ''));
+    if (!idNum) errors.push('El parámetro id debe ser numérico');
+
+    // Normalize and validate phone
+    const phoneStr = newPhoneNumber != null ? String(newPhoneNumber).trim() : '';
+
+    if (!phoneStr) {
       errors.push('phone es requerido');
-    } else if (typeof newPhoneNumber !== 'string' && typeof newPhoneNumber !== 'number') {
-      errors.push('phone debe ser un string o número');
-    } else {
-      const phoneStr = String(newPhoneNumber);
-      if (!/^\d+$/.test(phoneStr)) {
-        errors.push('phone debe contener solo dígitos');
-      } else if (phoneStr.length > 12) {
-        errors.push('phone no puede tener más de 12 dígitos');
-      }
+    } else if (!/^\d+$/.test(phoneStr)) {
+      errors.push('phone debe contener solo dígitos');
+    } else if (phoneStr.length > 12) {
+      errors.push('phone no puede tener más de 12 dígitos');
     }
 
     if (errors.length > 0) {
@@ -137,7 +144,7 @@ const PhoneSurvivorController = {
 
     try {
       // Validate survivor exists and is active
-      const survivor = await SurvivorService.findById(id);
+      const survivor = await SurvivorService.findById(Number(idNum));
       if (!survivor) {
         return res.notFound('Superviviente');
       }
@@ -147,14 +154,14 @@ const PhoneSurvivorController = {
       }
 
       // Check if survivor has a phone
-      const oldPhoneSurvivor = await PhoneSurvivorService.getBySurvivor(id);
+      const oldPhoneSurvivor = await PhoneSurvivorService.getBySurvivor(Number(idNum));
       
       if (!oldPhoneSurvivor) {
         return res.notFound('El superviviente no tiene un teléfono registrado. Use POST para agregar uno.');
       }
 
-      // Find or create new phone
-      const newPhoneRecord = await PhoneService.findOrCreate(newPhoneNumber);
+      // Find or create new phone using normalized string
+      const newPhoneRecord = await PhoneService.findOrCreate(Number(phoneStr));
 
       // Check if trying to update to the same phone
       if (oldPhoneSurvivor.idPhone === newPhoneRecord.idPhone) {
@@ -162,10 +169,10 @@ const PhoneSurvivorController = {
       }
 
       // Step 1: Delete old phone relation
-      await PhoneSurvivorService.deleteAllBySurvivor(id);
+      await PhoneSurvivorService.deleteAllBySurvivor(Number(idNum));
 
       // Step 2: Create new phone relation
-      const result = await PhoneSurvivorService.create(id, newPhoneRecord.idPhone);
+      const result = await PhoneSurvivorService.create(Number(idNum), newPhoneRecord.idPhone);
 
       // Security log
       const userEmail = req.user?.sub;
@@ -175,7 +182,7 @@ const PhoneSurvivorController = {
         description:
           `Se cambió el teléfono del superviviente "${survivor.survivorName}" (ID: ${id}). ` +
           `Teléfono anterior: ${oldPhoneSurvivor.phone.phone} (ID: ${oldPhoneSurvivor.idPhone}). ` +
-          `Teléfono nuevo: ${newPhoneNumber} (ID: ${newPhoneRecord.idPhone}).`,
+          `Teléfono nuevo: ${phoneStr} (ID: ${newPhoneRecord.idPhone}).`,
         affectedTable: 'PhoneSurvivor'
       });
 
@@ -194,21 +201,25 @@ const PhoneSurvivorController = {
     const { id } = req.params;
 
     try {
+      // Validate numeric id
+      const idNum = ValidationRules.parseIdParam(String(id || ''));
+      if (!idNum) return res.validationErrors(['El parámetro id debe ser numérico']);
+
       // Validate survivor exists
-      const survivor = await SurvivorService.findById(id);
+      const survivor = await SurvivorService.findById(Number(idNum));
       if (!survivor) {
         return res.notFound('Superviviente');
       }
 
       // Check if survivor has a phone
-      const phoneSurvivor = await PhoneSurvivorService.getBySurvivor(id);
+      const phoneSurvivor = await PhoneSurvivorService.getBySurvivor(Number(idNum));
       
       if (!phoneSurvivor) {
         return res.notFound('El superviviente no tiene un teléfono registrado');
       }
 
       // Delete relation
-      await PhoneSurvivorService.deleteAllBySurvivor(id);
+      await PhoneSurvivorService.deleteAllBySurvivor(Number(idNum));
 
       // Security log
       const userEmail = req.user?.sub;

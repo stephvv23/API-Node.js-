@@ -2,6 +2,7 @@ const { EmergencyContactSurvivorService } = require('./emergencyContactSurvivor.
 const { SurvivorService } = require('../survivor/survivor.service');
 const { EmergencyContactsService } = require('../emergencyContact/emergencyContact.service');
 const { SecurityLogService } = require('../../../services/securitylog.service');
+const { ValidationRules } = require('../../../utils/validator');
 
 const EmergencyContactSurvivorController = {
   /**
@@ -22,13 +23,17 @@ const EmergencyContactSurvivorController = {
     }
 
     try {
+      // Validate numeric id
+      const idNum = ValidationRules.parseIdParam(String(id || ''));
+      if (!idNum) return res.validationErrors(['El parámetro id debe ser numérico']);
+
       // Validate survivor exists
-      const survivor = await SurvivorService.findById(id);
+      const survivor = await SurvivorService.findById(Number(idNum));
       if (!survivor) {
         return res.notFound('Superviviente');
       }
 
-      const contacts = await EmergencyContactSurvivorService.getBySurvivor(id, status);
+      const contacts = await EmergencyContactSurvivorService.getBySurvivor(Number(idNum), status);
       return res.success(contacts);
     } catch (error) {
       console.error('[EMERGENCY-CONTACT-SURVIVOR] list error:', error);
@@ -44,13 +49,18 @@ const EmergencyContactSurvivorController = {
     const { id, idEmergencyContact } = req.params;
 
     try {
+      // Validate numeric ids
+      const idNum = ValidationRules.parseIdParam(String(id || ''));
+      const idContactNum = ValidationRules.parseIdParam(String(idEmergencyContact || ''));
+      if (!idNum || !idContactNum) return res.validationErrors(['Los parámetros id y idEmergencyContact deben ser numéricos']);
+
       // Validate survivor exists
-      const survivor = await SurvivorService.findById(id);
+      const survivor = await SurvivorService.findById(Number(idNum));
       if (!survivor) {
         return res.notFound('Superviviente');
       }
 
-      const contactSurvivor = await EmergencyContactSurvivorService.findOne(id, idEmergencyContact);
+      const contactSurvivor = await EmergencyContactSurvivorService.findOne(Number(idNum), Number(idContactNum));
       if (!contactSurvivor) {
         return res.notFound('Relación contacto de emergencia-superviviente');
       }
@@ -73,6 +83,9 @@ const EmergencyContactSurvivorController = {
     // Validations
     const errors = [];
 
+    const idNum = ValidationRules.parseIdParam(String(id || ''));
+    if (!idNum) errors.push('El parámetro id debe ser numérico');
+
     if (!idEmergencyContact || typeof idEmergencyContact !== 'number') {
       errors.push('idEmergencyContact es requerido y debe ser un número');
     }
@@ -83,7 +96,7 @@ const EmergencyContactSurvivorController = {
 
     try {
       // Validate survivor exists and is active
-      const survivor = await SurvivorService.findById(id);
+      const survivor = await SurvivorService.findById(Number(idNum));
       if (!survivor) {
         return res.notFound('Superviviente');
       }
@@ -103,7 +116,7 @@ const EmergencyContactSurvivorController = {
       }
 
       // Check if relation already exists
-      const existing = await EmergencyContactSurvivorService.findOne(id, idEmergencyContact);
+      const existing = await EmergencyContactSurvivorService.findOne(Number(idNum), idEmergencyContact);
       
       if (existing) {
         // If relation exists and is active, return error
@@ -115,7 +128,7 @@ const EmergencyContactSurvivorController = {
 
         // If relation exists but is inactive, reactivate it
         if (existing.status === 'inactive') {
-          const reactivated = await EmergencyContactSurvivorService.update(id, idEmergencyContact, {
+          const reactivated = await EmergencyContactSurvivorService.update(Number(idNum), idEmergencyContact, {
             status: 'active'
           });
 
@@ -135,7 +148,7 @@ const EmergencyContactSurvivorController = {
       }
 
       // Create new relation
-      const newContactSurvivor = await EmergencyContactSurvivorService.create(id, idEmergencyContact, 'active');
+      const newContactSurvivor = await EmergencyContactSurvivorService.create(Number(idNum), idEmergencyContact, 'active');
 
       // Security log
       const userEmail = req.user?.sub;
@@ -163,14 +176,19 @@ const EmergencyContactSurvivorController = {
     const { id, idEmergencyContact } = req.params;
 
     try {
+      // Validate numeric ids
+      const idNum = ValidationRules.parseIdParam(String(id || ''));
+      const idContactNum = ValidationRules.parseIdParam(String(idEmergencyContact || ''));
+      if (!idNum || !idContactNum) return res.validationErrors(['Los parámetros id y idEmergencyContact deben ser numéricos']);
+
       // Validate survivor exists
-      const survivor = await SurvivorService.findById(id);
+      const survivor = await SurvivorService.findById(Number(idNum));
       if (!survivor) {
         return res.notFound('Superviviente');
       }
 
       // Validate emergency contact-survivor relation exists
-      const contactSurvivor = await EmergencyContactSurvivorService.findOne(id, idEmergencyContact);
+      const contactSurvivor = await EmergencyContactSurvivorService.findOne(Number(idNum), Number(idContactNum));
       if (!contactSurvivor) {
         return res.notFound('El superviviente no tiene registrado este contacto de emergencia');
       }
@@ -181,7 +199,7 @@ const EmergencyContactSurvivorController = {
       }
 
       // Count active emergency contacts before deleting
-      const activeContacts = await EmergencyContactSurvivorService.getBySurvivor(id, 'active');
+      const activeContacts = await EmergencyContactSurvivorService.getBySurvivor(Number(idNum), 'active');
       
       // Don't allow inactivation if it's the last active emergency contact
       if (activeContacts.length <= 1) {
@@ -189,7 +207,7 @@ const EmergencyContactSurvivorController = {
       }
 
       // Soft delete (set status to inactive)
-      await EmergencyContactSurvivorService.delete(id, idEmergencyContact);
+      await EmergencyContactSurvivorService.delete(Number(idNum), Number(idContactNum));
 
       // Security log
       const userEmail = req.user?.sub;

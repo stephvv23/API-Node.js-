@@ -1,11 +1,12 @@
 const { SurvivorService } = require("./survivor.service");
 const { SecurityLogService } = require("../../../services/securitylog.service");
-const { EntityValidators } = require("../../../utils/validator");
+const { EntityValidators, ValidationRules } = require("../../../utils/validator");
 const { HeadquarterService } = require("../headquarters/headquarter.service");
 const { CancerService } = require("../cancer/cancer.service");
 const { EmergencyContactsService } = require("../emergencyContact/emergencyContact.service");
 
 const SurvivorController = {
+  // helper functions removed in favor of centralized ValidationRules
   // List all active survivors
   getAllActive: async (_req, res) => {
     try {
@@ -39,7 +40,9 @@ const SurvivorController = {
   getById: async (req, res) => {
     const { id } = req.params;
     try {
-      const survivor = await SurvivorService.findById(id);
+      const idNum = ValidationRules.parseIdParam(String(id || ''));
+      if (!idNum) return res.validationErrors(['El parámetro id debe ser numérico']);
+      const survivor = await SurvivorService.findById(Number(idNum));
       if (!survivor) {
         return res.notFound("Superviviente");
       }
@@ -53,7 +56,18 @@ const SurvivorController = {
   create: async (req, res) => {
     const data = req.body;
 
-    const validation = EntityValidators.survivor(data, { partial: false });
+    // Trim top-level string fields
+    const normalized = ValidationRules.trimStringFields(data || {});
+
+    // Normalize stages inside cancers if provided
+    if (Array.isArray(normalized.cancers)) {
+      normalized.cancers = normalized.cancers.map((c) => ({
+        ...c,
+        stage: typeof c.stage === 'string' ? c.stage.trim().replace(/\s+/g, ' ') : c.stage,
+      }));
+    }
+
+    const validation = EntityValidators.survivor(normalized, { partial: false });
     if (!validation.isValid) {
       return res.validationErrors(validation.errors);
     }
@@ -62,21 +76,21 @@ const SurvivorController = {
       const errors = [];
 
       // Validate headquarter exists and is active
-      if (data.idHeadquarter) {
-        const headquarter = await HeadquarterService.findById(data.idHeadquarter);
+      if (normalized.idHeadquarter) {
+        const headquarter = await HeadquarterService.findById(normalized.idHeadquarter);
         if (!headquarter) {
           errors.push("La sede especificada no existe");
         } else if (headquarter.status !== "active") {
-          errors.push("La sede especificada no está activa");
+          errors.push("La sede especificada no estÃ¡ activa");
         }
       }
 
       // Validate cancers array (required, minimum 1)
-      if (!data.cancers || !Array.isArray(data.cancers) || data.cancers.length === 0) {
-        errors.push("Debe proporcionar al menos un tipo de cáncer");
+      if (!normalized.cancers || !Array.isArray(normalized.cancers) || normalized.cancers.length === 0) {
+        errors.push("Debe proporcionar al menos un tipo de cÃ¡ncer");
       } else {
-        for (let i = 0; i < data.cancers.length; i++) {
-          const cancer = data.cancers[i];
+        for (let i = 0; i < normalized.cancers.length; i++) {
+          const cancer = normalized.cancers[i];
           if (!cancer.idCancer || typeof cancer.idCancer !== 'number') {
             errors.push(`Cáncer ${i + 1}: idCancer es requerido y debe ser un número`);
           } else {
@@ -88,28 +102,32 @@ const SurvivorController = {
               errors.push(`Cáncer ${i + 1}: El tipo de cáncer "${cancerExists.cancerName}" no está activo`);
             }
           }
-          if (!cancer.stage || typeof cancer.stage !== 'string') {
+          const stageVal = cancer.stage || '';
+          if (typeof stageVal !== 'string' || stageVal.trim() === '') {
             errors.push(`Cáncer ${i + 1}: stage (etapa) es requerido y debe ser texto`);
+          } else {
+            // normalize stage spacing
+            cancer.stage = typeof stageVal === 'string' ? stageVal.trim().replace(/\s+/g, ' ') : stageVal;
           }
         }
       }
 
-      // Validate phone (optional, but must be string if provided)
-      if (data.phone) {
-        if (typeof data.phone !== 'string' && typeof data.phone !== 'number') {
-          errors.push("phone debe ser un string o número");
+      // Validate phone (optional, but must be string or number if provided)
+      if (normalized.phone) {
+        if (typeof normalized.phone !== 'string' && typeof normalized.phone !== 'number') {
+          errors.push("phone debe ser un string o nÃºmero");
         } else {
-          const phoneStr = String(data.phone);
+          const phoneStr = String(normalized.phone);
           if (!/^\d+$/.test(phoneStr)) {
-            errors.push('phone debe contener solo dígitos');
+            errors.push('phone debe contener solo dÃ­gitos');
           } else if (phoneStr.length > 12) {
-            errors.push('phone no puede tener más de 12 dígitos');
+            errors.push('phone no puede tener mÃ¡s de 12 dÃ­gitos');
           }
         }
       }
 
       // Validate emergency contacts (optional, but must be array if provided)
-      if (data.emergencyContacts && !Array.isArray(data.emergencyContacts)) {
+      if (normalized.emergencyContacts && !Array.isArray(normalized.emergencyContacts)) {
         errors.push("emergencyContacts debe ser un array de IDs");
       } else if (data.emergencyContacts && data.emergencyContacts.length > 0) {
         // Validate each emergency contact exists and is active
@@ -119,10 +137,12 @@ const SurvivorController = {
           if (!contact) {
             errors.push(`Contacto de emergencia ${i + 1}: El contacto con ID ${idContact} no existe`);
           } else if (contact.status !== "active") {
-            errors.push(`Contacto de emergencia ${i + 1}: El contacto "${contact.nameEmergencyContact}" no está activo`);
+            errors.push(`Contacto de emergencia ${i + 1}: El contacto "${contact.nameEmergencyContact}" no estÃ¡ activo`);
           }
         }
       }
+
+      // Note: birthday and boolean checks are enforced in EntityValidators.survivor
 
       if (errors.length > 0) {
         return res.validationErrors(errors);
@@ -131,33 +151,37 @@ const SurvivorController = {
       // Check for duplicates
       const allSurvivors = await SurvivorService.list({ status: "all" });
       const duplicateErrors = [];
+      // Compare normalized values to avoid duplicates with spacing differences
+      const normalizeForCompare = (v) => (v ? String(v).trim().replace(/\s+/g, ' ').toLowerCase() : '');
+      const newDocNorm = normalizeForCompare(normalized.documentNumber);
+      const newEmailNorm = normalizeForCompare(normalized.email);
 
-      if (allSurvivors.some((s) => s.documentNumber === data.documentNumber)) {
+      if (allSurvivors.some((s) => normalizeForCompare(s.documentNumber) === newDocNorm)) {
         duplicateErrors.push(
-          "Ya existe un superviviente con ese número de documento"
+          "Ya existe un superviviente con ese nÃºmero de documento"
         );
       }
-      if (data.email && allSurvivors.some((s) => s.email === data.email)) {
-        duplicateErrors.push("Ya existe un superviviente con ese correo electrónico");
+      if (normalized.email && allSurvivors.some((s) => normalizeForCompare(s.email) === newEmailNorm)) {
+        duplicateErrors.push("Ya existe un superviviente con ese correo electrÃ³nico");
       }
 
       if (duplicateErrors.length > 0) {
         return res.validationErrors(duplicateErrors);
       }
 
-      const newSurvivor = await SurvivorService.create(data);
+  const newSurvivor = await SurvivorService.create(normalized);
       const userEmail = req.user?.sub;
 
       await SecurityLogService.log({
         email: userEmail,
         action: "CREATE",
         description:
-          `Se creó un nuevo superviviente con los siguientes datos: ` +
+          `Se creÃ³ un nuevo superviviente con los siguientes datos: ` +
           `ID: "${newSurvivor.idSurvivor}", ` +
           `Nombre: "${newSurvivor.survivorName}", ` +
           `Documento: "${newSurvivor.documentNumber}", ` +
           `Correo: "${newSurvivor.email}", ` +
-          `Cánceres: ${data.cancers.length}, ` +
+          `CÃ¡nceres: ${data.cancers.length}, ` +
           `Estado: "${newSurvivor.status}".`,
         affectedTable: "Survivor",
       });
@@ -185,7 +209,10 @@ const SurvivorController = {
     }
 
     try {
-      const previousSurvivor = await SurvivorService.findById(id);
+      const idNum = ValidationRules.parseIdParam(String(id || ''));
+      if (!idNum) return res.validationErrors(['El parámetro id debe ser numérico']);
+
+      const previousSurvivor = await SurvivorService.findById(Number(idNum));
       if (!previousSurvivor) {
         return res.notFound("Superviviente");
       }
@@ -200,7 +227,7 @@ const SurvivorController = {
         const headquarterId = parseInt(updateData.idHeadquarter, 10);
         
         if (isNaN(headquarterId) || headquarterId <= 0) {
-          return res.validationErrors(["El ID de la sede debe ser un número entero positivo"]);
+          return res.validationErrors(["El ID de la sede debe ser un nÃºmero entero positivo"]);
         }
         
         const headquarter = await HeadquarterService.findById(headquarterId);
@@ -208,22 +235,22 @@ const SurvivorController = {
           return res.validationErrors([`La sede con ID ${headquarterId} no existe`]);
         }
         if (headquarter.status !== "active") {
-          return res.validationErrors([`La sede "${headquarter.name}" no está activa`]);
+          return res.validationErrors([`La sede "${headquarter.name}" no estÃ¡ activa`]);
         }
       }
 
-      // Warn if trying to update relations (not supported in UPDATE endpoint)
+  // Warn if trying to update relations (not supported in UPDATE endpoint)
       const relationFields = ['cancers', 'phone', 'emergencyContacts', 'cancerSurvivor', 'phoneSurvivor', 'emergencyContactSurvivor'];
       const attemptedRelations = relationFields.filter(field => updateData[field] !== undefined);
       
       if (attemptedRelations.length > 0) {
         return res.validationErrors([
           `No se pueden actualizar relaciones en este endpoint: ${attemptedRelations.join(', ')}. ` +
-          `Para actualizar cánceres, teléfonos o contactos de emergencia, use los endpoints específicos correspondientes.`
+          `Para actualizar cÃ¡nceres, telÃ©fonos o contactos de emergencia, use los endpoints especÃ­ficos correspondientes.`
         ]);
       }
 
-      // Clean payload: remove relation fields and nested objects that aren't allowed in update
+  // Clean payload: remove relation fields and nested objects that aren't allowed in update
       const { 
         headquarter, 
         cancerSurvivor, 
@@ -237,14 +264,28 @@ const SurvivorController = {
         ...cleanData 
       } = updateData;
 
+      // Normalize top-level strings in cleanData
+      const trimmed = ValidationRules.trimStringFields(cleanData || {});
       const payload = {
-        ...cleanData,
-        birthday: cleanData.birthday
-          ? new Date(cleanData.birthday)
-          : undefined,
+        ...trimmed,
+        birthday: trimmed.birthday ? new Date(trimmed.birthday) : undefined,
       };
 
-      const updatedSurvivor = await SurvivorService.update(id, payload);
+      // Check uniqueness for documentNumber and email if being updated
+      const allSurvivors = await SurvivorService.list({ status: 'all' });
+      const normalizeForCompare = (v) => (v ? String(v).trim().replace(/\s+/g, ' ').toLowerCase() : '');
+      if (payload.documentNumber) {
+        const docNorm = normalizeForCompare(payload.documentNumber);
+        const conflict = allSurvivors.find(s => s.idSurvivor !== previousSurvivor.idSurvivor && normalizeForCompare(s.documentNumber) === docNorm);
+        if (conflict) return res.validationErrors(['Ya existe otro superviviente con ese nÃºmero de documento']);
+      }
+      if (payload.email) {
+        const emailNorm = normalizeForCompare(payload.email);
+        const conflict = allSurvivors.find(s => s.idSurvivor !== previousSurvivor.idSurvivor && normalizeForCompare(s.email) === emailNorm);
+        if (conflict) return res.validationErrors(['Ya existe otro superviviente con ese correo electrÃ³nico']);
+      }
+
+  const updatedSurvivor = await SurvivorService.update(Number(idNum), payload);
 
       const onlyStatusChange =
         previousSurvivor.status === "inactive" &&
@@ -260,7 +301,7 @@ const SurvivorController = {
           email: userEmail,
           action: "REACTIVATE",
           description:
-            `Se reactivó el superviviente con ID "${id}". Datos: ` +
+            `Se reactivÃ³ el superviviente con ID "${id}". Datos: ` +
             `Nombre: "${updatedSurvivor.survivorName}", Documento: "${updatedSurvivor.documentNumber}", ` +
             `Correo: "${updatedSurvivor.email}", Estado: "${updatedSurvivor.status}".`,
           affectedTable: "Survivor",
@@ -270,14 +311,14 @@ const SurvivorController = {
           email: userEmail,
           action: "UPDATE",
           description:
-            `Se actualizó el superviviente con ID "${id}".\n` +
-            `Versión previa: ` +
+            `Se actualizÃ³ el superviviente con ID "${id}".\n` +
+            `VersiÃ³n previa: ` +
             `Nombre: "${previousSurvivor.survivorName}", Documento: "${previousSurvivor.documentNumber}", ` +
-            `País: "${previousSurvivor.country}", Correo: "${previousSurvivor.email}", ` +
+            `PaÃ­s: "${previousSurvivor.country}", Correo: "${previousSurvivor.email}", ` +
             `Residencia: "${previousSurvivor.residence}", Estado: "${previousSurvivor.status}".\n` +
-            `Nueva versión: ` +
+            `Nueva versiÃ³n: ` +
             `Nombre: "${updatedSurvivor.survivorName}", Documento: "${updatedSurvivor.documentNumber}", ` +
-            `País: "${updatedSurvivor.country}", Correo: "${updatedSurvivor.email}", ` +
+            `PaÃ­s: "${updatedSurvivor.country}", Correo: "${updatedSurvivor.email}", ` +
             `Residencia: "${updatedSurvivor.residence}", Estado: "${updatedSurvivor.status}".`,
           affectedTable: "Survivor",
         });
@@ -300,19 +341,21 @@ const SurvivorController = {
     const { id } = req.params;
 
     try {
-      const survivor = await SurvivorService.findById(id);
+      const idNum = ValidationRules.parseIdParam(String(id || ''));
+      if (!idNum) return res.validationErrors(['El parámetro id debe ser numérico']);
+      const survivor = await SurvivorService.findById(Number(idNum));
       if (!survivor) {
         return res.notFound("Superviviente");
       }
 
       const newStatus = survivor.status === "active" ? "inactive" : "active";
-      const updatedSurvivor = await SurvivorService.update(id, {
+      const updatedSurvivor = await SurvivorService.update(Number(idNum), {
         status: newStatus,
       });
 
       const userEmail = req.user?.sub;
       const action = newStatus === "inactive" ? "INACTIVE" : "REACTIVATE";
-      const verb = newStatus === "inactive" ? "inactivó" : "reactivó";
+      const verb = newStatus === "inactive" ? "inactivÃ³" : "reactivÃ³";
 
       await SecurityLogService.log({
         email: userEmail,
@@ -346,19 +389,21 @@ const SurvivorController = {
   reactivate: async (req, res) => {
     const { id } = req.params;
     try {
-      const survivor = await SurvivorService.findById(id);
+      const idNum = ValidationRules.parseIdParam(String(id || ''));
+      if (!idNum) return res.validationErrors(['El parámetro id debe ser numérico']);
+      const survivor = await SurvivorService.findById(Number(idNum));
       if (!survivor) {
         return res.notFound("Superviviente");
       }
 
-      const reactivated = await SurvivorService.reactivate(id);
+      const reactivated = await SurvivorService.reactivate(Number(idNum));
       const userEmail = req.user?.sub;
 
       await SecurityLogService.log({
         email: userEmail,
         action: "REACTIVATE",
         description:
-          `Se reactivó el superviviente con ID "${id}", Nombre: "${reactivated.survivorName}", ` +
+          `Se reactivÃ³ el superviviente con ID "${id}", Nombre: "${reactivated.survivorName}", ` +
           `Documento: "${reactivated.documentNumber}", Estado: "${reactivated.status}".`,
         affectedTable: "Survivor",
       });

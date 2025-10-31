@@ -1361,6 +1361,11 @@ const EntityValidators = {
       return !options.partial || (fieldValue !== undefined && fieldValue !== null);
     };
 
+    // Normalize top-level string fields to avoid duplicates due to spacing
+    if (data && typeof data === 'object') {
+      data = ValidationRules.trimStringFields(data);
+    }
+
     // Headquarter ID validation
     if (shouldValidateField(data.idHeadquarter)) {
       const headquarterValidator = validator.field('idHeadquarter', data.idHeadquarter);
@@ -1389,11 +1394,11 @@ const EntityValidators = {
       countryValidator.string().minLength(1).internationalText().maxLength(75);
     }
 
-    // Birthday validation
+    // Birthday validation (must be valid date and not in future)
     if (shouldValidateField(data.birthday)) {
       const birthdayValidator = validator.field('birthday', data.birthday);
       if (!options.partial) birthdayValidator.required();
-      birthdayValidator.date();
+      birthdayValidator.date().dateNotInFuture();
     }
 
     // Email validation
@@ -1438,11 +1443,11 @@ const EntityValidators = {
       imasValidator.boolean();
     }
 
-    // Physical file status validation
+    // Physical file status validation (should be boolean, not free text)
     if (shouldValidateField(data.physicalFileStatus)) {
       const physicalValidator = validator.field('physicalFileStatus', data.physicalFileStatus);
       if (!options.partial) physicalValidator.required();
-      physicalValidator.string().minLength(1).internationalText().maxLength(50);
+      physicalValidator.boolean();
     }
 
     // Medical record validation
@@ -1476,6 +1481,38 @@ const EntityValidators = {
     // Notes validation (optional field)
     if (shouldValidateField(data.notes)) {
       validator.field('notes', data.notes).string().internationalText().maxLength(250);
+    }
+
+    // Cancers array validation (each item should include idCancer and stage)
+    if (shouldValidateField(data.cancers)) {
+      if (!Array.isArray(data.cancers) || data.cancers.length === 0) {
+        if (!options.partial) {
+          const cancersValidator = validator.field('cancers', data.cancers);
+          cancersValidator.custom(() => 'Debe proporcionar al menos un tipo de cáncer');
+        }
+      } else {
+        for (let i = 0; i < data.cancers.length; i++) {
+          const item = data.cancers[i] || {};
+          // Normalize stage spacing for validation clarity
+          if (item.stage && typeof item.stage === 'string') {
+            item.stage = item.stage.trim().replace(/\s+/g, ' ');
+          }
+
+          // idCancer must be an integer
+          if (item.idCancer !== undefined && item.idCancer !== null) {
+            const idValidator = validator.field(`cancers[${i}].idCancer`, item.idCancer);
+            if (!options.partial) idValidator.required();
+            idValidator.integer();
+          }
+
+          // stage must be a non-empty string
+          if (item.stage !== undefined && item.stage !== null) {
+            const stageValidator = validator.field(`cancers[${i}].stage`, item.stage);
+            if (!options.partial) stageValidator.required();
+            stageValidator.string().minLength(1).internationalText().maxLength(200);
+          }
+        }
+      }
     }
 
     // Status validation

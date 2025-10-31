@@ -2,8 +2,10 @@ const { CancerSurvivorService } = require('./cancerSurvivor.service');
 const { SurvivorService } = require('../survivor/survivor.service');
 const { CancerService } = require('../cancer/cancer.service');
 const { SecurityLogService } = require('../../../services/securitylog.service');
+const { ValidationRules } = require('../../../utils/validator');
 
 const CancerSurvivorController = {
+  // Use ValidationRules.parseIdParam for numeric id parsing
   /**
    * GET /api/survivors/:id/cancers
    * List all cancers for a specific survivor
@@ -22,13 +24,16 @@ const CancerSurvivorController = {
     }
 
     try {
+      const idNum = ValidationRules.parseIdParam(String(id || ''));
+      if (!idNum) return res.validationErrors(['El parámetro id debe ser numérico']);
+
       // Validate survivor exists
-      const survivor = await SurvivorService.findById(id);
+  const survivor = await SurvivorService.findById(Number(idNum));
       if (!survivor) {
         return res.notFound('Superviviente');
       }
 
-      const cancers = await CancerSurvivorService.getBySurvivor(id, status);
+  const cancers = await CancerSurvivorService.getBySurvivor(Number(idNum), status);
       return res.success(cancers);
     } catch (error) {
       console.error('[CANCER-SURVIVOR] list error:', error);
@@ -44,13 +49,16 @@ const CancerSurvivorController = {
     const { id, idCancer } = req.params;
 
     try {
+      const idNum = ValidationRules.parseIdParam(String(id || ''));
+      const idCancerNum = ValidationRules.parseIdParam(String(idCancer || ''));
+      if (!idNum || !idCancerNum) return res.validationErrors(['Los parámetros id y idCancer deben ser numéricos']);
+
       // Validate survivor exists
-      const survivor = await SurvivorService.findById(id);
+      const survivor = await SurvivorService.findById(Number(idNum));
       if (!survivor) {
         return res.notFound('Superviviente');
       }
-
-      const cancerSurvivor = await CancerSurvivorService.findOne(id, idCancer);
+      const cancerSurvivor = await CancerSurvivorService.findOne(Number(idNum), Number(idCancerNum));
       if (!cancerSurvivor) {
         return res.notFound('Relación cáncer-superviviente');
       }
@@ -73,11 +81,16 @@ const CancerSurvivorController = {
     // Validations
     const errors = [];
 
-    if (!idCancer || typeof idCancer !== 'number') {
-      errors.push('idCancer es requerido y debe ser un número');
-    }
+    const idNum = ValidationRules.parseIdParam(String(id || ''));
+    const idCancerNum = ValidationRules.parseIdParam(String(idCancer || ''));
 
-    if (!stage || typeof stage !== 'string' || stage.trim() === '') {
+    if (!idNum) errors.push('El parámetro id debe ser numérico');
+    if (!idCancerNum) errors.push('idCancer es requerido y debe ser numérico');
+
+    const trimmedBody = ValidationRules.trimStringFields(req.body || {});
+    const normalizedStage = typeof trimmedBody.stage === 'string' ? trimmedBody.stage.trim().replace(/\s+/g, ' ') : trimmedBody.stage;
+
+    if (!normalizedStage || typeof normalizedStage !== 'string') {
       errors.push('stage es requerido y debe ser un texto válido');
     }
 
@@ -87,7 +100,7 @@ const CancerSurvivorController = {
 
     try {
       // Validate survivor exists and is active
-      const survivor = await SurvivorService.findById(id);
+      const survivor = await SurvivorService.findById(Number(idNum));
       if (!survivor) {
         return res.notFound('Superviviente');
       }
@@ -97,7 +110,7 @@ const CancerSurvivorController = {
       }
 
       // Validate cancer exists and is active
-      const cancer = await CancerService.get(idCancer);
+      const cancer = await CancerService.get(idCancerNum);
       if (!cancer) {
         return res.validationErrors([`El tipo de cáncer con ID ${idCancer} no existe`]);
       }
@@ -107,7 +120,7 @@ const CancerSurvivorController = {
       }
 
       // Check if relation already exists (active or inactive)
-      const existing = await CancerSurvivorService.findOne(id, idCancer);
+  const existing = await CancerSurvivorService.findOne(Number(idNum), Number(idCancerNum));
       
       if (existing) {
         // If it exists and is active, return error
@@ -120,9 +133,9 @@ const CancerSurvivorController = {
         
         // If it exists but is inactive, reactivate it
         if (existing.status === 'inactive') {
-          const reactivated = await CancerSurvivorService.update(id, idCancer, {
+          const reactivated = await CancerSurvivorService.update(Number(idNum), idCancerNum, {
             status: 'active',
-            stage: stage.trim() // Update stage with new value
+            stage: normalizedStage // Update stage with normalized value
           });
 
           // Security log for reactivation
@@ -132,7 +145,7 @@ const CancerSurvivorController = {
             action: 'REACTIVATE',
             description:
               `Se reactivó el cáncer "${cancer.cancerName}" (ID: ${idCancer}) del superviviente "${survivor.survivorName}" (ID: ${id}). ` +
-              `Etapa anterior: "${existing.stage}", Nueva etapa: "${stage}". Estado anterior: "inactive", Nuevo estado: "active".`,
+              `Etapa anterior: "${existing.stage}", Nueva etapa: "${normalizedStage}". Estado anterior: "inactive", Nuevo estado: "active".`,
             affectedTable: 'CancerSurvivor'
           });
 
@@ -141,16 +154,16 @@ const CancerSurvivorController = {
       }
 
       // Create new relation if it doesn't exist
-      const newCancerSurvivor = await CancerSurvivorService.create(id, idCancer, stage.trim(), status);
+  const newCancerSurvivor = await CancerSurvivorService.create(Number(idNum), idCancerNum, normalizedStage, status);
 
       // Security log
-      const userEmail = req.user?.sub;
+  const userEmail = req.user?.sub;
       await SecurityLogService.log({
         email: userEmail,
         action: 'CREATE',
         description:
           `Se agregó el cáncer "${cancer.cancerName}" (ID: ${idCancer}) al superviviente "${survivor.survivorName}" (ID: ${id}). ` +
-          `Etapa: "${stage}", Estado: "${status}".`,
+          `Etapa: "${normalizedStage}", Estado: "${status}".`,
         affectedTable: 'CancerSurvivor'
       });
 
@@ -174,7 +187,13 @@ const CancerSurvivorController = {
       return res.validationErrors(['Debe proporcionar al menos un campo para actualizar: stage o status']);
     }
 
+
     const errors = [];
+    const idNum = ValidationRules.parseIdParam(String(id || ''));
+    const idCancerNum = ValidationRules.parseIdParam(String(idCancer || ''));
+    if (!idNum || !idCancerNum) {
+      errors.push('Los parámetros id y idCancer deben ser numéricos');
+    }
 
     if (stage !== undefined && (typeof stage !== 'string' || stage.trim() === '')) {
       errors.push('stage debe ser un texto válido');
@@ -190,23 +209,23 @@ const CancerSurvivorController = {
 
     try {
       // Validate survivor exists
-      const survivor = await SurvivorService.findById(id);
+      const survivor = await SurvivorService.findById(Number(idNum));
       if (!survivor) {
         return res.notFound('Superviviente');
       }
 
       // Validate cancer-survivor relation exists
-      const cancerSurvivor = await CancerSurvivorService.findOne(id, idCancer);
+      const cancerSurvivor = await CancerSurvivorService.findOne(Number(idNum), Number(idCancerNum));
       if (!cancerSurvivor) {
         return res.notFound('El superviviente no tiene registrado este tipo de cáncer');
       }
 
       // Build update payload
-      const updateData = {};
-      if (stage) updateData.stage = stage.trim();
-      if (status) updateData.status = status;
+  const updateData = {};
+  if (stage) updateData.stage = stage.trim().replace(/\s+/g, ' ');
+  if (status) updateData.status = status;
 
-      const updated = await CancerSurvivorService.update(id, idCancer, updateData);
+  const updated = await CancerSurvivorService.update(Number(idNum), Number(idCancerNum), updateData);
 
       // Security log
       const userEmail = req.user?.sub;
@@ -235,14 +254,19 @@ const CancerSurvivorController = {
     const { id, idCancer } = req.params;
 
     try {
+      // Parse and validate numeric route ids
+      const idNum = ValidationRules.parseIdParam(String(id || ''));
+      const idCancerNum = ValidationRules.parseIdParam(String(idCancer || ''));
+      if (!idNum || !idCancerNum) return res.validationErrors(['Los parámetros id y idCancer deben ser numéricos']);
+
       // Validate survivor exists
-      const survivor = await SurvivorService.findById(id);
+      const survivor = await SurvivorService.findById(Number(idNum));
       if (!survivor) {
         return res.notFound('Superviviente');
       }
 
       // Validate cancer-survivor relation exists
-      const cancerSurvivor = await CancerSurvivorService.findOne(id, idCancer);
+      const cancerSurvivor = await CancerSurvivorService.findOne(Number(idNum), Number(idCancerNum));
       if (!cancerSurvivor) {
         return res.notFound('El superviviente no tiene registrado este tipo de cáncer');
       }
@@ -252,8 +276,8 @@ const CancerSurvivorController = {
         return res.badRequest('Este cáncer ya está inactivo');
       }
 
-      // Check if it's the last active cancer
-      const allCancers = await CancerSurvivorService.getBySurvivor(id, 'all');
+    // Check if it's the last active cancer
+    const allCancers = await CancerSurvivorService.getBySurvivor(Number(idNum), 'all');
       const activeCancers = allCancers.filter(c => c.status === 'active');
       
       if (activeCancers.length === 1) {
@@ -262,7 +286,7 @@ const CancerSurvivorController = {
         );
       }
 
-      const inactivated = await CancerSurvivorService.delete(id, idCancer);
+    const inactivated = await CancerSurvivorService.delete(Number(idNum), Number(idCancerNum));
 
       // Security log
       const userEmail = req.user?.sub;
