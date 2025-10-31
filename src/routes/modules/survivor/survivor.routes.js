@@ -54,25 +54,12 @@ module.exports = [
     ),
   },
 
-  // Deactivate survivor
+  // Deactivate/reactivate survivor
   {
     method: 'PATCH',
     path: '/api/survivors/:id/status',
     handler: authenticate(
       authorizeWindow('Supervivientes', 'read', 'delete')(SurvivorController.delete)
-    ),
-  },
-
-  // Reactivate survivor
-  {
-    method: "PUT",
-    path: "/api/survivors/reactivate/:id",
-    handler: authenticate(
-      authorizeWindow(
-        "Supervivientes",
-        "read",
-        "update"
-      )(SurvivorController.reactivate)
     ),
   },
 ];

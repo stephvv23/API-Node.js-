@@ -167,13 +167,12 @@ const SurvivorRepository = {
     });
   },
 
-  // Update survivor data (only active survivors)
+  // Update survivor data
+  // NOTE: do NOT include non-unique fields (like `status`) in the `where` for `update`.
+  // Controller already validates that only active survivors may be updated where required.
   update: (id, data) =>
     prisma.survivor.update({
-      where: { 
-        idSurvivor: Number(id),
-        status: "active"
-      },
+      where: { idSurvivor: Number(id) },
       data,
       select: baseSelect
     }),
