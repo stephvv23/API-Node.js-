@@ -37,7 +37,7 @@ module.exports = [
     method: 'DELETE',
     path: '/api/survivors/:id/emergency-contacts/:idEmergencyContact',
     handler: authenticate(
-      authorizeWindow('Supervivientes', 'delete')(EmergencyContactSurvivorController.delete)
+      authorizeWindow('Supervivientes', 'read', 'delete')(EmergencyContactSurvivorController.delete)
     ),
   },
 ];

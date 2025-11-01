@@ -27,7 +27,7 @@ module.exports = [
     method: 'PUT',
     path: '/api/survivors/:id/phone',
     handler: authenticate(
-      authorizeWindow('Supervivientes', 'update')(PhoneSurvivorController.update)
+      authorizeWindow('Supervivientes', 'read', 'update')(PhoneSurvivorController.update)
     )
   },
 
@@ -36,7 +36,7 @@ module.exports = [
     method: 'DELETE',
     path: '/api/survivors/:id/phone',
     handler: authenticate(
-      authorizeWindow('Supervivientes', 'delete')(PhoneSurvivorController.delete)
+      authorizeWindow('Supervivientes', 'read', 'delete')(PhoneSurvivorController.delete)
     )
   }
 ];

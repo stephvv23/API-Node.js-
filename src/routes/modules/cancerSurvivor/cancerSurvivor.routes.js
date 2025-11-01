@@ -37,7 +37,7 @@ module.exports = [
     method: 'PUT',
     path: '/api/survivors/:id/cancers/:idCancer',
     handler: authenticate(
-      authorizeWindow('Supervivientes', 'update')(CancerSurvivorController.update)
+      authorizeWindow('Supervivientes', 'read', 'update')(CancerSurvivorController.update)
     ),
   },
 
@@ -46,7 +46,7 @@ module.exports = [
     method: 'DELETE',
     path: '/api/survivors/:id/cancers/:idCancer',
     handler: authenticate(
-      authorizeWindow('Supervivientes', 'delete')(CancerSurvivorController.delete)
+      authorizeWindow('Supervivientes', 'read', 'delete')(CancerSurvivorController.delete)
     ),
   },
 ];
