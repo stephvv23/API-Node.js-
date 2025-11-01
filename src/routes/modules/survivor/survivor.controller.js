@@ -81,13 +81,13 @@ const SurvivorController = {
         if (!headquarter) {
           errors.push("La sede especificada no existe");
         } else if (headquarter.status !== "active") {
-          errors.push("La sede especificada no estÃ¡ activa");
+          errors.push("La sede especificada no está activa");
         }
       }
 
       // Validate cancers array (required, minimum 1)
       if (!normalized.cancers || !Array.isArray(normalized.cancers) || normalized.cancers.length === 0) {
-        errors.push("Debe proporcionar al menos un tipo de cÃ¡ncer");
+        errors.push("Debe proporcionar al menos un tipo de cáncer");
       } else {
         for (let i = 0; i < normalized.cancers.length; i++) {
           const cancer = normalized.cancers[i];
@@ -115,13 +115,13 @@ const SurvivorController = {
       // Validate phone (optional, but must be string or number if provided)
       if (normalized.phone) {
         if (typeof normalized.phone !== 'string' && typeof normalized.phone !== 'number') {
-          errors.push("phone debe ser un string o nÃºmero");
+          errors.push("phone debe ser un string o número");
         } else {
           const phoneStr = String(normalized.phone);
           if (!/^\d+$/.test(phoneStr)) {
-            errors.push('phone debe contener solo dÃ­gitos');
+            errors.push('phone debe contener solo dígitos');
           } else if (phoneStr.length > 12) {
-            errors.push('phone no puede tener mÃ¡s de 12 dÃ­gitos');
+            errors.push('phone no puede tener más de 12 dígitos');
           }
         }
       }
@@ -137,7 +137,7 @@ const SurvivorController = {
           if (!contact) {
             errors.push(`Contacto de emergencia ${i + 1}: El contacto con ID ${idContact} no existe`);
           } else if (contact.status !== "active") {
-            errors.push(`Contacto de emergencia ${i + 1}: El contacto "${contact.nameEmergencyContact}" no estÃ¡ activo`);
+            errors.push(`Contacto de emergencia ${i + 1}: El contacto "${contact.nameEmergencyContact}" no está activo`);
           }
         }
       }
@@ -158,11 +158,11 @@ const SurvivorController = {
 
       if (allSurvivors.some((s) => normalizeForCompare(s.documentNumber) === newDocNorm)) {
         duplicateErrors.push(
-          "Ya existe un superviviente con ese nÃºmero de documento"
+          "Ya existe un superviviente con ese número de documento"
         );
       }
       if (normalized.email && allSurvivors.some((s) => normalizeForCompare(s.email) === newEmailNorm)) {
-        duplicateErrors.push("Ya existe un superviviente con ese correo electrÃ³nico");
+        duplicateErrors.push("Ya existe un superviviente con ese correo electrónico");
       }
 
       if (duplicateErrors.length > 0) {
@@ -176,12 +176,12 @@ const SurvivorController = {
         email: userEmail,
         action: "CREATE",
         description:
-          `Se creÃ³ un nuevo superviviente con los siguientes datos: ` +
+          `Se creó un nuevo superviviente con los siguientes datos: ` +
           `ID: "${newSurvivor.idSurvivor}", ` +
           `Nombre: "${newSurvivor.survivorName}", ` +
           `Documento: "${newSurvivor.documentNumber}", ` +
           `Correo: "${newSurvivor.email}", ` +
-          `CÃ¡nceres: ${data.cancers.length}, ` +
+          `Cánceres: ${data.cancers.length}, ` +
           `Estado: "${newSurvivor.status}".`,
         affectedTable: "Survivor",
       });
@@ -227,7 +227,7 @@ const SurvivorController = {
         const headquarterId = parseInt(updateData.idHeadquarter, 10);
         
         if (isNaN(headquarterId) || headquarterId <= 0) {
-          return res.validationErrors(["El ID de la sede debe ser un nÃºmero entero positivo"]);
+          return res.validationErrors(["El ID de la sede debe ser un número entero positivo"]);
         }
         
         const headquarter = await HeadquarterService.findById(headquarterId);
@@ -235,7 +235,7 @@ const SurvivorController = {
           return res.validationErrors([`La sede con ID ${headquarterId} no existe`]);
         }
         if (headquarter.status !== "active") {
-          return res.validationErrors([`La sede "${headquarter.name}" no estÃ¡ activa`]);
+          return res.validationErrors([`La sede "${headquarter.name}" no está activa`]);
         }
       }
 
@@ -246,7 +246,7 @@ const SurvivorController = {
       if (attemptedRelations.length > 0) {
         return res.validationErrors([
           `No se pueden actualizar relaciones en este endpoint: ${attemptedRelations.join(', ')}. ` +
-          `Para actualizar cÃ¡nceres, telÃ©fonos o contactos de emergencia, use los endpoints especÃ­ficos correspondientes.`
+          `Para actualizar cánceres, teléfonos o contactos de emergencia, use los endpoints específicos correspondientes.`
         ]);
       }
 
@@ -277,12 +277,12 @@ const SurvivorController = {
       if (payload.documentNumber) {
         const docNorm = normalizeForCompare(payload.documentNumber);
         const conflict = allSurvivors.find(s => s.idSurvivor !== previousSurvivor.idSurvivor && normalizeForCompare(s.documentNumber) === docNorm);
-        if (conflict) return res.validationErrors(['Ya existe otro superviviente con ese nÃºmero de documento']);
+        if (conflict) return res.validationErrors(['Ya existe otro superviviente con ese número de documento']);
       }
       if (payload.email) {
         const emailNorm = normalizeForCompare(payload.email);
         const conflict = allSurvivors.find(s => s.idSurvivor !== previousSurvivor.idSurvivor && normalizeForCompare(s.email) === emailNorm);
-        if (conflict) return res.validationErrors(['Ya existe otro superviviente con ese correo electrÃ³nico']);
+        if (conflict) return res.validationErrors(['Ya existe otro superviviente con ese correo electrónico']);
       }
 
   const updatedSurvivor = await SurvivorService.update(Number(idNum), payload);
@@ -301,7 +301,7 @@ const SurvivorController = {
           email: userEmail,
           action: "REACTIVATE",
           description:
-            `Se reactivÃ³ el superviviente con ID "${id}". Datos: ` +
+            `Se reactivó el superviviente con ID "${id}". Datos: ` +
             `Nombre: "${updatedSurvivor.survivorName}", Documento: "${updatedSurvivor.documentNumber}", ` +
             `Correo: "${updatedSurvivor.email}", Estado: "${updatedSurvivor.status}".`,
           affectedTable: "Survivor",
@@ -311,8 +311,8 @@ const SurvivorController = {
           email: userEmail,
           action: "UPDATE",
           description:
-            `Se actualizÃ³ el superviviente con ID "${id}".\n` +
-            `VersiÃ³n previa: ` +
+            `Se actualizó el superviviente con ID "${id}".\n` +
+            `Versión previa: ` +
             `Nombre: "${previousSurvivor.survivorName}", Documento: "${previousSurvivor.documentNumber}", ` +
             `PaÃ­s: "${previousSurvivor.country}", Correo: "${previousSurvivor.email}", ` +
             `Residencia: "${previousSurvivor.residence}", Estado: "${previousSurvivor.status}".\n` +
@@ -349,13 +349,13 @@ const SurvivorController = {
       }
 
       const newStatus = survivor.status === "active" ? "inactive" : "active";
-      const updatedSurvivor = await SurvivorService.update(Number(idNum), {
+      await SurvivorService.update(Number(idNum), {
         status: newStatus,
       });
 
       const userEmail = req.user?.sub;
       const action = newStatus === "inactive" ? "INACTIVE" : "REACTIVATE";
-      const verb = newStatus === "inactive" ? "inactivÃ³" : "reactivÃ³";
+      const verb = newStatus === "inactive" ? "inactivó" : "reactivó";
 
       await SecurityLogService.log({
         email: userEmail,
@@ -375,7 +375,7 @@ const SurvivorController = {
           ? "Superviviente inactivado exitosamente"
           : "Superviviente reactivado exitosamente";
 
-      return res.success(updatedSurvivor, message);
+      return res.success(null, message);
     } catch (error) {
       console.error("[SURVIVORS] delete/reactivate error:", error);
       if (process.env.NODE_ENV !== 'production') {
