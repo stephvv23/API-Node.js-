@@ -20,12 +20,52 @@ const baseSelect = {
   socioEconomicStudy: true,
   notes: true,
   status: true,
+  createdAt: true,
+  updatedAt: true,
   headquarter: {
     select: {
       idHeadquarter: true,
       name: true,
       email: true,
       location: true
+    }
+  },
+  cancerSurvivor: {
+    select: {
+      stage: true,
+      cancer: {
+        select: {
+          idCancer: true,
+          cancerName: true,
+          description: true,
+          status: true
+        }
+      }
+    }
+  },
+  phoneSurvivor: {
+    select: {
+      phone: {
+        select: {
+          idPhone: true,
+          phone: true
+        }
+      }
+    }
+  },
+  emergencyContactSurvivor: {
+    where: { status: 'active' }, // Only include active emergency contact relations
+    select: {
+      status: true,
+      emergencyContact: {
+        select: {
+          idEmergencyContact: true,
+          nameEmergencyContact: true,
+          emailEmergencyContact: true,
+          relationship: true,
+          status: true
+        }
+      }
     }
   }
 };
@@ -37,7 +77,7 @@ const SurvivorRepository = {
     return prisma.survivor.findMany({
       where,
       select: baseSelect,
-      orderBy: { survivorName: 'asc' },
+      orderBy: { idSurvivor: 'asc' }, // Order by ID ascending
       take,
       skip,
     });
@@ -47,7 +87,8 @@ const SurvivorRepository = {
   listActive: () =>
     prisma.survivor.findMany({
       where: { status: 'active' },
-      select: baseSelect
+      select: baseSelect,
+      orderBy: { idSurvivor: 'asc' } // Order by ID ascending
     }),
 
   // Find by ID
@@ -181,7 +222,10 @@ const SurvivorRepository = {
   update: (id, data) =>
     prisma.survivor.update({
       where: { idSurvivor: Number(id) },
-      data,
+      data: {
+        ...data,
+        updatedAt: new Date() // Actualizar timestamp automáticamente
+      },
       select: baseSelect
     }),
 
@@ -189,7 +233,10 @@ const SurvivorRepository = {
   remove: (id) =>
     prisma.survivor.update({
       where: { idSurvivor: Number(id) },
-      data: { status: 'inactive' },
+      data: { 
+        status: 'inactive',
+        updatedAt: new Date() // Actualizar timestamp
+      },
       select: baseSelect
     }),
 
@@ -197,7 +244,10 @@ const SurvivorRepository = {
   reactivate: (id) =>
     prisma.survivor.update({
       where: { idSurvivor: Number(id) },
-      data: { status: 'active' },
+      data: { 
+        status: 'active',
+        updatedAt: new Date() // Actualizar timestamp
+      },
       select: baseSelect
     }),
 };

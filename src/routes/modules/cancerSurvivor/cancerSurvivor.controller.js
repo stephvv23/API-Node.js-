@@ -5,35 +5,24 @@ const { SecurityLogService } = require('../../../services/securitylog.service');
 const { ValidationRules } = require('../../../utils/validator');
 
 const CancerSurvivorController = {
-  // Use ValidationRules.parseIdParam for numeric id parsing
   /**
    * GET /api/survivors/:id/cancers
    * List all cancers for a specific survivor
-   * Query params: ?status=active|inactive|all (default: active)
    */
   list: async (req, res) => {
     const { id } = req.params;
-    const status = (req.query?.status || 'active').toLowerCase();
-
-    // Validate status parameter
-    const validStatuses = ['active', 'inactive', 'all'];
-    if (!validStatuses.includes(status)) {
-      return res.validationErrors([
-        `El parámetro status debe ser: ${validStatuses.join(', ')}`
-      ]);
-    }
 
     try {
       const idNum = ValidationRules.parseIdParam(String(id || ''));
       if (!idNum) return res.validationErrors(['El parámetro id debe ser numérico']);
 
       // Validate survivor exists
-  const survivor = await SurvivorService.findById(Number(idNum));
+      const survivor = await SurvivorService.findById(Number(idNum));
       if (!survivor) {
         return res.notFound('Superviviente');
       }
 
-  const cancers = await CancerSurvivorService.getBySurvivor(Number(idNum), status);
+      const cancers = await CancerSurvivorService.getBySurvivor(Number(idNum));
       return res.success(cancers);
     } catch (error) {
       console.error('[CANCER-SURVIVOR] list error:', error);
@@ -58,6 +47,7 @@ const CancerSurvivorController = {
       if (!survivor) {
         return res.notFound('Superviviente');
       }
+
       const cancerSurvivor = await CancerSurvivorService.findOne(Number(idNum), Number(idCancerNum));
       if (!cancerSurvivor) {
         return res.notFound('Relación cáncer-superviviente');
@@ -73,10 +63,11 @@ const CancerSurvivorController = {
   /**
    * POST /api/survivors/:id/cancers
    * Add a cancer to a survivor
+   * Body: { "idCancer": 1, "stage": "II" }
    */
   create: async (req, res) => {
     const { id } = req.params;
-    const { idCancer, stage, status = 'active' } = req.body;
+    const { idCancer, stage } = req.body;
 
     // Validations
     const errors = [];
@@ -119,51 +110,27 @@ const CancerSurvivorController = {
         return res.validationErrors([`El tipo de cáncer "${cancer.cancerName}" no está activo`]);
       }
 
-      // Check if relation already exists (active or inactive)
-  const existing = await CancerSurvivorService.findOne(Number(idNum), Number(idCancerNum));
+      // Check if relation already exists
+      const existing = await CancerSurvivorService.findOne(Number(idNum), Number(idCancerNum));
       
       if (existing) {
-        // If it exists and is active, return error
-        if (existing.status === 'active') {
-          return res.validationErrors([
-            `El superviviente ya tiene registrado el cáncer "${cancer.cancerName}" de forma activa. ` +
-            `Use PUT para actualizar la etapa.`
-          ]);
-        }
-        
-        // If it exists but is inactive, reactivate it
-        if (existing.status === 'inactive') {
-          const reactivated = await CancerSurvivorService.update(Number(idNum), idCancerNum, {
-            status: 'active',
-            stage: normalizedStage // Update stage with normalized value
-          });
-
-          // Security log for reactivation
-          const userEmail = req.user?.sub;
-          await SecurityLogService.log({
-            email: userEmail,
-            action: 'REACTIVATE',
-            description:
-              `Se reactivó el cáncer "${cancer.cancerName}" (ID: ${idCancer}) del superviviente "${survivor.survivorName}" (ID: ${id}). ` +
-              `Etapa anterior: "${existing.stage}", Nueva etapa: "${normalizedStage}". Estado anterior: "inactive", Nuevo estado: "active".`,
-            affectedTable: 'CancerSurvivor'
-          });
-
-          return res.success(reactivated, 'Cáncer reactivado exitosamente');
-        }
+        return res.validationErrors([
+          `El superviviente ya tiene registrado el cáncer "${cancer.cancerName}". ` +
+          `Use PUT para actualizar la etapa o DELETE para eliminarlo primero.`
+        ]);
       }
 
-      // Create new relation if it doesn't exist
-  const newCancerSurvivor = await CancerSurvivorService.create(Number(idNum), idCancerNum, normalizedStage, status);
+      // Create new relation
+      const newCancerSurvivor = await CancerSurvivorService.create(Number(idNum), idCancerNum, normalizedStage);
 
       // Security log
-  const userEmail = req.user?.sub;
+      const userEmail = req.user?.sub;
       await SecurityLogService.log({
         email: userEmail,
         action: 'CREATE',
         description:
           `Se agregó el cáncer "${cancer.cancerName}" (ID: ${idCancer}) al superviviente "${survivor.survivorName}" (ID: ${id}). ` +
-          `Etapa: "${normalizedStage}", Estado: "${status}".`,
+          `Etapa: "${normalizedStage}".`,
         affectedTable: 'CancerSurvivor'
       });
 
@@ -176,31 +143,28 @@ const CancerSurvivorController = {
 
   /**
    * PUT /api/survivors/:id/cancers/:idCancer
-   * Update cancer stage or status
+   * Update cancer stage
+   * Body: { "stage": "III" } or { "stage": "Remisión" } or { "stage": "Curado" }
    */
   update: async (req, res) => {
     const { id, idCancer } = req.params;
-    const { stage, status } = req.body;
+    const { stage } = req.body;
 
-    // Validate at least one field to update
-    if (!stage && !status) {
-      return res.validationErrors(['Debe proporcionar al menos un campo para actualizar: stage o status']);
+    // Validate stage is provided
+    if (!stage) {
+      return res.validationErrors(['El campo stage es requerido']);
     }
-
 
     const errors = [];
     const idNum = ValidationRules.parseIdParam(String(id || ''));
     const idCancerNum = ValidationRules.parseIdParam(String(idCancer || ''));
+    
     if (!idNum || !idCancerNum) {
       errors.push('Los parámetros id y idCancer deben ser numéricos');
     }
 
-    if (stage !== undefined && (typeof stage !== 'string' || stage.trim() === '')) {
+    if (typeof stage !== 'string' || stage.trim() === '') {
       errors.push('stage debe ser un texto válido');
-    }
-
-    if (status !== undefined && !['active', 'inactive'].includes(status)) {
-      errors.push('status debe ser "active" o "inactive"');
     }
 
     if (errors.length > 0) {
@@ -220,12 +184,9 @@ const CancerSurvivorController = {
         return res.notFound('El superviviente no tiene registrado este tipo de cáncer');
       }
 
-      // Build update payload
-  const updateData = {};
-  if (stage) updateData.stage = stage.trim().replace(/\s+/g, ' ');
-  if (status) updateData.status = status;
-
-  const updated = await CancerSurvivorService.update(Number(idNum), Number(idCancerNum), updateData);
+      // Update stage
+      const normalizedStage = stage.trim().replace(/\s+/g, ' ');
+      const updated = await CancerSurvivorService.update(Number(idNum), Number(idCancerNum), { stage: normalizedStage });
 
       // Security log
       const userEmail = req.user?.sub;
@@ -234,12 +195,11 @@ const CancerSurvivorController = {
         action: 'UPDATE',
         description:
           `Se actualizó el cáncer "${cancerSurvivor.cancer.cancerName}" (ID: ${idCancer}) del superviviente "${survivor.survivorName}" (ID: ${id}). ` +
-          `Etapa anterior: "${cancerSurvivor.stage}", Nueva etapa: "${updated.stage}". ` +
-          `Estado anterior: "${cancerSurvivor.status}", Nuevo estado: "${updated.status}".`,
+          `Etapa anterior: "${cancerSurvivor.stage}", Nueva etapa: "${normalizedStage}".`,
         affectedTable: 'CancerSurvivor'
       });
 
-      return res.success(updated, 'Cáncer actualizado exitosamente');
+      return res.success(updated, 'Etapa del cáncer actualizada exitosamente');
     } catch (error) {
       console.error('[CANCER-SURVIVOR] update error:', error);
       return res.error('Error al actualizar el cáncer del superviviente');
@@ -248,7 +208,7 @@ const CancerSurvivorController = {
 
   /**
    * DELETE /api/survivors/:id/cancers/:idCancer
-   * Soft delete: Inactivate a cancer from a survivor
+   * Hard delete: Permanently remove a cancer from a survivor
    */
   delete: async (req, res) => {
     const { id, idCancer } = req.params;
@@ -271,38 +231,33 @@ const CancerSurvivorController = {
         return res.notFound('El superviviente no tiene registrado este tipo de cáncer');
       }
 
-      // Check if it's already inactive
-      if (cancerSurvivor.status === 'inactive') {
-        return res.badRequest('Este cáncer ya está inactivo');
-      }
-
-    // Check if it's the last active cancer
-    const allCancers = await CancerSurvivorService.getBySurvivor(Number(idNum), 'all');
-      const activeCancers = allCancers.filter(c => c.status === 'active');
+      // Check if it's the last cancer
+      const allCancers = await CancerSurvivorService.getBySurvivor(Number(idNum));
       
-      if (activeCancers.length === 1) {
+      if (allCancers.length === 1) {
         return res.badRequest(
-          'No se puede inactivar el último cáncer activo. Un superviviente debe tener al menos un tipo de cáncer activo.'
+          'No se puede eliminar el último cáncer. Un superviviente debe tener al menos un tipo de cáncer registrado.'
         );
       }
 
-    const inactivated = await CancerSurvivorService.delete(Number(idNum), Number(idCancerNum));
+      // Delete permanently
+      await CancerSurvivorService.delete(Number(idNum), Number(idCancerNum));
 
       // Security log
       const userEmail = req.user?.sub;
       await SecurityLogService.log({
         email: userEmail,
-        action: 'INACTIVE',
+        action: 'DELETE',
         description:
-          `Se inactivó el cáncer "${cancerSurvivor.cancer.cancerName}" (ID: ${idCancer}) del superviviente "${survivor.survivorName}" (ID: ${id}). ` +
-          `Etapa: "${cancerSurvivor.stage}". Estado anterior: "${cancerSurvivor.status}", Nuevo estado: "inactive".`,
+          `Se eliminó el cáncer "${cancerSurvivor.cancer.cancerName}" (ID: ${idCancer}) del superviviente "${survivor.survivorName}" (ID: ${id}). ` +
+          `Etapa: "${cancerSurvivor.stage}".`,
         affectedTable: 'CancerSurvivor'
       });
 
-      return res.success(inactivated, 'Cáncer inactivado exitosamente');
+      return res.success(null, 'Cáncer eliminado exitosamente');
     } catch (error) {
       console.error('[CANCER-SURVIVOR] delete error:', error);
-      return res.error('Error al inactivar el cáncer del superviviente');
+      return res.error('Error al eliminar el cáncer del superviviente');
     }
   }
 };

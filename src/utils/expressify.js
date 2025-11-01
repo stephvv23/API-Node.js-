@@ -57,6 +57,14 @@ class ResShim {
     this._status = response.statusCode;
     return this.json(response);
   }
+
+  badRequest(message) {
+    this._status = 400;
+    return this.json({
+      ok: false,
+      message
+    });
+  }
 }
 
 function mapErrorToHttp(resShim, err) {

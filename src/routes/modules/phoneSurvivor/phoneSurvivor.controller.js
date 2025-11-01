@@ -52,20 +52,17 @@ const PhoneSurvivorController = {
     const idNum = ValidationRules.parseIdParam(String(id || ''));
     if (!idNum) errors.push('El parámetro id debe ser numérico');
 
-    // Normalize and validate phone
-    const phoneStr = phone != null ? String(phone).trim() : '';
-
-    if (!phoneStr) {
-      errors.push('phone es requerido');
-    } else if (!/^\d+$/.test(phoneStr)) {
-      errors.push('phone debe contener solo dígitos');
-    } else if (phoneStr.length > 12) {
-      errors.push('phone no puede tener más de 12 dígitos');
+    // Validate phone using validator
+    const phoneValidation = ValidationRules.parsePhoneNumber(phone);
+    if (!phoneValidation.valid) {
+      errors.push(...phoneValidation.errors);
     }
 
     if (errors.length > 0) {
       return res.validationErrors(errors);
     }
+
+    const phoneStr = phoneValidation.value;
 
     try {
       // Validate survivor exists and is active
@@ -127,20 +124,17 @@ const PhoneSurvivorController = {
     const idNum = ValidationRules.parseIdParam(String(id || ''));
     if (!idNum) errors.push('El parámetro id debe ser numérico');
 
-    // Normalize and validate phone
-    const phoneStr = newPhoneNumber != null ? String(newPhoneNumber).trim() : '';
-
-    if (!phoneStr) {
-      errors.push('phone es requerido');
-    } else if (!/^\d+$/.test(phoneStr)) {
-      errors.push('phone debe contener solo dígitos');
-    } else if (phoneStr.length > 12) {
-      errors.push('phone no puede tener más de 12 dígitos');
+    // Validate phone using validator
+    const phoneValidation = ValidationRules.parsePhoneNumber(newPhoneNumber);
+    if (!phoneValidation.valid) {
+      errors.push(...phoneValidation.errors);
     }
 
     if (errors.length > 0) {
       return res.validationErrors(errors);
     }
+
+    const phoneStr = phoneValidation.value;
 
     try {
       // Validate survivor exists and is active

@@ -227,7 +227,9 @@ model Survivor {
   foodBank       Boolean 
   socioEconomicStudy Boolean 
   notes          String? @db.VarChar(250)
-  status       String @default("active") @db.VarChar(25)
+  status         String @default("active") @db.VarChar(25)
+  createdAt      DateTime @default(now()) // Fecha y hora de creación
+  updatedAt      DateTime? // Fecha y hora de última actualización
 
   emergencyContactSurvivor EmergencyContactSurvivor[] // relational table
   phoneSurvivor PhoneSurvivor[] // relational table
@@ -416,8 +418,7 @@ model EmergencyContactPhone {
 model CancerSurvivor {
   idCancer   Int // Foreign key: references Cancer.idCancer
   idSurvivor Int // Foreign key: references Survivor.idSurvivor
-  status  String @default("active") @db.VarChar(25)
-  stage      String
+  stage      String // e.g., "I", "II", "III", "IV", "Remisión", "Curado"
   // Relations
   cancer   Cancer   @relation(fields: [idCancer], references: [idCancer])     // Connects cancerSurvivor to Cancer
   survivor Survivor @relation(fields: [idSurvivor], references: [idSurvivor]) // Connects cancerSurvivor to Survivor

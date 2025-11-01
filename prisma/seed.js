@@ -276,7 +276,6 @@ async function main() {
     data: {
       idCancer: cancer1.idCancer,
       idSurvivor: survivor.idSurvivor,
-      status: 'active',
       stage: 'Etapa II',
     },
   });

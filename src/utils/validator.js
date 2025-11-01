@@ -383,6 +383,43 @@ const ValidationRules = {
     return (n > 0) ? n : null; // Only positive IDs
   },
 
+  /**
+   * Parse and validate a phone number
+   * @param {any} phone - The phone value to parse (can be string or number)
+   * @returns {Object} - { valid: boolean, value: string|null, errors: string[] }
+   */
+  parsePhoneNumber: (phone) => {
+    const errors = [];
+    
+    // Check if phone is provided
+    if (phone === undefined || phone === null || phone === '') {
+      errors.push('phone es requerido');
+      return { valid: false, value: null, errors };
+    }
+    
+    // Normalize to string and trim
+    const phoneStr = String(phone).trim();
+    
+    if (!phoneStr) {
+      errors.push('phone es requerido');
+      return { valid: false, value: null, errors };
+    }
+    
+    // Validate it contains only digits
+    if (!/^\d+$/.test(phoneStr)) {
+      errors.push('phone debe contener solo dígitos');
+      return { valid: false, value: phoneStr, errors };
+    }
+    
+    // Validate length (max 12 digits)
+    if (phoneStr.length > 12) {
+      errors.push('phone no puede tener más de 12 dígitos');
+      return { valid: false, value: phoneStr, errors };
+    }
+    
+    return { valid: true, value: phoneStr, errors: [] };
+  },
+
   
   isValidStatusFilter: (status, allowAll = true) => {
     if (status === 'all' && allowAll) return true;

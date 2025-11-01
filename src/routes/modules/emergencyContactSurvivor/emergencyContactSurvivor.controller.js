@@ -195,7 +195,9 @@ const EmergencyContactSurvivorController = {
 
       // Check if already inactive
       if (contactSurvivor.status === 'inactive') {
-        return res.badRequest('Este contacto de emergencia ya ha sido eliminado');
+        return res.badRequest(
+          `El contacto de emergencia "${contactSurvivor.emergencyContact.nameEmergencyContact}" ya ha sido eliminado (inactivo) para este superviviente`
+        );
       }
 
       // Count active emergency contacts before deleting

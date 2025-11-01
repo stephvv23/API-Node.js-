@@ -4,10 +4,9 @@ const CancerSurvivorService = {
   /**
    * Get all cancers for a survivor
    * @param {number} idSurvivor - Survivor ID
-   * @param {string} status - Filter by status ('active', 'inactive', 'all'). Default: 'active'
    */
-  getBySurvivor: async (idSurvivor, status = 'active') => {
-    return CancerSurvivorRepository.getBySurvivor(idSurvivor, status);
+  getBySurvivor: async (idSurvivor) => {
+    return CancerSurvivorRepository.getBySurvivor(idSurvivor);
   },
 
   /**
@@ -20,19 +19,19 @@ const CancerSurvivorService = {
   /**
    * Add a cancer to a survivor
    */
-  create: async (idSurvivor, idCancer, stage, status = 'active') => {
-    return CancerSurvivorRepository.create(idSurvivor, idCancer, stage, status);
+  create: async (idSurvivor, idCancer, stage) => {
+    return CancerSurvivorRepository.create(idSurvivor, idCancer, stage);
   },
 
   /**
-   * Update cancer stage or status
+   * Update cancer stage
    */
   update: async (idSurvivor, idCancer, data) => {
     return CancerSurvivorRepository.update(idSurvivor, idCancer, data);
   },
 
   /**
-   * Remove a cancer from a survivor
+   * Remove a cancer from a survivor (hard delete)
    */
   delete: async (idSurvivor, idCancer) => {
     return CancerSurvivorRepository.delete(idSurvivor, idCancer);

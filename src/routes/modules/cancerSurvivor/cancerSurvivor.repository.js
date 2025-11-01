@@ -4,23 +4,14 @@ const CancerSurvivorRepository = {
   /**
    * Get all cancers for a specific survivor
    * @param {number} idSurvivor - Survivor ID
-   * @param {string} status - Filter by status ('active', 'inactive', 'all'). Default: 'active'
    * @returns {Promise<Array>} List of cancers with details
    */
-  getBySurvivor: (idSurvivor, status = 'active') => {
-    const where = { idSurvivor: Number(idSurvivor) };
-    
-    // Add status filter if not 'all'
-    if (status !== 'all') {
-      where.status = status;
-    }
-
+  getBySurvivor: (idSurvivor) => {
     return prisma.cancerSurvivor.findMany({
-      where,
+      where: { idSurvivor: Number(idSurvivor) },
       select: {
         idCancer: true,
         idSurvivor: true,
-        status: true,
         stage: true,
         cancer: {
           select: {
@@ -51,7 +42,6 @@ const CancerSurvivorRepository = {
       select: {
         idCancer: true,
         idSurvivor: true,
-        status: true,
         stage: true,
         cancer: {
           select: {
@@ -69,21 +59,18 @@ const CancerSurvivorRepository = {
    * @param {number} idSurvivor - Survivor ID
    * @param {number} idCancer - Cancer ID
    * @param {string} stage - Cancer stage
-   * @param {string} status - Status (default: 'active')
    * @returns {Promise<Object>} Created cancer-survivor relation
    */
-  create: (idSurvivor, idCancer, stage, status = 'active') =>
+  create: (idSurvivor, idCancer, stage) =>
     prisma.cancerSurvivor.create({
       data: {
         idSurvivor: Number(idSurvivor),
         idCancer: Number(idCancer),
-        stage,
-        status
+        stage
       },
       select: {
         idCancer: true,
         idSurvivor: true,
-        status: true,
         stage: true,
         cancer: {
           select: {
@@ -96,10 +83,10 @@ const CancerSurvivorRepository = {
     }),
 
   /**
-   * Update cancer stage or status
+   * Update cancer stage
    * @param {number} idSurvivor - Survivor ID
    * @param {number} idCancer - Cancer ID
-   * @param {Object} data - Data to update (stage, status)
+   * @param {Object} data - Data to update (stage)
    * @returns {Promise<Object>} Updated cancer-survivor relation
    */
   update: (idSurvivor, idCancer, data) =>
@@ -114,7 +101,6 @@ const CancerSurvivorRepository = {
       select: {
         idCancer: true,
         idSurvivor: true,
-        status: true,
         stage: true,
         cancer: {
           select: {
@@ -127,32 +113,18 @@ const CancerSurvivorRepository = {
     }),
 
   /**
-   * Delete (soft delete) a cancer from a survivor
-   * Changes status to 'inactive' instead of removing the record
+   * Delete (hard delete) a cancer from a survivor
+   * Permanently removes the record
    * @param {number} idSurvivor - Survivor ID
    * @param {number} idCancer - Cancer ID
-   * @returns {Promise<Object>} Updated cancer-survivor relation with inactive status
+   * @returns {Promise<Object>} Deleted cancer-survivor relation
    */
   delete: (idSurvivor, idCancer) =>
-    prisma.cancerSurvivor.update({
+    prisma.cancerSurvivor.delete({
       where: {
         idCancer_idSurvivor: {
           idCancer: Number(idCancer),
           idSurvivor: Number(idSurvivor)
-        }
-      },
-      data: { status: 'inactive' },
-      select: {
-        idCancer: true,
-        idSurvivor: true,
-        status: true,
-        stage: true,
-        cancer: {
-          select: {
-            idCancer: true,
-            cancerName: true,
-            description: true
-          }
         }
       }
     })
