@@ -1,12 +1,12 @@
 const { StatsRepository } = require('./stats.repository');
 
 const StatsService = {
-  // Obtiene logs de seguridad
+  // Obtain security logs
   getSecurityLogs: async (filters = {}) => {
     return StatsRepository.getSecurityLogs(filters);
   },
 
-  // Obtiene estadísticas de usuarios
+  // Obtain user statistics
   getUserStats: async () => {
     const [basicStats, usersByRole, usersBySede, newUsersThisMonth, topUsersByAccess, lastAccessByUser] = await Promise.all([
       StatsRepository.getUserStats(),
@@ -27,7 +27,7 @@ const StatsService = {
     };
   },
 
-  // Obtiene estadísticas generales del sistema
+  // Obtain general system statistics
   getGeneralStats: async () => {
     const [systemStats, securityStats, activityStats] = await Promise.all([
       StatsRepository.getSystemStats(),
@@ -42,27 +42,27 @@ const StatsService = {
     };
   },
 
-  // Obtiene usuarios por rol y sede para gráfico combinado
+  // Obtain users by role and campus for combined chart
   getUsersByRoleSede: async () => {
     return StatsRepository.getUsersByRoleSede();
   },
 
-  // Obtiene nuevos usuarios por mes (últimos 12 meses)
+  // Obtain new users by month (last 12 months)
   getNewUsersMonthly: async () => {
     return StatsRepository.getNewUsersMonthly();
   },
 
-  // Obtiene las acciones más registradas en SecurityLog
+  // Obtain the most registered actions in SecurityLog
   getTopActions: async () => {
     return StatsRepository.getTopActions();
   },
 
-  // Obtiene incidencias por tabla afectada
+  // Obtain incidents by affected table
   getIncidentsByTable: async () => {
     return StatsRepository.getIncidentsByTable();
   },
 
-  // Endpoint de prueba para verificar la conexión a la base de datos
+  // Test endpoint to verify the database connection
   testConnection: async () => {
     return StatsRepository.testConnection();
   }

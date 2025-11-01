@@ -1,7 +1,7 @@
 const { StatsService } = require('./stats.service');
 
 const StatsController = {
-  // Obtiene logs de seguridad para estadísticas de acciones e incidencias
+  // Obtain security logs
   getSecurityLogs: async (req, res) => {
     try {
       const { limit, offset, startDate, endDate, action, affectedTable } = req.query;
@@ -15,7 +15,7 @@ const StatsController = {
     }
   },
 
-  // Obtiene estadísticas de usuarios
+  // Obtain user statistics
   getUsersStats: async (req, res) => {
     try {
       const userStats = await StatsService.getUserStats();
@@ -26,7 +26,7 @@ const StatsController = {
     }
   },
 
-  // Obtiene estadísticas generales del sistema
+  // Obtain general system statistics
   getGeneralStats: async (req, res) => {
     try {
       const generalStats = await StatsService.getGeneralStats();
@@ -37,7 +37,7 @@ const StatsController = {
     }
   },
 
-  // Obtiene usuarios activos por rol y sede para gráfico combinado
+  // Obtain active users by role and campus for combined chart
   getUsersByRoleSede: async (req, res) => {
     try {
       const chartData = await StatsService.getUsersByRoleSede();
@@ -48,7 +48,7 @@ const StatsController = {
     }
   },
 
-  // Obtiene nuevos usuarios por mes (últimos 12 meses)
+  // Obtain new users by month (last 12 months)
   getNewUsersMonthly: async (req, res) => {
     try {
       const chartData = await StatsService.getNewUsersMonthly();
@@ -59,7 +59,7 @@ const StatsController = {
     }
   },
 
-  // Obtiene las acciones más registradas en SecurityLog
+  // Obtain the most registered actions in SecurityLog
   getTopActions: async (req, res) => {
     try {
       const chartData = await StatsService.getTopActions();
@@ -70,7 +70,7 @@ const StatsController = {
     }
   },
 
-  // Obtiene incidencias por tabla afectada
+  // Obtain incidents by affected table
   getIncidentsByTable: async (req, res) => {
     try {
       const chartData = await StatsService.getIncidentsByTable();
@@ -81,7 +81,7 @@ const StatsController = {
     }
   },
 
-  // Endpoint de prueba para verificar la conexión a la base de datos
+  // Test endpoint to verify the database connection
   testConnection: async (req, res) => {
     try {
       const result = await StatsService.testConnection();

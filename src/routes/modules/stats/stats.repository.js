@@ -1,7 +1,7 @@
 const prisma = require('../../../lib/prisma.js');
 
 const StatsRepository = {
-  // Obtiene logs de seguridad
+  // obtain security logs
   getSecurityLogs: async ({ limit = 1000, offset = 0, startDate, endDate, action, affectedTable } = {}) => {
     const whereClause = {};
     if (startDate) whereClause.date = { gte: new Date(startDate) };
@@ -25,7 +25,7 @@ const StatsRepository = {
     });
   },
 
-  // Obtiene estadísticas de usuarios
+  // Obtain user statistics
   getUserStats: async () => {
     const totalUsers = await prisma.user.count();
     const activeUsers = await prisma.user.count({
@@ -39,7 +39,7 @@ const StatsRepository = {
     };
   },
 
-  // Obtiene usuarios por rol
+  // Obtain users by role
   getUsersByRole: async () => {
     const usersByRoleRaw = await prisma.userRole.groupBy({
       by: ['idRole'],
@@ -61,7 +61,7 @@ const StatsRepository = {
     });
   },
 
-  // Obtiene usuarios por sede
+  // Obtain users by campus
   getUsersBySede: async () => {
     const usersBySedeRaw = await prisma.headquarterUser.groupBy({
       by: ['idHeadquarter'],
@@ -83,7 +83,7 @@ const StatsRepository = {
     });
   },
 
-  // Obtiene nuevos usuarios este mes
+  // Obtain new users this month
   getNewUsersThisMonth: async () => {
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
@@ -100,7 +100,7 @@ const StatsRepository = {
     });
   },
 
-  // Obtiene top usuarios por accesos
+  // Obtain top users by access
   getTopUsersByAccess: async () => {
     const topUsersByAccessRaw = await prisma.loginAccess.groupBy({
       by: ['email'],
@@ -127,7 +127,7 @@ const StatsRepository = {
     });
   },
 
-  // Obtiene último acceso por usuario
+  // Obtain last access by user
   getLastAccessByUser: async () => {
     const lastAccessByUserRaw = await prisma.loginAccess.groupBy({
       by: ['email'],
@@ -150,7 +150,7 @@ const StatsRepository = {
     });
   },
 
-  // Obtiene estadísticas generales del sistema
+  // Obtain general system statistics
   getSystemStats: async () => {
     return {
       totalUsers: await prisma.user.count(),
@@ -164,7 +164,7 @@ const StatsRepository = {
     };
   },
 
-  // Obtiene estadísticas de seguridad
+  // Obtain security statistics
   getSecurityStats: async () => {
     return {
       totalLogins: await prisma.loginAccess.count(),
@@ -182,7 +182,7 @@ const StatsRepository = {
     };
   },
 
-  // Obtiene estadísticas de actividad (últimos 30 días)
+  // Obtain activity statistics (last 30 days)
   getActivityStats: async () => {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -208,7 +208,7 @@ const StatsRepository = {
     };
   },
 
-  // Obtiene usuarios por rol y sede para gráfico combinado
+  // Obtain users by role and campus for combined chart
   getUsersByRoleSede: async () => {
     const users = await prisma.user.findMany({
       include: {
@@ -237,7 +237,7 @@ const StatsRepository = {
     }));
   },
 
-  // Obtiene nuevos usuarios por mes (últimos 12 meses)
+  // Obtain new users by month (last 12 months)
   getNewUsersMonthly: async () => {
     const twelveMonthsAgo = new Date();
     twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
@@ -265,7 +265,7 @@ const StatsRepository = {
     }));
   },
 
-  // Obtiene las acciones más registradas en SecurityLog
+  // Obtain the most registered actions in SecurityLog
   getTopActions: async () => {
     const topActions = await prisma.securityLog.groupBy({
       by: ['action'],
@@ -280,7 +280,7 @@ const StatsRepository = {
     }));
   },
 
-  // Obtiene incidencias por tabla afectada
+  // Obtain incidents by affected table
   getIncidentsByTable: async () => {
     const incidentsByTable = await prisma.securityLog.groupBy({
       by: ['affectedTable'],
@@ -294,7 +294,7 @@ const StatsRepository = {
     }));
   },
 
-  // Endpoint de prueba para verificar la conexión a la base de datos
+  // Test endpoint to verify the database connection
   testConnection: async () => {
     const userCount = await prisma.user.count();
     const roleCount = await prisma.role.count();
