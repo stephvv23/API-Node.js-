@@ -4,9 +4,10 @@ const CancerSurvivorService = {
   /**
    * Get all cancers for a survivor
    * @param {number} idSurvivor - Survivor ID
+   * @param {Object} options - Pagination options { take, skip }
    */
-  getBySurvivor: async (idSurvivor) => {
-    return CancerSurvivorRepository.getBySurvivor(idSurvivor);
+  getBySurvivor: async (idSurvivor, options = {}) => {
+    return CancerSurvivorRepository.getBySurvivor(idSurvivor, options);
   },
 
   /**

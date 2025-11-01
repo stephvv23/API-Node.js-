@@ -6,11 +6,13 @@ const { ValidationRules } = require('../../../utils/validator');
 
 const CancerSurvivorController = {
   /**
-   * GET /api/survivors/:id/cancers
-   * List all cancers for a specific survivor
+   * GET /api/survivors/:id/cancers?take=10&skip=0
+   * List all cancers for a specific survivor with pagination
    */
   list: async (req, res) => {
     const { id } = req.params;
+    const take = parseInt(req.query?.take) || 10;
+    const skip = parseInt(req.query?.skip) || 0;
 
     try {
       const idNum = ValidationRules.parseIdParam(String(id || ''));
@@ -22,7 +24,7 @@ const CancerSurvivorController = {
         return res.notFound('Superviviente');
       }
 
-      const cancers = await CancerSurvivorService.getBySurvivor(Number(idNum));
+      const cancers = await CancerSurvivorService.getBySurvivor(Number(idNum), { take, skip });
       return res.success(cancers);
     } catch (error) {
       console.error('[CANCER-SURVIVOR] list error:', error);

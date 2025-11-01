@@ -4,11 +4,14 @@ const CancerSurvivorRepository = {
   /**
    * Get all cancers for a specific survivor
    * @param {number} idSurvivor - Survivor ID
+   * @param {Object} options - Pagination options { take, skip }
    * @returns {Promise<Array>} List of cancers with details
    */
-  getBySurvivor: (idSurvivor) => {
+  getBySurvivor: (idSurvivor, { take = 10, skip = 0 } = {}) => {
     return prisma.cancerSurvivor.findMany({
       where: { idSurvivor: Number(idSurvivor) },
+      take: Number(take),
+      skip: Number(skip),
       select: {
         idCancer: true,
         idSurvivor: true,

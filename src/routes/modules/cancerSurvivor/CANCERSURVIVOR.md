@@ -2,13 +2,15 @@
 
 Descripción rápida
 
-Tabla relacional que conecta tipos de cáncer (`Cancer`) con `Survivor`. Permite registrar la `stage` y el `status` (active/inactive). La API soporta crear, reactivar, actualizar y soft-delete de estas relaciones.
+Tabla relacional que conecta tipos de cáncer (`Cancer`) con `Survivor`. Permite registrar la `stage`. La API soporta crear, actualizar y eliminar (hard delete) estas relaciones.
 
 Endpoints
 
-1) GET /api/survivors/:id/cancers?status=active|inactive|all
-- Descripción: Lista relaciones cancer-survivor para el superviviente.
-- Query `status` opcional, por defecto `active`.
+1) GET /api/survivors/:id/cancers?take=10&skip=0
+- Descripción: Lista relaciones cancer-survivor para el superviviente con paginación.
+- Query params:
+  - `take` (opcional): Número de registros a retornar. Default: 10
+  - `skip` (opcional): Número de registros a saltar. Default: 0
 
 2) GET /api/survivors/:id/cancers/:idCancer
 - Descripción: Obtiene una relación específica (incluye datos del `Cancer`).

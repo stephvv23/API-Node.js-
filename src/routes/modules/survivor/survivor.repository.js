@@ -54,9 +54,7 @@ const baseSelect = {
     }
   },
   emergencyContactSurvivor: {
-    where: { status: 'active' }, // Only include active emergency contact relations
     select: {
-      status: true,
       emergencyContact: {
         select: {
           idEmergencyContact: true,

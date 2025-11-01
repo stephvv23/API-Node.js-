@@ -6,21 +6,13 @@ const { ValidationRules } = require('../../../utils/validator');
 
 const EmergencyContactSurvivorController = {
   /**
-   * GET /api/survivors/:id/emergency-contacts
-   * List all emergency contacts for a specific survivor
-   * Query params: ?status=active|inactive|all (default: active)
+   * GET /api/survivors/:id/emergency-contacts?take=10&skip=0
+   * List all emergency contacts for a specific survivor with pagination
    */
   list: async (req, res) => {
     const { id } = req.params;
-    const status = (req.query?.status || 'active').toLowerCase();
-
-    // Validate status parameter
-    const validStatuses = ['active', 'inactive', 'all'];
-    if (!validStatuses.includes(status)) {
-      return res.validationErrors([
-        `El parámetro status debe ser: ${validStatuses.join(', ')}`
-      ]);
-    }
+    const take = parseInt(req.query?.take) || 10;
+    const skip = parseInt(req.query?.skip) || 0;
 
     try {
       // Validate numeric id
@@ -33,7 +25,7 @@ const EmergencyContactSurvivorController = {
         return res.notFound('Superviviente');
       }
 
-      const contacts = await EmergencyContactSurvivorService.getBySurvivor(Number(idNum), status);
+      const contacts = await EmergencyContactSurvivorService.getBySurvivor(Number(idNum), { take, skip });
       return res.success(contacts);
     } catch (error) {
       console.error('[EMERGENCY-CONTACT-SURVIVOR] list error:', error);
@@ -74,7 +66,7 @@ const EmergencyContactSurvivorController = {
 
   /**
    * POST /api/survivors/:id/emergency-contacts
-   * Add an emergency contact to a survivor or reactivate if previously removed
+   * Add an emergency contact to a survivor
    */
   create: async (req, res) => {
     const { id } = req.params;
@@ -125,36 +117,13 @@ const EmergencyContactSurvivorController = {
       const existing = await EmergencyContactSurvivorService.findOne(Number(idNum), idEmergencyContact);
       
       if (existing) {
-        // If relation exists and is active, return error
-        if (existing.status === 'active') {
-          return res.validationErrors([
-            `El superviviente ya tiene registrado el contacto de emergencia "${contact.nameEmergencyContact}".`
-          ]);
-        }
-
-        // If relation exists but is inactive, reactivate it
-        if (existing.status === 'inactive') {
-          const reactivated = await EmergencyContactSurvivorService.update(Number(idNum), idEmergencyContact, {
-            status: 'active'
-          });
-
-          // Security log for reactivation
-          const userEmail = req.user?.sub;
-          await SecurityLogService.log({
-            email: userEmail,
-            action: 'REACTIVATE',
-            description:
-              `Se reactivó el contacto de emergencia "${contact.nameEmergencyContact}" (ID: ${idEmergencyContact}) para el superviviente "${survivor.survivorName}" (ID: ${id}). ` +
-              `Relación: "${contact.relationship}", Email: "${contact.emailEmergencyContact}".`,
-            affectedTable: 'EmergencyContactSurvivor'
-          });
-
-          return res.success(reactivated, 'Contacto de emergencia reactivado exitosamente');
-        }
+        return res.validationErrors([
+          `El superviviente ya tiene registrado el contacto de emergencia "${contact.nameEmergencyContact}".`
+        ]);
       }
 
       // Create new relation
-      const newContactSurvivor = await EmergencyContactSurvivorService.create(Number(idNum), idEmergencyContact, 'active');
+      const newContactSurvivor = await EmergencyContactSurvivorService.create(Number(idNum), idEmergencyContact);
 
       // Security log
       const userEmail = req.user?.sub;
@@ -183,7 +152,7 @@ const EmergencyContactSurvivorController = {
 
   /**
    * DELETE /api/survivors/:id/emergency-contacts/:idEmergencyContact
-   * Remove an emergency contact from a survivor (soft delete)
+   * Remove an emergency contact from a survivor (hard delete)
    */
   delete: async (req, res) => {
     const { id, idEmergencyContact } = req.params;
@@ -206,31 +175,24 @@ const EmergencyContactSurvivorController = {
         return res.notFound('El superviviente no tiene registrado este contacto de emergencia');
       }
 
-      // Check if already inactive
-      if (contactSurvivor.status === 'inactive') {
-        return res.badRequest(
-          `El contacto de emergencia "${contactSurvivor.emergencyContact.nameEmergencyContact}" ya ha sido eliminado (inactivo) para este superviviente`
-        );
-      }
-
-      // Count active emergency contacts before deleting
-      const activeContacts = await EmergencyContactSurvivorService.getBySurvivor(Number(idNum), 'active');
+      // Count emergency contacts before deleting
+      const allContacts = await EmergencyContactSurvivorService.getBySurvivor(Number(idNum));
       
-      // Don't allow inactivation if it's the last active emergency contact
-      if (activeContacts.length <= 1) {
-        return res.badRequest('No se puede eliminar el único contacto de emergencia activo del superviviente');
+      // Don't allow deletion if it's the last emergency contact
+      if (allContacts.length <= 1) {
+        return res.badRequest('No se puede eliminar el único contacto de emergencia del superviviente');
       }
 
-      // Soft delete (set status to inactive)
+      // Hard delete (permanent removal)
       await EmergencyContactSurvivorService.delete(Number(idNum), Number(idContactNum));
 
       // Security log
       const userEmail = req.user?.sub;
       await SecurityLogService.log({
         email: userEmail,
-        action: 'INACTIVE',
+        action: 'DELETE',
         description:
-          `Se desactivó el contacto de emergencia "${contactSurvivor.emergencyContact.nameEmergencyContact}" (ID: ${idEmergencyContact}) del superviviente "${survivor.survivorName}" (ID: ${id}). ` +
+          `Se eliminó permanentemente el contacto de emergencia "${contactSurvivor.emergencyContact.nameEmergencyContact}" (ID: ${idEmergencyContact}) del superviviente "${survivor.survivorName}" (ID: ${id}). ` +
           `Relación: "${contactSurvivor.emergencyContact.relationship}".`,
         affectedTable: 'EmergencyContactSurvivor'
       });
