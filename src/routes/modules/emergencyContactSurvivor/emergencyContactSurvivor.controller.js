@@ -164,6 +164,13 @@ const EmergencyContactSurvivorController = {
       return res.status(201).success(newContactSurvivor, 'Contacto de emergencia agregado exitosamente');
     } catch (error) {
       console.error('[EMERGENCY-CONTACT-SURVIVOR] create error:', error);
+      
+      // Handle Prisma P2000 error (value too long for column)
+      if (error.code === 'P2000') {
+        const columnName = error.meta?.column_name || 'campo';
+        return res.validationErrors([`El valor proporcionado para ${columnName} es demasiado largo`]);
+      }
+      
       return res.error('Error al agregar el contacto de emergencia al superviviente');
     }
   },

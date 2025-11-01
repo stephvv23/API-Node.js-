@@ -104,6 +104,13 @@ const PhoneSurvivorController = {
       return res.status(201).success(newPhoneSurvivor, 'Teléfono agregado exitosamente');
     } catch (error) {
       console.error('[PHONE-SURVIVOR] create error:', error);
+      
+      // Handle Prisma P2000 error (value too long for column)
+      if (error.code === 'P2000') {
+        const columnName = error.meta?.column_name || 'campo';
+        return res.validationErrors([`El valor proporcionado para ${columnName} es demasiado largo`]);
+      }
+      
       return res.error('Error al agregar el teléfono al superviviente');
     }
   },
@@ -183,6 +190,13 @@ const PhoneSurvivorController = {
       return res.success(result, 'Teléfono actualizado exitosamente');
     } catch (error) {
       console.error('[PHONE-SURVIVOR] update error:', error);
+      
+      // Handle Prisma P2000 error (value too long for column)
+      if (error.code === 'P2000') {
+        const columnName = error.meta?.column_name || 'campo';
+        return res.validationErrors([`El valor proporcionado para ${columnName} es demasiado largo`]);
+      }
+      
       return res.error('Error al actualizar el teléfono del superviviente');
     }
   },
