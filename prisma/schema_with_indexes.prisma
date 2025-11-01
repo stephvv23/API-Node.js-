@@ -1,0 +1,514 @@
+// This is your Prisma schema file with optimized indexes
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  email     String      @id
+  name      String      @db.VarChar(150)
+  status    String      @default("active") @db.VarChar(25)
+  password  String   @db.VarChar(255)
+
+  // Relations
+  loginAccess   LoginAccess[]
+  securityLogs  SecurityLog[]
+  roles         UserRole[]
+  headquarterUser HeadquarterUser[]
+  
+  // Indexes
+  @@index([status]) // Filtrado frecuente por estado
+}
+
+model LoginAccess {
+  loginIdAccess Int     @id @default(autoincrement())
+  email         String @db.VarChar(150)
+  date          DateTime @default(now())
+
+  user User @relation(fields: [email], references: [email])
+  
+  // Indexes
+  @@index([email]) // FK lookup
+  @@index([date]) // Búsquedas por rango de fechas
+}
+
+model SecurityLog {
+  securityIdLog Int      @id @default(autoincrement())
+  email         String @db.VarChar(150)
+  date          DateTime @default(now())
+  action        String @db.VarChar(25)
+  description   String @db.VarChar(4000) 
+  affectedTable String @db.VarChar(50)
+
+  user User @relation(fields: [email], references: [email])
+  
+  // Indexes
+  @@index([email]) // FK lookup
+  @@index([date]) // Búsquedas por fecha
+  @@index([affectedTable]) // Filtrado por tabla afectada
+  @@index([email, date]) // Auditorías por usuario y fecha (compuesto)
+}
+
+model Role {
+  idRole Int    @id @default(autoincrement())
+  rolName String @db.VarChar(50) @unique
+  status  String @default("active") @db.VarChar(25)
+
+  users   UserRole[]
+  windows RoleWindow[]
+  
+  // Indexes
+  @@index([status]) // Filtrado por estado
+}
+
+model Window {
+  idWindow   Int    @id @default(autoincrement())
+  windowName String @db.VarChar(75) @unique
+  status     String @default("active") @db.VarChar(25)
+
+  roles RoleWindow[]
+  
+  // Indexes
+  @@index([status]) // Filtrado por estado
+}
+
+model UserRole {
+  idRole Int
+  email  String @db.VarChar(150)
+
+  role Role @relation(fields: [idRole], references: [idRole])
+  user User @relation(fields: [email], references: [email])
+
+  @@id([idRole, email])
+  @@index([email]) // Búsquedas inversas por usuario
+}
+
+model RoleWindow {
+  idRole   Int
+  idWindow Int
+  create   Boolean
+  read     Boolean
+  update   Boolean
+  delete   Boolean
+
+  role   Role   @relation(fields: [idRole], references: [idRole])
+  window Window @relation(fields: [idWindow], references: [idWindow])
+
+  @@id([idRole, idWindow])
+  @@index([idWindow]) // Búsquedas inversas por ventana
+}
+
+model Asset {
+    idAsset Int @id @default(autoincrement())
+    idCategory Int 
+    idHeadquarter Int
+    name String @db.VarChar(50)
+    type String @db.VarChar(50)
+    description String @db.VarChar(750)
+    status String @db.VarChar(25)
+    
+    category     Category     @relation(fields: [idCategory], references: [idCategory])
+    headquarter  Headquarter  @relation(fields: [idHeadquarter], references: [idHeadquarter])
+    
+    // Indexes
+    @@index([idCategory]) // FK lookup frecuente
+    @@index([idHeadquarter]) // FK lookup frecuente
+    @@index([status]) // Filtrado por estado
+    @@index([idHeadquarter, status]) // Búsquedas de activos por sede (compuesto)
+}
+
+model Category {
+  idCategory Int     @id @default(autoincrement())
+  name       String  @db.VarChar(150) @unique
+  status     String  @db.VarChar(25)
+
+  asset      Asset[]
+  categorySupplier CategorySupplier[]
+  
+  // Indexes
+  @@index([status]) // Filtrado por estado
+}
+
+model Supplier {
+  idSupplier    Int     @id @default(autoincrement()) 
+  name          String  @db.VarChar(150)
+  taxId         String?  @db.VarChar(20)
+  type          String  @db.VarChar(50)
+  email         String  @db.VarChar(150)
+  address       String  @db.VarChar(150)
+  paymentTerms  String  @db.VarChar(50)
+  description   String  @db.VarChar(750)
+  status        String  @db.VarChar(25)
+
+  categorySupplier CategorySupplier[]
+  headquarterSupplier HeadquarterSupplier[]
+  phoneSupplier PhoneSupplier[]
+  
+  // Indexes
+  @@index([status]) // Filtrado por estado
+  @@index([email]) // Búsqueda por email
+}
+
+model Activity {
+  idActivity     Int @id @default(autoincrement())
+  idHeadquarter  Int
+  title          String @db.VarChar(150)
+  description    String @db.VarChar(750)
+  type           String @db.VarChar(50)
+  modality       String @db.VarChar(25)
+  capacity       Int
+  location       String @db.VarChar(300)
+  date           DateTime 
+  status         String @default("active") @db.VarChar(25)
+
+  headquarter Headquarter @relation(fields: [idHeadquarter], references: [idHeadquarter]) 
+  activityVolunteer ActivityVolunteer[]
+  activitySurvivor ActivitySurvivor[]
+  activityGodparent ActivityGodparent[]
+  
+  // Indexes - PRIORIDAD ALTA
+  @@index([idHeadquarter]) // FK lookup muy frecuente
+  @@index([status]) // Filtrado por estado
+  @@index([date]) // Búsquedas por fecha
+  @@index([type]) // Filtrado por tipo
+  @@index([modality]) // Filtrado por modalidad
+  @@index([idHeadquarter, status, date]) // Búsquedas complejas (compuesto)
+}
+
+model Volunteer {
+  idVolunteer    Int    @id @default(autoincrement())
+  name           String @db.VarChar(200)
+  identifier     String @db.VarChar(30) @unique // ÍNDICE ÚNICO
+  country        String @db.VarChar(75)
+  birthday       DateTime
+  email          String @db.VarChar(80)
+  residence      String @db.VarChar(300)
+  modality       String @db.VarChar(20)
+  institution    String @db.VarChar(100)
+  availableSchedule String @db.VarChar(300)
+  requiredHours  Int?
+  startDate       DateTime
+  finishDate      DateTime?
+  imageAuthorization Boolean
+  notes           String @db.VarChar(250)
+  status        String @default("active") @db.VarChar(25)
+
+  phoneVolunteer PhoneVolunteer []
+  headquarterVolunteer HeadquarterVolunteer []
+  emergencyContactVolunteer EmergencyContactVolunteer []
+  activityVolunteer ActivityVolunteer []
+  
+  // Indexes - PRIORIDAD ALTA
+  // identifier ya tiene índice único automático
+  @@index([email]) // Búsqueda por email
+  @@index([status]) // Filtrado por estado
+}
+
+model Godparent {
+  idGodparent   Int    @id @default(autoincrement())
+  idSurvivor    Int?
+  idHeadquarter Int
+  name          String @db.VarChar(200)
+  email         String @db.VarChar(150)
+  paymentMethod String @db.VarChar(50)
+  startDate     DateTime
+  finishDate    DateTime?
+  description      String @db.VarChar(250)
+  status       String @default("active") @db.VarChar(25)
+
+  godParentsPhone GodparentPhone[]
+  activityGodparent ActivityGodparent[]
+  survivor Survivor? @relation(fields: [idSurvivor], references: [idSurvivor])
+  headquarter Headquarter @relation(fields: [idHeadquarter], references: [idHeadquarter])
+  
+  // Indexes - PRIORIDAD ALTA
+  @@index([idHeadquarter]) // FK lookup frecuente
+  @@index([status]) // Filtrado por estado
+  @@index([email]) // Búsqueda por email
+  @@index([idSurvivor]) // FK lookup
+}
+
+model EmergencyContact {
+  idEmergencyContact Int    @id @default(autoincrement())
+  nameEmergencyContact String @db.VarChar(150)
+  emailEmergencyContact String @db.VarChar(150)
+  relationship       String @db.VarChar(50)
+  status             String @default("active") @db.VarChar(25)
+
+  emergencyContactVolunteer EmergencyContactVolunteer[]
+  emergencyContactPhone EmergencyContactPhone[]
+  emergencyContactSurvivor EmergencyContactSurvivor[]
+  
+  // Indexes
+  @@index([status]) // Filtrado por estado
+}
+
+model Survivor {
+  idSurvivor    Int    @id @default(autoincrement())
+  idHeadquarter Int
+  survivorName  String @db.VarChar(200)
+  documentNumber String @db.VarChar(30) @unique // ÍNDICE ÚNICO
+  country       String @db.VarChar(75)
+  birthday      DateTime
+  email         String @db.VarChar(150)
+  residence     String @db.VarChar(300)
+  genre         String @db.VarChar(25)
+  workingCondition String @db.VarChar(50)
+  CONAPDIS      Boolean
+  IMAS          Boolean
+  physicalFileStatus String @db.VarChar(25)
+  medicalRecord  String @db.VarChar(25)
+  dateHomeSINRUBE String @db.VarChar(25)
+  foodBank       String @db.VarChar(25)
+  socioEconomicStudy String @db.VarChar(25)
+  notes          String? @db.VarChar(250)
+  status       String @default("active") @db.VarChar(25)
+
+  emergencyContactSurvivor EmergencyContactSurvivor[]
+  phoneSurvivor PhoneSurvivor[]
+  activitySurvivor ActivitySurvivor[]
+  cancerSurvivor CancerSurvivor[]
+  godparent       Godparent[]
+  headquarter Headquarter @relation(fields: [idHeadquarter], references: [idHeadquarter])
+  
+  // Indexes - PRIORIDAD ALTA
+  // documentNumber ya tiene índice único automático
+  @@index([idHeadquarter]) // FK lookup frecuente
+  @@index([status]) // Filtrado por estado
+  @@index([email]) // Búsqueda por email
+}
+
+model Cancer {
+  idCancer    Int    @id @default(autoincrement())
+  cancerName String @db.VarChar(100) @unique
+  description String @db.VarChar(300)
+  status     String @default("active") @db.VarChar(25)
+
+  cancerSurvivor CancerSurvivor[]
+  
+  // Indexes
+  @@index([status]) // Filtrado por estado
+}
+
+model Phone {
+  idPhone       Int @id @default(autoincrement())
+  phone         Int @unique // ÍNDICE ÚNICO para evitar duplicados
+
+  phoneVolunteers PhoneVolunteer[]
+  phoneSurvivor   PhoneSurvivor[]
+  emergencyContactPhone EmergencyContactPhone[]
+  headquarterPhone HeadquarterPhone[]
+  godparentPhone GodparentPhone[]
+  phoneSupplier PhoneSupplier[]
+}
+
+model Headquarter {
+  idHeadquarter Int    @id @default(autoincrement())
+  name           String @db.VarChar(150) @unique
+  schedule       String @db.VarChar(300)
+  location       String @db.VarChar(300)
+  email          String @db.VarChar(150)
+  description    String @db.VarChar(750)
+  status         String @default("active") @db.VarChar(25)
+
+  activities     Activity[]
+  headquarterUser HeadquarterUser[]
+  headquarterVolunteer HeadquarterVolunteer[]
+  headquarterPhone HeadquarterPhone[]
+  godparent Godparent[]
+  survivor Survivor[]
+  asset Asset[]
+  headquarterSupplier HeadquarterSupplier[]
+  
+  // Indexes
+  @@index([email]) // Búsqueda por email
+  @@index([status]) // Filtrado por estado
+}
+
+//RELATIONAL TABLES
+model HeadquarterUser {
+  idHeadquarter Int
+  email          String @db.VarChar(150)
+
+  headquarter Headquarter @relation(fields: [idHeadquarter], references: [idHeadquarter])
+  user         User         @relation(fields: [email], references: [email])
+
+  @@id([idHeadquarter, email])
+  @@index([email]) // Búsquedas inversas
+}
+
+model HeadquarterVolunteer {
+  idHeadquarter Int
+  idVolunteer   Int
+
+  headquarter Headquarter @relation(fields: [idHeadquarter], references: [idHeadquarter])
+  volunteer   Volunteer   @relation(fields: [idVolunteer], references: [idVolunteer])
+
+  @@id([idHeadquarter, idVolunteer])
+  @@index([idVolunteer]) // Búsquedas inversas
+}
+
+model HeadquarterPhone {
+  idHeadquarter Int
+  idPhone       Int
+
+  headquarter Headquarter @relation(fields: [idHeadquarter], references: [idHeadquarter])
+  phone       Phone       @relation(fields: [idPhone], references: [idPhone])
+
+  @@id([idHeadquarter, idPhone])
+}
+
+model PhoneSurvivor {
+  idPhone       Int
+  idSurvivor    Int
+
+  phone    Phone    @relation(fields: [idPhone], references: [idPhone])
+  survivor Survivor @relation(fields: [idSurvivor], references: [idSurvivor])
+
+  @@id([idPhone, idSurvivor])
+  @@index([idSurvivor]) // Búsquedas inversas
+}
+
+model PhoneVolunteer {
+  idPhone      Int
+  idVolunteer  Int
+
+  phone     Phone     @relation(fields: [idPhone], references: [idPhone])
+  volunteer Volunteer @relation(fields: [idVolunteer], references: [idVolunteer])
+
+  @@id([idPhone, idVolunteer])
+  @@index([idVolunteer]) // Búsquedas inversas
+} 
+
+model GodparentPhone {
+  idGodparent Int
+  idPhone     Int
+
+  godparent Godparent @relation(fields: [idGodparent], references: [idGodparent])
+  phone     Phone     @relation(fields: [idPhone], references: [idPhone])
+
+  @@id([idGodparent, idPhone])
+}
+
+model ActivityVolunteer {
+  idActivity   Int
+  idVolunteer  Int
+
+  activity  Activity  @relation(fields: [idActivity], references: [idActivity])
+  volunteer Volunteer @relation(fields: [idVolunteer], references: [idVolunteer])
+
+  @@id([idActivity, idVolunteer])
+  @@index([idVolunteer]) // Búsquedas inversas
+}
+
+model ActivityGodparent {
+  idActivity  Int
+  idGodparent Int
+
+  activity  Activity  @relation(fields: [idActivity], references: [idActivity])
+  godparent Godparent @relation(fields: [idGodparent], references: [idGodparent])
+
+  @@id([idActivity, idGodparent])
+}
+
+model ActivitySurvivor {
+  idActivity  Int
+  idSurvivor  Int
+
+  activity Activity @relation(fields: [idActivity], references: [idActivity])
+  survivor Survivor @relation(fields: [idSurvivor], references: [idSurvivor])
+
+  @@id([idActivity, idSurvivor])
+  @@index([idSurvivor]) // Búsquedas inversas
+}
+
+model EmergencyContactVolunteer {
+  idEmergencyContact Int
+  idVolunteer        Int
+
+  emergencyContact EmergencyContact @relation(fields: [idEmergencyContact], references: [idEmergencyContact])
+  volunteer        Volunteer        @relation(fields: [idVolunteer], references: [idVolunteer])
+
+  @@id([idEmergencyContact, idVolunteer])
+  @@index([idVolunteer]) // Búsquedas inversas
+}
+
+model EmergencyContactSurvivor {
+  idEmergencyContact Int
+  idSurvivor         Int
+
+  emergencyContact EmergencyContact @relation(fields: [idEmergencyContact], references: [idEmergencyContact])
+  survivor         Survivor         @relation(fields: [idSurvivor], references: [idSurvivor])
+
+  @@id([idEmergencyContact, idSurvivor])
+  @@index([idSurvivor]) // Búsquedas inversas
+}
+
+model EmergencyContactPhone {
+  idEmergencyContact Int
+  idPhone            Int
+
+  emergencyContact EmergencyContact @relation(fields: [idEmergencyContact], references: [idEmergencyContact])
+  phone            Phone            @relation(fields: [idPhone], references: [idPhone])
+
+  @@id([idEmergencyContact, idPhone])
+}
+
+model CancerSurvivor {
+  idCancer   Int
+  idSurvivor Int
+  status     String
+  aftermath  String
+
+  cancer   Cancer   @relation(fields: [idCancer], references: [idCancer])
+  survivor Survivor @relation(fields: [idSurvivor], references: [idSurvivor])
+
+  @@id([idCancer, idSurvivor])
+  @@index([idSurvivor]) // Búsquedas inversas
+}
+
+model CategorySupplier {
+  idCategory Int
+  idSupplier Int
+
+  category Category @relation(fields: [idCategory], references: [idCategory])
+  supplier Supplier @relation(fields: [idSupplier], references: [idSupplier])
+
+  @@id([idCategory, idSupplier])
+}
+
+model PhoneSupplier {
+  idPhone    Int
+  idSupplier Int
+
+  phone    Phone    @relation(fields: [idPhone], references: [idPhone])
+  supplier Supplier @relation(fields: [idSupplier], references: [idSupplier])
+
+  @@id([idPhone, idSupplier])
+}
+
+model HeadquarterSupplier {
+  idHeadquarter Int
+  idSupplier    Int
+
+  headquarter Headquarter @relation(fields: [idHeadquarter], references: [idHeadquarter])
+  supplier     Supplier     @relation(fields: [idSupplier], references: [idSupplier])
+
+  @@id([idHeadquarter, idSupplier])
+}
+
+model TokenBlacklist {
+  id        Int      @id @default(autoincrement())
+  token     String   @db.Text
+  createdAt DateTime @default(now())
+  
+  // Indexes
+  @@index([token(length: 255)]) // Índice en token (limitado a 255 caracteres para TEXT)
+  @@index([createdAt]) // Para limpieza periódica de tokens antiguos
+}
