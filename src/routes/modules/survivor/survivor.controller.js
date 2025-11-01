@@ -172,6 +172,24 @@ const SurvivorController = {
         }
       }
 
+      // Validate that minors have at least one emergency contact
+      if (normalized.birthday) {
+        const birthDate = new Date(normalized.birthday);
+        const today = new Date();
+        const age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        const dayDiff = today.getDate() - birthDate.getDate();
+        
+        // Adjust age if birthday hasn't occurred this year
+        const actualAge = (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) ? age - 1 : age;
+        
+        if (actualAge < 18) {
+          if (!normalized.emergencyContacts || normalized.emergencyContacts.length === 0) {
+            errors.push("Los supervivientes menores de edad deben tener al menos un contacto de emergencia");
+          }
+        }
+      }
+
       // Note: birthday and boolean checks are enforced in EntityValidators.survivor
 
       if (errors.length > 0) {

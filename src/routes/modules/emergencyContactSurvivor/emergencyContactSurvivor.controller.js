@@ -19,7 +19,7 @@ const EmergencyContactSurvivorController = {
       const idNum = ValidationRules.parseIdParam(String(id || ''));
       if (!idNum) return res.validationErrors(['El parámetro id debe ser numérico']);
 
-      // Validate survivor exists
+      // Validate survivor exists (don't return all survivor data)
       const survivor = await SurvivorService.findById(Number(idNum));
       if (!survivor) {
         return res.notFound('Superviviente');
@@ -46,7 +46,7 @@ const EmergencyContactSurvivorController = {
       const idContactNum = ValidationRules.parseIdParam(String(idEmergencyContact || ''));
       if (!idNum || !idContactNum) return res.validationErrors(['Los parámetros id y idEmergencyContact deben ser numéricos']);
 
-      // Validate survivor exists
+      // Validate survivor exists (don't return all survivor data)
       const survivor = await SurvivorService.findById(Number(idNum));
       if (!survivor) {
         return res.notFound('Superviviente');
@@ -178,8 +178,21 @@ const EmergencyContactSurvivorController = {
       // Count emergency contacts before deleting
       const allContacts = await EmergencyContactSurvivorService.getBySurvivor(Number(idNum));
       
+      // Calculate survivor's age
+      const birthDate = new Date(survivor.birthday);
+      const today = new Date();
+      const age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      const dayDiff = today.getDate() - birthDate.getDate();
+      const actualAge = (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) ? age - 1 : age;
+      
+      const isMinor = actualAge < 18;
+      
       // Don't allow deletion if it's the last emergency contact
       if (allContacts.length <= 1) {
+        if (isMinor) {
+          return res.badRequest('No se puede eliminar el único contacto de emergencia de un superviviente menor de edad');
+        }
         return res.badRequest('No se puede eliminar el único contacto de emergencia del superviviente');
       }
 

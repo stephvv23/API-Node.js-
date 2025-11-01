@@ -18,7 +18,7 @@ const CancerSurvivorController = {
       const idNum = ValidationRules.parseIdParam(String(id || ''));
       if (!idNum) return res.validationErrors(['El parámetro id debe ser numérico']);
 
-      // Validate survivor exists
+      // Validate survivor exists (don't return all survivor data)
       const survivor = await SurvivorService.findById(Number(idNum));
       if (!survivor) {
         return res.notFound('Superviviente');
@@ -44,7 +44,7 @@ const CancerSurvivorController = {
       const idCancerNum = ValidationRules.parseIdParam(String(idCancer || ''));
       if (!idNum || !idCancerNum) return res.validationErrors(['Los parámetros id y idCancer deben ser numéricos']);
 
-      // Validate survivor exists
+      // Validate survivor exists (don't return all survivor data)
       const survivor = await SurvivorService.findById(Number(idNum));
       if (!survivor) {
         return res.notFound('Superviviente');
