@@ -417,7 +417,8 @@ model EmergencyContactPhone {
 model CancerSurvivor {
   idCancer   Int // Foreign key: references Cancer.idCancer
   idSurvivor Int // Foreign key: references Survivor.idSurvivor
-  stage      String // e.g., "I", "II", "III", "IV", "Remisión", "Curado"
+  stage      String @db.VarChar(255) // e.g., "I", "II", "III", "IV", "Remisión", "Curado"
+  status     String @default("active") @db.VarChar(25) // Soft delete: "active" or "inactive"
   // Relations
   cancer   Cancer   @relation(fields: [idCancer], references: [idCancer])     // Connects cancerSurvivor to Cancer
   survivor Survivor @relation(fields: [idSurvivor], references: [idSurvivor]) // Connects cancerSurvivor to Survivor

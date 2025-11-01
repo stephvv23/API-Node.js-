@@ -2,7 +2,7 @@ const { CancerSurvivorRepository } = require('./cancerSurvivor.repository');
 
 const CancerSurvivorService = {
   /**
-   * Get all cancers for a survivor
+   * Get all active cancers for a survivor
    * @param {number} idSurvivor - Survivor ID
    * @param {Object} options - Pagination options { take, skip }
    */
@@ -11,10 +11,17 @@ const CancerSurvivorService = {
   },
 
   /**
-   * Get a specific cancer-survivor relation
+   * Get a specific active cancer-survivor relation
    */
   findOne: async (idSurvivor, idCancer) => {
     return CancerSurvivorRepository.findOne(idSurvivor, idCancer);
+  },
+
+  /**
+   * Find a cancer-survivor relation regardless of status
+   */
+  findOneAnyStatus: async (idSurvivor, idCancer) => {
+    return CancerSurvivorRepository.findOneAnyStatus(idSurvivor, idCancer);
   },
 
   /**
@@ -32,10 +39,17 @@ const CancerSurvivorService = {
   },
 
   /**
-   * Remove a cancer from a survivor (hard delete)
+   * Soft delete - marks the relation as inactive
    */
-  delete: async (idSurvivor, idCancer) => {
-    return CancerSurvivorRepository.delete(idSurvivor, idCancer);
+  softDelete: async (idSurvivor, idCancer) => {
+    return CancerSurvivorRepository.softDelete(idSurvivor, idCancer);
+  },
+
+  /**
+   * Reactivate a previously soft-deleted relation
+   */
+  reactivate: async (idSurvivor, idCancer) => {
+    return CancerSurvivorRepository.reactivate(idSurvivor, idCancer);
   }
 };
 

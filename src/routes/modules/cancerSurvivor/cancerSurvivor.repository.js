@@ -2,20 +2,24 @@ const prisma = require('../../../lib/prisma.js');
 
 const CancerSurvivorRepository = {
   /**
-   * Get all cancers for a specific survivor
+   * Get all active cancers for a specific survivor
    * @param {number} idSurvivor - Survivor ID
    * @param {Object} options - Pagination options { take, skip }
    * @returns {Promise<Array>} List of cancers with details
    */
   getBySurvivor: (idSurvivor, { take = 10, skip = 0 } = {}) => {
     return prisma.cancerSurvivor.findMany({
-      where: { idSurvivor: Number(idSurvivor) },
+      where: { 
+        idSurvivor: Number(idSurvivor),
+        status: 'active' // Only return active relations
+      },
       take: Number(take),
       skip: Number(skip),
       select: {
         idCancer: true,
         idSurvivor: true,
         stage: true,
+        status: true,
         cancer: {
           select: {
             idCancer: true,
@@ -29,12 +33,41 @@ const CancerSurvivorRepository = {
   },
 
   /**
-   * Get a specific cancer-survivor relation
+   * Get a specific cancer-survivor relation (only if active)
    * @param {number} idSurvivor - Survivor ID
    * @param {number} idCancer - Cancer ID
    * @returns {Promise<Object|null>} Cancer-survivor relation or null
    */
   findOne: (idSurvivor, idCancer) =>
+    prisma.cancerSurvivor.findFirst({
+      where: {
+        idCancer: Number(idCancer),
+        idSurvivor: Number(idSurvivor),
+        status: 'active' // Only return if active
+      },
+      select: {
+        idCancer: true,
+        idSurvivor: true,
+        stage: true,
+        status: true,
+        cancer: {
+          select: {
+            idCancer: true,
+            cancerName: true,
+            description: true,
+            status: true
+          }
+        }
+      }
+    }),
+
+  /**
+   * Check if a cancer-survivor relation exists (regardless of status)
+   * @param {number} idSurvivor - Survivor ID
+   * @param {number} idCancer - Cancer ID
+   * @returns {Promise<Object|null>} Cancer-survivor relation or null
+   */
+  findOneAnyStatus: (idSurvivor, idCancer) =>
     prisma.cancerSurvivor.findUnique({
       where: {
         idCancer_idSurvivor: {
@@ -46,6 +79,7 @@ const CancerSurvivorRepository = {
         idCancer: true,
         idSurvivor: true,
         stage: true,
+        status: true,
         cancer: {
           select: {
             idCancer: true,
@@ -69,12 +103,14 @@ const CancerSurvivorRepository = {
       data: {
         idSurvivor: Number(idSurvivor),
         idCancer: Number(idCancer),
-        stage
+        stage,
+        status: 'active'
       },
       select: {
         idCancer: true,
         idSurvivor: true,
         stage: true,
+        status: true,
         cancer: {
           select: {
             idCancer: true,
@@ -105,6 +141,7 @@ const CancerSurvivorRepository = {
         idCancer: true,
         idSurvivor: true,
         stage: true,
+        status: true,
         cancer: {
           select: {
             idCancer: true,
@@ -116,18 +153,59 @@ const CancerSurvivorRepository = {
     }),
 
   /**
-   * Delete (hard delete) a cancer from a survivor
-   * Permanently removes the record
+   * Soft delete a cancer from a survivor
+   * Marks the relation as inactive instead of deleting
    * @param {number} idSurvivor - Survivor ID
    * @param {number} idCancer - Cancer ID
-   * @returns {Promise<Object>} Deleted cancer-survivor relation
+   * @returns {Promise<Object>} Updated cancer-survivor relation
    */
-  delete: (idSurvivor, idCancer) =>
-    prisma.cancerSurvivor.delete({
+  softDelete: (idSurvivor, idCancer) =>
+    prisma.cancerSurvivor.update({
       where: {
         idCancer_idSurvivor: {
           idCancer: Number(idCancer),
           idSurvivor: Number(idSurvivor)
+        }
+      },
+      data: {
+        status: 'inactive'
+      },
+      select: {
+        idCancer: true,
+        idSurvivor: true,
+        stage: true,
+        status: true
+      }
+    }),
+
+  /**
+   * Reactivate a previously soft-deleted cancer-survivor relation
+   * @param {number} idSurvivor - Survivor ID
+   * @param {number} idCancer - Cancer ID
+   * @returns {Promise<Object>} Reactivated cancer-survivor relation
+   */
+  reactivate: (idSurvivor, idCancer) =>
+    prisma.cancerSurvivor.update({
+      where: {
+        idCancer_idSurvivor: {
+          idCancer: Number(idCancer),
+          idSurvivor: Number(idSurvivor)
+        }
+      },
+      data: {
+        status: 'active'
+      },
+      select: {
+        idCancer: true,
+        idSurvivor: true,
+        stage: true,
+        status: true,
+        cancer: {
+          select: {
+            idCancer: true,
+            cancerName: true,
+            description: true
+          }
         }
       }
     })

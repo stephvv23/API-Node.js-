@@ -110,7 +110,7 @@ const EmergencyContactSurvivorController = {
       }
 
       if (contact.status !== 'active') {
-        return res.validationErrors([`El contacto de emergencia "${contact.nameEmergencyContact}" no está activo`]);
+        return res.validationErrors([`El contacto de emergencia "${contact.nameEmergencyContact}" no está activo y no puede ser referenciado`]);
       }
 
       // Check if relation already exists
@@ -200,7 +200,7 @@ const EmergencyContactSurvivorController = {
       return res.success(null, 'Contacto de emergencia eliminado exitosamente');
     } catch (error) {
       console.error('[EMERGENCY-CONTACT-SURVIVOR] delete error:', error);
-      return res.error('Error al eliminar el contacto de emergencia del superviviente');
+      return res.error('Error al desactivar el contacto de emergencia del superviviente');
     }
   }
 };
