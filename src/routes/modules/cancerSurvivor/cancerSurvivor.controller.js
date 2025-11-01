@@ -85,6 +85,13 @@ const CancerSurvivorController = {
       errors.push('stage es requerido y debe ser un texto válido');
     }
 
+    // Validate field lengths
+    const lengthErrors = ValidationRules.validateFieldLengths(
+      { stage: normalizedStage },
+      { stage: 255 }
+    );
+    errors.push(...lengthErrors);
+
     if (errors.length > 0) {
       return res.validationErrors(errors);
     }
@@ -137,6 +144,13 @@ const CancerSurvivorController = {
       return res.status(201).success(newCancerSurvivor, 'Cáncer agregado exitosamente');
     } catch (error) {
       console.error('[CANCER-SURVIVOR] create error:', error);
+      
+      // Handle Prisma P2000 error (value too long for column)
+      if (error.code === 'P2000') {
+        const columnName = error.meta?.column_name || 'campo';
+        return res.validationErrors([`El valor proporcionado para ${columnName} es demasiado largo`]);
+      }
+      
       return res.error('Error al agregar el cáncer al superviviente');
     }
   },
@@ -167,6 +181,15 @@ const CancerSurvivorController = {
       errors.push('stage debe ser un texto válido');
     }
 
+    const normalizedStage = stage.trim().replace(/\s+/g, ' ');
+    
+    // Validate field lengths
+    const lengthErrors = ValidationRules.validateFieldLengths(
+      { stage: normalizedStage },
+      { stage: 255 }
+    );
+    errors.push(...lengthErrors);
+
     if (errors.length > 0) {
       return res.validationErrors(errors);
     }
@@ -185,7 +208,6 @@ const CancerSurvivorController = {
       }
 
       // Update stage
-      const normalizedStage = stage.trim().replace(/\s+/g, ' ');
       const updated = await CancerSurvivorService.update(Number(idNum), Number(idCancerNum), { stage: normalizedStage });
 
       // Security log
@@ -202,6 +224,13 @@ const CancerSurvivorController = {
       return res.success(updated, 'Etapa del cáncer actualizada exitosamente');
     } catch (error) {
       console.error('[CANCER-SURVIVOR] update error:', error);
+      
+      // Handle Prisma P2000 error (value too long for column)
+      if (error.code === 'P2000') {
+        const columnName = error.meta?.column_name || 'campo';
+        return res.validationErrors([`El valor proporcionado para ${columnName} es demasiado largo`]);
+      }
+      
       return res.error('Error al actualizar el cáncer del superviviente');
     }
   },

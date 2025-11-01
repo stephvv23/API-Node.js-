@@ -420,6 +420,43 @@ const ValidationRules = {
     return { valid: true, value: phoneStr, errors: [] };
   },
 
+  /**
+   * Validate field lengths against maximum allowed values
+   * @param {Object} data - Object containing the fields to validate
+   * @param {Object} limits - Object mapping field names to their max lengths
+   * @returns {string[]} - Array of error messages (empty if all valid)
+   * 
+   * @example
+   * const errors = ValidationRules.validateFieldLengths(
+   *   { name: 'John Doe', email: 'john@example.com' },
+   *   { name: 50, email: 150 }
+   * );
+   * // Returns: [] if valid, or ['name no puede exceder 50 caracteres'] if invalid
+   */
+  validateFieldLengths: (data, limits) => {
+    const errors = [];
+    
+    if (!data || typeof data !== 'object') return errors;
+    if (!limits || typeof limits !== 'object') return errors;
+    
+    for (const [fieldName, maxLength] of Object.entries(limits)) {
+      const value = data[fieldName];
+      
+      // Skip if field is not present or is null/undefined
+      if (value === undefined || value === null) continue;
+      
+      // Only validate strings
+      if (typeof value !== 'string') continue;
+      
+      // Check length
+      if (value.length > maxLength) {
+        errors.push(`${fieldName} no puede exceder ${maxLength} caracteres`);
+      }
+    }
+    
+    return errors;
+  },
+
   
   isValidStatusFilter: (status, allowAll = true) => {
     if (status === 'all' && allowAll) return true;

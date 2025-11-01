@@ -75,6 +75,20 @@ const SurvivorController = {
     try {
       const errors = [];
 
+      // Validate string field lengths
+      const lengthErrors = ValidationRules.validateFieldLengths(normalized, {
+        survivorName: 200,
+        documentNumber: 30,
+        country: 75,
+        email: 150,
+        residence: 300,
+        genre: 25,
+        workingCondition: 50,
+        physicalFileStatus: 50,
+        notes: 250
+      });
+      errors.push(...lengthErrors);
+
       // Validate headquarter exists and is active
       if (normalized.idHeadquarter) {
         const headquarter = await HeadquarterService.findById(normalized.idHeadquarter);
@@ -108,6 +122,15 @@ const SurvivorController = {
           } else {
             // normalize stage spacing
             cancer.stage = typeof stageVal === 'string' ? stageVal.trim().replace(/\s+/g, ' ') : stageVal;
+            
+            // Validate stage length
+            const stageLengthErrors = ValidationRules.validateFieldLengths(
+              { stage: cancer.stage },
+              { stage: 255 }
+            );
+            if (stageLengthErrors.length > 0) {
+              errors.push(`Cáncer ${i + 1}: ${stageLengthErrors[0]}`);
+            }
           }
         }
       }
@@ -191,6 +214,13 @@ const SurvivorController = {
         .success(newSurvivor, "Superviviente creado exitosamente");
     } catch (error) {
       console.error("[SURVIVORS] create error:", error);
+      
+      // Handle Prisma P2000 error (value too long for column)
+      if (error.code === 'P2000') {
+        const columnName = error.meta?.column_name || 'campo';
+        return res.validationErrors([`El valor proporcionado para ${columnName} es demasiado largo`]);
+      }
+      
       // In development return the error message to help debugging.
       if (process.env.NODE_ENV !== 'production') {
         return res.error(`Error al crear el superviviente: ${error.message}`);
@@ -266,6 +296,23 @@ const SurvivorController = {
 
       // Normalize top-level strings in cleanData
       const trimmed = ValidationRules.trimStringFields(cleanData || {});
+
+      // Validate string field lengths
+      const lengthErrors = ValidationRules.validateFieldLengths(trimmed, {
+        survivorName: 200,
+        documentNumber: 30,
+        country: 75,
+        email: 150,
+        residence: 300,
+        genre: 25,
+        workingCondition: 50,
+        physicalFileStatus: 50,
+        notes: 250
+      });
+
+      if (lengthErrors.length > 0) {
+        return res.validationErrors(lengthErrors);
+      }
       const payload = {
         ...trimmed,
         birthday: trimmed.birthday ? new Date(trimmed.birthday) : undefined,
@@ -314,11 +361,11 @@ const SurvivorController = {
             `Se actualizó el superviviente con ID "${id}".\n` +
             `Versión previa: ` +
             `Nombre: "${previousSurvivor.survivorName}", Documento: "${previousSurvivor.documentNumber}", ` +
-            `PaÃ­s: "${previousSurvivor.country}", Correo: "${previousSurvivor.email}", ` +
+            `País: "${previousSurvivor.country}", Correo: "${previousSurvivor.email}", ` +
             `Residencia: "${previousSurvivor.residence}", Estado: "${previousSurvivor.status}".\n` +
-            `Nueva versiÃ³n: ` +
+            `Nueva versión: ` +
             `Nombre: "${updatedSurvivor.survivorName}", Documento: "${updatedSurvivor.documentNumber}", ` +
-            `PaÃ­s: "${updatedSurvivor.country}", Correo: "${updatedSurvivor.email}", ` +
+            `País: "${updatedSurvivor.country}", Correo: "${updatedSurvivor.email}", ` +
             `Residencia: "${updatedSurvivor.residence}", Estado: "${updatedSurvivor.status}".`,
           affectedTable: "Survivor",
         });
