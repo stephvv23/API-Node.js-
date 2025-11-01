@@ -44,6 +44,12 @@ const PhoneSurvivorController = {
    */
   create: async (req, res) => {
     const { id } = req.params;
+    
+    // Check for JSON parsing errors
+    if (req.body.__jsonError) {
+      return res.validationErrors([req.body.__jsonErrorMessage || 'Formato de JSON inválido']);
+    }
+
     const { phone } = req.body;
 
     // Validations
@@ -123,6 +129,12 @@ const PhoneSurvivorController = {
    */
   update: async (req, res) => {
     const { id } = req.params;
+    
+    // Check for JSON parsing errors
+    if (req.body.__jsonError) {
+      return res.validationErrors([req.body.__jsonErrorMessage || 'Formato de JSON inválido']);
+    }
+
     const { phone: newPhoneNumber } = req.body;
 
     // Validations

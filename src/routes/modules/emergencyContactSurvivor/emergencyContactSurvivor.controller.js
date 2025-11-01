@@ -78,6 +78,12 @@ const EmergencyContactSurvivorController = {
    */
   create: async (req, res) => {
     const { id } = req.params;
+    
+    // Check for JSON parsing errors
+    if (req.body.__jsonError) {
+      return res.validationErrors([req.body.__jsonErrorMessage || 'Formato de JSON inválido']);
+    }
+
     const { idEmergencyContact } = req.body;
 
     // Validations

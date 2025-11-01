@@ -73,6 +73,11 @@ const EmergencyContactController = {
    * POST /emergency-contacts
    */
   create: async (req, res) => {
+    // Check for JSON parsing errors
+    if (req.body.__jsonError) {
+      return res.validationErrors([req.body.__jsonErrorMessage || 'Formato de JSON inválido']);
+    }
+
     const { nameEmergencyContact, emailEmergencyContact, relationship, status } = req.body;
     // Validate input using centralized validator (all fields required)
     const validation = EntityValidators.emergencyContact({ nameEmergencyContact, emailEmergencyContact, relationship, status }, { partial: false });
@@ -104,6 +109,12 @@ const EmergencyContactController = {
   update: async (req, res) => {
     const { idEmergencyContact } = req.params;
     const id = Number(idEmergencyContact);
+    
+    // Check for JSON parsing errors
+    if (req.body.__jsonError) {
+      return res.validationErrors([req.body.__jsonErrorMessage || 'Formato de JSON inválido']);
+    }
+
     // Validate that the ID is a positive integer
     if (!Number.isInteger(id) || id <= 0) {
       return res.validationErrors(['idEmergencyContact must be a positive integer']);
