@@ -1517,11 +1517,11 @@ const EntityValidators = {
       imasValidator.boolean();
     }
 
-    // Physical file status validation (should be boolean, not free text)
+    // Physical file status validation (string: "Completo", "Incompleto", "En proceso", etc.)
     if (shouldValidateField(data.physicalFileStatus)) {
       const physicalValidator = validator.field('physicalFileStatus', data.physicalFileStatus);
       if (!options.partial) physicalValidator.required();
-      physicalValidator.boolean();
+      physicalValidator.string().minLength(1).internationalText().maxLength(50);
     }
 
     // Medical record validation
@@ -1572,18 +1572,23 @@ const EntityValidators = {
             item.stage = item.stage.trim().replace(/\s+/g, ' ');
           }
 
+          // Create a readable field name for error messages
+          const cancerFieldName = item.idCancer 
+            ? `Cáncer ID ${item.idCancer}` 
+            : `Cáncer en posición ${i + 1}`;
+
           // idCancer must be an integer
           if (item.idCancer !== undefined && item.idCancer !== null) {
-            const idValidator = validator.field(`cancers[${i}].idCancer`, item.idCancer);
+            const idValidator = validator.field(`${cancerFieldName}.idCancer`, item.idCancer);
             if (!options.partial) idValidator.required();
             idValidator.integer();
           }
 
-          // stage must be a non-empty string
+          // stage must be a non-empty string (max 255 chars)
           if (item.stage !== undefined && item.stage !== null) {
-            const stageValidator = validator.field(`cancers[${i}].stage`, item.stage);
+            const stageValidator = validator.field(`${cancerFieldName}.stage`, item.stage);
             if (!options.partial) stageValidator.required();
-            stageValidator.string().minLength(1).internationalText().maxLength(200);
+            stageValidator.string().minLength(1).internationalText().maxLength(255);
           }
         }
       }

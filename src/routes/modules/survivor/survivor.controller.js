@@ -56,6 +56,11 @@ const SurvivorController = {
   create: async (req, res) => {
     const data = req.body;
 
+    // Check for JSON parsing errors
+    if (data.__jsonError) {
+      return res.validationErrors([data.__jsonErrorMessage || 'Formato de JSON inválido']);
+    }
+
     // Trim top-level string fields
     const normalized = ValidationRules.trimStringFields(data || {});
 
@@ -106,19 +111,20 @@ const SurvivorController = {
         for (let i = 0; i < normalized.cancers.length; i++) {
           const cancer = normalized.cancers[i];
           if (!cancer.idCancer || typeof cancer.idCancer !== 'number') {
-            errors.push(`Cáncer ${i + 1}: idCancer es requerido y debe ser un número`);
+            errors.push(`Cáncer en posición ${i + 1}: idCancer es requerido y debe ser un número`);
           } else {
             // Validate cancer exists and is active
             const cancerExists = await CancerService.get(cancer.idCancer);
             if (!cancerExists) {
-              errors.push(`Cáncer ${i + 1}: El tipo de cáncer con ID ${cancer.idCancer} no existe`);
+              errors.push(`Cáncer con ID ${cancer.idCancer}: El tipo de cáncer no existe`);
             } else if (cancerExists.status !== "active") {
-              errors.push(`Cáncer ${i + 1}: El tipo de cáncer "${cancerExists.cancerName}" no está activo`);
+              errors.push(`Cáncer con ID ${cancer.idCancer} ("${cancerExists.cancerName}"): El tipo de cáncer no está activo`);
             }
           }
           const stageVal = cancer.stage || '';
           if (typeof stageVal !== 'string' || stageVal.trim() === '') {
-            errors.push(`Cáncer ${i + 1}: stage (etapa) es requerido y debe ser texto`);
+            const cancerId = cancer.idCancer ? `ID ${cancer.idCancer}` : `posición ${i + 1}`;
+            errors.push(`Cáncer ${cancerId}: stage (etapa) es requerido y debe ser texto`);
           } else {
             // normalize stage spacing
             cancer.stage = typeof stageVal === 'string' ? stageVal.trim().replace(/\s+/g, ' ') : stageVal;
@@ -129,7 +135,8 @@ const SurvivorController = {
               { stage: 255 }
             );
             if (stageLengthErrors.length > 0) {
-              errors.push(`Cáncer ${i + 1}: ${stageLengthErrors[0]}`);
+              const cancerId = cancer.idCancer ? `ID ${cancer.idCancer}` : `posición ${i + 1}`;
+              errors.push(`Cáncer ${cancerId}: ${stageLengthErrors[0]}`);
             }
           }
         }
@@ -232,6 +239,11 @@ const SurvivorController = {
   update: async (req, res) => {
     const { id } = req.params;
     const updateData = req.body;
+
+    // Check for JSON parsing errors
+    if (updateData.__jsonError) {
+      return res.validationErrors([updateData.__jsonErrorMessage || 'Formato de JSON inválido']);
+    }
 
     const validation = EntityValidators.survivor(updateData, { partial: true });
     if (!validation.isValid) {
