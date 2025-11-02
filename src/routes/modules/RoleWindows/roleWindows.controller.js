@@ -99,6 +99,15 @@ const roleWindowController = {
         if (errors.length > 0) {
             return res.validationErrors(errors);
         }
+        
+        // Prevent modification of admin role (idRole: 1)
+        if (Number(idRole) === 1) {
+            return res.status(403).json({
+                success: false,
+                message: 'no se puede modificar los permisos del rol administrador'
+            });
+        }
+        
         try {
             const newRoleWindow = await roleWindowService.create({
                 idRole: Number(idRole),
@@ -125,6 +134,13 @@ const roleWindowController = {
 
             return res.status(201).success(newRoleWindow, 'Role-Window created successfully');
         } catch (error) {
+            // Check if it's the admin role protection error
+            if (error.message && error.message.includes('ADMIN')) {
+                return res.status(403).json({
+                    success: false,
+                    message: error.message
+                });
+            }
             console.error('[ROLEWINDOWS] create error:', error);
             return res.error('Error creating role-window');
         }
@@ -135,10 +151,13 @@ const roleWindowController = {
                 const { idRole, idWindow } = req.params;
                 // Validate IDs before any logic
                 if (!ValidationRules.onlyNumbers(idRole) === true) {
-                    return res.validationErrors(['idRole must be a number']);
+                    return res.validationErrors(['idRole solo puede ser un número']);
                 }
                 if (!ValidationRules.onlyNumbers(idWindow) === true) {
-                    return res.validationErrors(['idWindow must be a number']);
+                    return res.validationErrors(['idWindow solo puede ser un número']);
+                }
+                if (idRole ==1) {
+                    return res.validationErrors(['No se pueden modificar los permisos del rol administrador']);
                 }
                 // Check existence before update
                 const exists = await roleWindowService.getByIds(idRole, idWindow);
@@ -159,7 +178,7 @@ const roleWindowController = {
                     await SecurityLogService.log({
                         email: userEmail,
                         action: 'UPDATE',
-                        description: `Role-Window updated: Role ID: "${idRole}", ` +
+                        description: `Role-Window modificado: Role ID: "${idRole}", ` +
                             `Window ID: "${idWindow}", ` +
                             `New Permissions: ` +
                             `[create: ${flags.create}, ` +
@@ -173,6 +192,13 @@ const roleWindowController = {
                     if (error.code === 'P2025') {
                         return res.notFound('Role-Window');
                     }
+                    // Check if it's the admin role protection error
+                    if (error.message && error.message.includes('ADMIN')) {
+                        return res.status(403).json({
+                            success: false,
+                            message: error.message
+                        });
+                    }
                     console.error('[ROLEWINDOWS] update error:', error);
                     return res.error('Error updating role-window');
                 }
@@ -183,10 +209,13 @@ const roleWindowController = {
                 const { idRole, idWindow } = req.params;
                 // Validate IDs before any logic
                 if (!ValidationRules.onlyNumbers(idRole) === true) {
-                    return res.validationErrors(['idRole must be a number']);
+                    return res.validationErrors(['idRole debe ser un número']);
                 }
                 if (!ValidationRules.onlyNumbers(idWindow) === true) {
-                    return res.validationErrors(['idWindow must be a number']);
+                    return res.validationErrors(['idWindow debe ser un número']);
+                }
+                if( idRole ==1) {
+                    return res.validationErrors(['No se pueden eliminar los permisos del rol administrador']);
                 }
                 // Check existence before delete
                 const exists = await roleWindowService.getByIds(idRole, idWindow);
@@ -207,6 +236,13 @@ const roleWindowController = {
                 } catch (error) {
                     if (error.code === 'P2025') {
                         return res.notFound('Role-Window');
+                    }
+                    // Check if it's the admin role protection error
+                    if (error.message && error.message.includes('ADMIN')) {
+                        return res.status(403).json({
+                            success: false,
+                            message: error.message
+                        });
                     }
                     console.error('[ROLEWINDOWS] delete error:', error);
                     return res.error('Error deleting role-window');

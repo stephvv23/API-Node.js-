@@ -73,10 +73,14 @@ const roleController = {
         update: async (req, res) => {
             const { id } = req.params;
             let { rolName, name, status } = req.body;
+            
             if (rolName === undefined && name !== undefined) rolName = name;
             // Validate ID
             if (!/^[0-9\s]+$/.test(id)) {
-                return res.validationErrors(['id must be a number']);
+                return res.validationErrors(['id solo puede ser un número']);
+            }
+            if (id ==1) {
+                return res.validationErrors(['El rol de admin no puede ser modificado']);
             }
             // Check existence before update
             const exists = await roleService.getById(id);
@@ -91,7 +95,7 @@ const roleController = {
                 const exist = await roleService.findByName(String(rolName).trim());
                 const existId = exist?.idRole ?? exist?.id ?? exist?._id ?? exist?.ID;
                 if (exist && String(existId) !== String(id)) {
-                    errors.push('A role with that name already exists');
+                    errors.push('Ya existe un rol con ese nombre');
                 }
             }
             if (errors.length > 0) {
@@ -101,7 +105,7 @@ const roleController = {
             if (rolName !== undefined) payload.rolName = String(rolName).trim();
             if (status !== undefined) payload.status = String(status).trim();
             if (!Object.keys(payload).length) {
-                return res.validationErrors(['Nothing to update']);
+                return res.validationErrors(['nada para actualizar']);
             }
             const previousRole = await roleService.getById(id);
             const userEmail = req.user?.sub || 'unknown';
@@ -120,7 +124,7 @@ const roleController = {
                         await SecurityLogService.log({
                         email: userEmail,
                         action,
-                        description: `Role updated: ID: "${id}", ` +
+                        description: `Role modificado: ID: "${id}", ` +
                             `Name: "${updated.rolName}", ` +
                             `Status: "${updated.status}"`,
                         affectedTable: 'Role',
@@ -135,14 +139,21 @@ const roleController = {
                         affectedTable: 'Role',
                     });
                 }
-                
-                return res.success(updated, 'Role updated successfully');
+
+                return res.success(updated, 'Role modificado con éxito');
             } catch (error) {
                 if (error?.code === 'P2025') {
                     return res.notFound('Role');
                 }
+                // Check if it's the admin role protection error
+                if (error.message && error.message.includes('ADMIN')) {
+                    return res.status(403).json({
+                        success: false,
+                        message: error.message
+                    });
+                }
                 console.error('[ROLE] update error:', error);
-                return res.error('Error updating role');
+                return res.error('Error al modificar el rol');
             }
         },
 
@@ -150,7 +161,10 @@ const roleController = {
         delete: async (req, res) => {
             const raw = String(req.params.id ?? '').trim();
             if (!/^\d+$/.test(raw)) {
-                return res.validationErrors(['id must be a number']);
+                return res.validationErrors(['id solo puede ser un número']);
+            }
+            if (raw == '1') {
+                return res.validationErrors(['El rol de admin no puede ser eliminado']);
             }
             const id = Number.parseInt(raw, 10);
             // Check existence before delete
@@ -173,6 +187,13 @@ const roleController = {
             } catch (error) {
                 if (error?.code === 'P2025') {
                     return res.notFound('Role');
+                }
+                // Check if it's the admin role protection error
+                if (error.message && error.message.includes('ADMIN')) {
+                    return res.status(403).json({
+                        success: false,
+                        message: error.message
+                    });
                 }
                 console.error('[ROLE] delete error:', error);
                 return res.error('Error deleting role');
