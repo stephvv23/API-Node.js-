@@ -15,6 +15,7 @@ const EmergencyContactSurvivorRepository = {
       select: {
         idEmergencyContact: true,
         idSurvivor: true,
+        relationshipType: true,
         emergencyContact: {
           select: {
             idEmergencyContact: true,
@@ -45,6 +46,7 @@ const EmergencyContactSurvivorRepository = {
       select: {
         idEmergencyContact: true,
         idSurvivor: true,
+        relationshipType: true,
         emergencyContact: {
           select: {
             idEmergencyContact: true,
@@ -61,17 +63,20 @@ const EmergencyContactSurvivorRepository = {
    * Add an emergency contact to a survivor
    * @param {number} idSurvivor - Survivor ID
    * @param {number} idEmergencyContact - Emergency Contact ID
+   * @param {string} relationshipType - Relationship type between contact and survivor
    * @returns {Promise<Object>} Created emergency contact-survivor relation
    */
-  create: (idSurvivor, idEmergencyContact) =>
+  create: (idSurvivor, idEmergencyContact, relationshipType) =>
     prisma.emergencyContactSurvivor.create({
       data: {
         idSurvivor: Number(idSurvivor),
-        idEmergencyContact: Number(idEmergencyContact)
+        idEmergencyContact: Number(idEmergencyContact),
+        relationshipType: String(relationshipType)
       },
       select: {
         idEmergencyContact: true,
         idSurvivor: true,
+        relationshipType: true,
         emergencyContact: {
           select: {
             idEmergencyContact: true,

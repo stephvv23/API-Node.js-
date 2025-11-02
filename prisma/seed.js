@@ -401,7 +401,11 @@ async function main() {
     data: { idEmergencyContact: ec1.idEmergencyContact, idVolunteer: volunteer.idVolunteer },
   });
   await prisma.emergencyContactSurvivor.create({
-    data: { idEmergencyContact: ec2.idEmergencyContact, idSurvivor: survivor.idSurvivor },
+    data: { 
+      idEmergencyContact: ec2.idEmergencyContact, 
+      idSurvivor: survivor.idSurvivor,
+      relationshipType: 'Esposo/a'
+    },
   });
 
   await prisma.emergencyContactPhone.createMany({

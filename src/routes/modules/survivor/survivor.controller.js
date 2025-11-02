@@ -158,11 +158,46 @@ const SurvivorController = {
 
       // Validate emergency contacts (optional, but must be array if provided)
       if (normalized.emergencyContacts && !Array.isArray(normalized.emergencyContacts)) {
-        errors.push("emergencyContacts debe ser un array de IDs");
+        errors.push("emergencyContacts debe ser un array de objetos con idEmergencyContact y relationshipType");
       } else if (data.emergencyContacts && data.emergencyContacts.length > 0) {
-        // Validate each emergency contact exists and is active
+        // Validate each emergency contact exists, is active, and has required fields
         for (let i = 0; i < data.emergencyContacts.length; i++) {
-          const idContact = data.emergencyContacts[i];
+          const contactData = data.emergencyContacts[i];
+          
+          // Check if it's a number (old format) or object (new format)
+          let idContact, relationshipType;
+          
+          if (typeof contactData === 'number') {
+            errors.push(`Contacto de emergencia ${i + 1}: Debe proporcionar un objeto con idEmergencyContact y relationshipType`);
+            continue;
+          } else if (typeof contactData === 'object' && contactData !== null) {
+            idContact = contactData.idEmergencyContact;
+            relationshipType = contactData.relationshipType;
+            
+            if (!idContact || typeof idContact !== 'number') {
+              errors.push(`Contacto de emergencia ${i + 1}: idEmergencyContact es requerido y debe ser un número`);
+              continue;
+            }
+            
+            if (!relationshipType || typeof relationshipType !== 'string' || relationshipType.trim() === '') {
+              errors.push(`Contacto de emergencia ${i + 1}: relationshipType es requerido y debe ser un texto no vacío`);
+              continue;
+            }
+            
+            // Trim and validate length
+            relationshipType = relationshipType.trim();
+            if (relationshipType.length > 50) {
+              errors.push(`Contacto de emergencia ${i + 1}: relationshipType no debe exceder 50 caracteres`);
+              continue;
+            }
+            
+            // Update the normalized data with trimmed relationshipType
+            data.emergencyContacts[i].relationshipType = relationshipType;
+          } else {
+            errors.push(`Contacto de emergencia ${i + 1}: Formato inválido, debe ser un objeto con idEmergencyContact y relationshipType`);
+            continue;
+          }
+          
           const contact = await EmergencyContactsService.get(idContact);
           if (!contact) {
             errors.push(`Contacto de emergencia ${i + 1}: El contacto con ID ${idContact} no existe`);

@@ -39,7 +39,16 @@ Authorization: Bearer YOUR_TOKEN_HERE
     }
   ],
   "phone": "22334455",
-  "emergencyContacts": [1, 2]
+  "emergencyContacts": [
+    {
+      "idEmergencyContact": 1,
+      "relationshipType": "Madre"
+    },
+    {
+      "idEmergencyContact": 2,
+      "relationshipType": "Hermano"
+    }
+  ]
 }
 ```
 
@@ -126,7 +135,12 @@ Authorization: Bearer YOUR_TOKEN_HERE
     }
   ],
   "phones": [25551234],
-  "emergencyContacts": [1]
+  "emergencyContacts": [
+    {
+      "idEmergencyContact": 1,
+      "relationshipType": "Esposo"
+    }
+  ]
 }
 ```
 
@@ -357,7 +371,7 @@ Content-Type: application/json
 - ⭕ `notes` - Notas adicionales
 - ⭕ `status` - Estado (default: "active")
 - ⭕ `phones` - Array de números de teléfono
-- ⭕ `emergencyContacts` - Array de IDs de contactos de emergencia existentes
+- ⭕ `emergencyContacts` - Array de objetos con contactos de emergencia existentes
 
 ### Estructura de Cancer
 Cada elemento en el array `cancers` debe tener:
@@ -392,7 +406,38 @@ Cada elemento en el array `cancers` debe tener:
 ### Contactos de Emergencia
 - Deben existir previamente en la tabla `EmergencyContact`
 - Solo se vinculan, no se crean
-- Formato: Array de IDs `[1, 2, 3]`
+- Cada contacto debe incluir `idEmergencyContact` y `relationshipType` (tipo de parentesco con el superviviente)
+- `relationshipType` es obligatorio y debe tener máximo 50 caracteres
+- **Importante:** Los supervivientes menores de 18 años DEBEN tener al menos un contacto de emergencia
+- Formato: Array de objetos
+```json
+"emergencyContacts": [
+  {
+    "idEmergencyContact": 1,
+    "relationshipType": "Madre"
+  },
+  {
+    "idEmergencyContact": 2,
+    "relationshipType": "Padre"
+  }
+]
+```
+
+**Ejemplos de valores para `relationshipType`:**
+- "Madre"
+- "Padre"
+- "Hermano"
+- "Hermana"
+- "Tío"
+- "Tía"
+- "Abuelo"
+- "Abuela"
+- "Primo"
+- "Prima"
+- "Esposo"
+- "Esposa"
+- "Hijo"
+- "Hija"
 
 ---
 
@@ -400,9 +445,11 @@ Cada elemento en el array `cancers` debe tener:
 
 1. ✅ Campos booleanos deben ser `true` o `false` (no strings)
 2. ✅ `cancers` debe ser un array con al menos 1 elemento
-3. ✅ Cada cancer debe tener `idCancer`, `status` y `aftermath`
+3. ✅ Cada cancer debe tener `idCancer`, `status` y `stage`
 4. ✅ `documentNumber` debe ser único
 5. ✅ `email` debe ser único
 6. ✅ `phones` debe ser un array (si se proporciona)
-7. ✅ `emergencyContacts` debe ser un array de IDs (si se proporciona)
-8. ✅ Transacción atómica: si algo falla, nada se guarda
+7. ✅ `emergencyContacts` debe ser un array de objetos con `idEmergencyContact` y `relationshipType`
+8. ✅ `relationshipType` es obligatorio para cada contacto (máximo 50 caracteres)
+9. ✅ Supervivientes menores de 18 años deben tener al menos 1 contacto de emergencia
+10. ✅ Transacción atómica: si algo falla, nada se guarda

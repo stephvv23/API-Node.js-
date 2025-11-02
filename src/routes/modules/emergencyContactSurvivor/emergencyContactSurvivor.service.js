@@ -21,9 +21,10 @@ const EmergencyContactSurvivorService = {
    * Add an emergency contact to a survivor
    * @param {number} idSurvivor - Survivor ID
    * @param {number} idEmergencyContact - Emergency Contact ID
+   * @param {string} relationshipType - Relationship type between contact and survivor
    */
-  create: async (idSurvivor, idEmergencyContact) => {
-    return EmergencyContactSurvivorRepository.create(idSurvivor, idEmergencyContact);
+  create: async (idSurvivor, idEmergencyContact, relationshipType) => {
+    return EmergencyContactSurvivorRepository.create(idSurvivor, idEmergencyContact, relationshipType);
   },
 
   /**

@@ -55,6 +55,7 @@ const baseSelect = {
   },
   emergencyContactSurvivor: {
     select: {
+      relationshipType: true,
       emergencyContact: {
         select: {
           idEmergencyContact: true,
@@ -162,9 +163,10 @@ const SurvivorRepository = {
       // Link emergency contacts (optional)
       if (relationalData.emergencyContacts && relationalData.emergencyContacts.length > 0) {
         await tx.emergencyContactSurvivor.createMany({
-          data: relationalData.emergencyContacts.map(idEmergencyContact => ({
-            idEmergencyContact,
-            idSurvivor: survivor.idSurvivor
+          data: relationalData.emergencyContacts.map(contact => ({
+            idEmergencyContact: contact.idEmergencyContact,
+            idSurvivor: survivor.idSurvivor,
+            relationshipType: contact.relationshipType
           }))
         });
       }
@@ -199,6 +201,7 @@ const SurvivorRepository = {
           },
           emergencyContactSurvivor: {
             select: {
+              relationshipType: true,
               emergencyContact: {
                 select: {
                   idEmergencyContact: true,

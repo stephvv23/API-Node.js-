@@ -76,7 +76,10 @@ const EmergencyContactSurvivorController = {
       return res.validationErrors([req.body.__jsonErrorMessage || 'Formato de JSON inválido']);
     }
 
-    const { idEmergencyContact } = req.body;
+    let { idEmergencyContact, relationshipType } = req.body;
+
+    // Trim string fields
+    if (relationshipType) relationshipType = relationshipType.trim();
 
     // Validations
     const errors = [];
@@ -86,6 +89,15 @@ const EmergencyContactSurvivorController = {
 
     if (!idEmergencyContact || typeof idEmergencyContact !== 'number') {
       errors.push('idEmergencyContact es requerido y debe ser un número');
+    }
+
+    if (!relationshipType || typeof relationshipType !== 'string' || relationshipType.trim() === '') {
+      errors.push('relationshipType es requerido y debe ser un texto no vacío');
+    }
+
+    // Validate field lengths
+    if (relationshipType && relationshipType.length > 50) {
+      errors.push('relationshipType no debe exceder 50 caracteres');
     }
 
     if (errors.length > 0) {
@@ -123,7 +135,7 @@ const EmergencyContactSurvivorController = {
       }
 
       // Create new relation
-      const newContactSurvivor = await EmergencyContactSurvivorService.create(Number(idNum), idEmergencyContact);
+      const newContactSurvivor = await EmergencyContactSurvivorService.create(Number(idNum), idEmergencyContact, relationshipType);
 
       // Security log
       const userEmail = req.user?.sub;
@@ -132,7 +144,7 @@ const EmergencyContactSurvivorController = {
         action: 'CREATE',
         description:
           `Se agregó el contacto de emergencia "${contact.nameEmergencyContact}" (ID: ${idEmergencyContact}) al superviviente "${survivor.survivorName}" (ID: ${id}). ` +
-          `Relación: "${contact.relationship}", Email: "${contact.emailEmergencyContact}".`,
+          `Tipo de relación: "${relationshipType}", Relación del contacto: "${contact.relationship}", Email: "${contact.emailEmergencyContact}".`,
         affectedTable: 'EmergencyContactSurvivor'
       });
 
