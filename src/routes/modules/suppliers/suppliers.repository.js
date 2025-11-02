@@ -93,6 +93,13 @@ const SupplierRepository = {
       select: baseSelect
     }),
 
+  // Find supplier by tax ID
+  findByTaxId: (taxId) =>
+    prisma.supplier.findFirst({
+      where: { taxId },
+      select: baseSelect
+    }),
+
   // Create a new supplier
   create: (data) =>
     prisma.supplier.create({

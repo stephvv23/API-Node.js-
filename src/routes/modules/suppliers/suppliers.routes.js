@@ -11,6 +11,8 @@ module.exports = [
   { method: 'POST', path: '/api/suppliers', handler: authenticate(authorizeWindow('Proveedores','create')(SupplierController.create)) },
   { method: 'PUT', path: '/api/suppliers/:id', handler: authenticate(authorizeWindow('Proveedores','read','update')(SupplierController.update)) },
   { method: 'DELETE', path: '/api/suppliers/:id', handler: authenticate(authorizeWindow('Proveedores','read','delete')(SupplierController.delete)) },
+
+  // Define lookup data routes for related entities to supplier
   { method: 'GET', path: '/api/suppliers/lookup-data', handler: authenticate(authorizeWindow('Proveedores','read')(SupplierController.getLookupData)) },
-  { method: 'GET', path: '/api/suppliers/lookup-data-create', handler: authenticate(authorizeWindow('Proveedores','create')(SupplierController.getLookupData)) },
+  
 ];

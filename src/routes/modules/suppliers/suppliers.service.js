@@ -2,6 +2,7 @@
 const { SupplierRepository } = require('./suppliers.repository');
 
 
+
 const SupplierService = {
   // List all suppliers (active and inactive)
   list: async () => {
@@ -13,12 +14,19 @@ const SupplierService = {
     return SupplierRepository.findById(id);
   },
 
+  // Retrieves a supplier by name
   findByName: async (name) => {
     return SupplierRepository.findByName(name);
   },
 
+  // Retrieves a supplier by email
   findByEmail: async (email) => {
     return SupplierRepository.findByEmail(email);
+  },
+
+  // Retrieves a supplier by tax ID
+  findByTaxId: async (taxId) => {
+    return SupplierRepository.findByTaxId(taxId);
   },
 
   // Creates a new supplier
@@ -49,6 +57,7 @@ const SupplierService = {
       }
     }
 
+    // Update the supplier with filtered data
     return SupplierRepository.update(id, filteredUpdateData);
   },
 
