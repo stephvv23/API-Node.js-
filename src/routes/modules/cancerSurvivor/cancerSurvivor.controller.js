@@ -6,15 +6,28 @@ const { ValidationRules } = require('../../../utils/validator');
 
 const CancerSurvivorController = {
   /**
-   * GET /api/survivors/:id/cancers?take=10&skip=0
+   * GET /api/survivors/:id/cancers?take=10&skip=0&status=active
    * List all cancers for a specific survivor with pagination
+   * Query params:
+   * - status: 'active' (default), 'inactive', 'all'
+   * - take: number of records (default 10)
+   * - skip: number of records to skip (default 0)
    */
   list: async (req, res) => {
     const { id } = req.params;
     const take = parseInt(req.query?.take) || 10;
     const skip = parseInt(req.query?.skip) || 0;
+    const status = (req.query.status || 'active').toLowerCase();
 
     try {
+      // Validate status parameter
+      const allowedStatus = ['active', 'inactive', 'all'];
+      if (!allowedStatus.includes(status)) {
+        return res.validationErrors([
+          'El parámetro status debe ser "active", "inactive" o "all"'
+        ]);
+      }
+
       const idNum = ValidationRules.parseIdParam(String(id || ''));
       if (!idNum) return res.validationErrors(['El parámetro id debe ser numérico']);
 
@@ -24,7 +37,7 @@ const CancerSurvivorController = {
         return res.notFound('Superviviente');
       }
 
-      const cancers = await CancerSurvivorService.getBySurvivor(Number(idNum), { take, skip });
+      const cancers = await CancerSurvivorService.getBySurvivor(Number(idNum), { take, skip, status });
       return res.success(cancers);
     } catch (error) {
       console.error('[CANCER-SURVIVOR] list error:', error);

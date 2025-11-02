@@ -90,6 +90,40 @@ const EmergencyContactSurvivorRepository = {
     }),
 
   /**
+   * Update relationship type of an emergency contact-survivor relation
+   * @param {number} idSurvivor - Survivor ID
+   * @param {number} idEmergencyContact - Emergency Contact ID
+   * @param {string} relationshipType - New relationship type
+   * @returns {Promise<Object>} Updated emergency contact-survivor relation
+   */
+  update: (idSurvivor, idEmergencyContact, relationshipType) =>
+    prisma.emergencyContactSurvivor.update({
+      where: {
+        idEmergencyContact_idSurvivor: {
+          idEmergencyContact: Number(idEmergencyContact),
+          idSurvivor: Number(idSurvivor)
+        }
+      },
+      data: {
+        relationshipType: String(relationshipType)
+      },
+      select: {
+        idEmergencyContact: true,
+        idSurvivor: true,
+        relationshipType: true,
+        emergencyContact: {
+          select: {
+            idEmergencyContact: true,
+            nameEmergencyContact: true,
+            emailEmergencyContact: true,
+            relationship: true,
+            status: true
+          }
+        }
+      }
+    }),
+
+  /**
    * Delete (hard delete) an emergency contact from a survivor
    * Permanently removes the relation from the database
    * @param {number} idSurvivor - Survivor ID

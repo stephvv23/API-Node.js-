@@ -32,6 +32,15 @@ module.exports = [
     ),
   },
 
+  // Update relationship type of an emergency contact
+  {
+    method: 'PUT',
+    path: '/api/survivors/:id/emergency-contacts/:idEmergencyContact',
+    handler: authenticate(
+      authorizeWindow('Supervivientes', 'read', 'update')(EmergencyContactSurvivorController.update)
+    ),
+  },
+
   // Remove an emergency contact from a survivor
   {
     method: 'DELETE',

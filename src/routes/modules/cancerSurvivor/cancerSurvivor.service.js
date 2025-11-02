@@ -2,9 +2,9 @@ const { CancerSurvivorRepository } = require('./cancerSurvivor.repository');
 
 const CancerSurvivorService = {
   /**
-   * Get all active cancers for a survivor
+   * Get cancers for a survivor with status filter
    * @param {number} idSurvivor - Survivor ID
-   * @param {Object} options - Pagination options { take, skip }
+   * @param {Object} options - Pagination and filter options { take, skip, status }
    */
   getBySurvivor: async (idSurvivor, options = {}) => {
     return CancerSurvivorRepository.getBySurvivor(idSurvivor, options);

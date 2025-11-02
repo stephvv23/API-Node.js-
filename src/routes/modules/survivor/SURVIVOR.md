@@ -40,7 +40,8 @@ Endpoints principales
 - Descripción: Lista solo los supervivientes activos (alias conveniente).
 
 3) GET /api/survivors/:id
-- Descripción: Devuelve los datos de un superviviente con sus relaciones principales (cánceres, teléfono y contactos).
+- Descripción: Devuelve los datos de un superviviente con sus relaciones principales (cánceres activos, teléfono y contactos de emergencia).
+- Nota importante: Este endpoint solo retorna cánceres con status='active'. Para ver todos los cánceres (incluyendo inactivos), usar `GET /api/survivors/:id/cancers?status=all`.
 - Respuestas: 200 con datos, 404 si no existe.
 
 4) POST /api/survivors

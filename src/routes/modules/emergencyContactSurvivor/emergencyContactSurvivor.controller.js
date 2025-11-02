@@ -163,6 +163,127 @@ const EmergencyContactSurvivorController = {
   },
 
   /**
+   * PUT /api/survivors/:id/emergency-contacts/:idEmergencyContact
+   * Update relationship type of an emergency contact
+   */
+  update: async (req, res) => {
+    const { id, idEmergencyContact } = req.params;
+    
+    // Check for JSON parsing errors
+    if (req.body.__jsonError) {
+      return res.validationErrors([req.body.__jsonErrorMessage || 'Formato de JSON inválido']);
+    }
+
+    // Detect unknown fields - only relationshipType is allowed
+    const allowedFields = ['relationshipType'];
+    const receivedFields = Object.keys(req.body || {});
+    const unknownFields = receivedFields.filter(field => !allowedFields.includes(field));
+    
+    if (unknownFields.length > 0) {
+      return res.validationErrors([
+        `Campo(s) no permitido(s): ${unknownFields.join(', ')}. Solo se permite: relationshipType`
+      ]);
+    }
+
+    let { relationshipType } = req.body;
+
+    // Trim string fields
+    if (relationshipType) relationshipType = relationshipType.trim();
+
+    // Validations
+    const errors = [];
+
+    const idNum = ValidationRules.parseIdParam(String(id || ''));
+    const idContactNum = ValidationRules.parseIdParam(String(idEmergencyContact || ''));
+    if (!idNum || !idContactNum) errors.push('Los parámetros id y idEmergencyContact deben ser numéricos');
+
+    if (!relationshipType || typeof relationshipType !== 'string' || relationshipType.trim() === '') {
+      errors.push('relationshipType es requerido y debe ser un texto no vacío');
+    }
+
+    // Validate field lengths
+    if (relationshipType && relationshipType.length > 50) {
+      errors.push('relationshipType no debe exceder 50 caracteres');
+    }
+
+    if (errors.length > 0) {
+      return res.validationErrors(errors);
+    }
+
+    try {
+      // Validate survivor exists and is active
+      const survivor = await SurvivorService.findById(Number(idNum));
+      if (!survivor) {
+        return res.notFound('Superviviente');
+      }
+
+      if (survivor.status !== 'active') {
+        return res.badRequest('No se pueden actualizar contactos de emergencia de un superviviente inactivo');
+      }
+
+      // Validate emergency contact-survivor relation exists
+      const contactSurvivor = await EmergencyContactSurvivorService.findOne(Number(idNum), Number(idContactNum));
+      if (!contactSurvivor) {
+        return res.notFound('El superviviente no tiene registrado este contacto de emergencia');
+      }
+
+      // Validate emergency contact exists and is active
+      const contact = await EmergencyContactsService.get(Number(idContactNum));
+      if (!contact) {
+        return res.validationErrors([`El contacto de emergencia con ID ${idContactNum} no existe`]);
+      }
+
+      if (contact.status !== 'active') {
+        return res.validationErrors([`El contacto de emergencia "${contact.nameEmergencyContact}" no está activo y no puede ser actualizado`]);
+      }
+
+      // Get previous relationship type for security log
+      const previousRelationshipType = contactSurvivor.relationshipType;
+
+      // Check if value actually changed (avoid unnecessary updates)
+      if (previousRelationshipType === relationshipType) {
+        return res.success(contactSurvivor, 'No se realizaron cambios (el valor es el mismo)');
+      }
+
+      // Update relationship type
+      const updatedContactSurvivor = await EmergencyContactSurvivorService.update(
+        Number(idNum), 
+        Number(idContactNum), 
+        relationshipType
+      );
+
+      // Security log
+      const userEmail = req.user?.sub;
+      await SecurityLogService.log({
+        email: userEmail,
+        action: 'UPDATE',
+        description:
+          `Se actualizó el tipo de relación del contacto de emergencia "${contact.nameEmergencyContact}" (ID: ${idContactNum}) ` +
+          `del superviviente "${survivor.survivorName}" (ID: ${id}). ` +
+          `relationshipType: "${previousRelationshipType}" → "${relationshipType}".`,
+        affectedTable: 'EmergencyContactSurvivor'
+      });
+
+      return res.success(updatedContactSurvivor, 'Tipo de relación actualizado exitosamente');
+    } catch (error) {
+      console.error('[EMERGENCY-CONTACT-SURVIVOR] update error:', error);
+      
+      // Handle Prisma P2000 error (value too long for column)
+      if (error.code === 'P2000') {
+        const columnName = error.meta?.column_name || 'campo';
+        return res.validationErrors([`El valor proporcionado para ${columnName} es demasiado largo`]);
+      }
+
+      // Handle Prisma P2025 error (record not found)
+      if (error.code === 'P2025') {
+        return res.notFound('La relación contacto de emergencia-superviviente no existe');
+      }
+      
+      return res.error('Error al actualizar el tipo de relación del contacto de emergencia');
+    }
+  },
+
+  /**
    * DELETE /api/survivors/:id/emergency-contacts/:idEmergencyContact
    * Remove an emergency contact from a survivor (hard delete)
    */

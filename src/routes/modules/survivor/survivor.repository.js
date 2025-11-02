@@ -31,8 +31,12 @@ const baseSelect = {
     }
   },
   cancerSurvivor: {
+    where: {
+      status: 'active' // Only include active cancer relations
+    },
     select: {
       stage: true,
+      status: true,
       cancer: {
         select: {
           idCancer: true,

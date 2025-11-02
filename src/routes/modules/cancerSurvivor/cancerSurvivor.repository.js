@@ -2,17 +2,24 @@ const prisma = require('../../../lib/prisma.js');
 
 const CancerSurvivorRepository = {
   /**
-   * Get all active cancers for a specific survivor
+   * Get cancers for a specific survivor with status filter
    * @param {number} idSurvivor - Survivor ID
-   * @param {Object} options - Pagination options { take, skip }
+   * @param {Object} options - Options { take, skip, status }
    * @returns {Promise<Array>} List of cancers with details
    */
-  getBySurvivor: (idSurvivor, { take = 10, skip = 0 } = {}) => {
+  getBySurvivor: (idSurvivor, { take = 10, skip = 0, status = 'active' } = {}) => {
+    // Build where clause based on status filter
+    const whereClause = {
+      idSurvivor: Number(idSurvivor)
+    };
+
+    // Add status filter if not 'all'
+    if (status !== 'all') {
+      whereClause.status = status;
+    }
+
     return prisma.cancerSurvivor.findMany({
-      where: { 
-        idSurvivor: Number(idSurvivor),
-        status: 'active' // Only return active relations
-      },
+      where: whereClause,
       take: Number(take),
       skip: Number(skip),
       select: {
@@ -28,7 +35,11 @@ const CancerSurvivorRepository = {
             status: true
           }
         }
-      }
+      },
+      orderBy: [
+        { status: 'asc' }, // active first, then inactive
+        { idCancer: 'asc' }
+      ]
     });
   },
 

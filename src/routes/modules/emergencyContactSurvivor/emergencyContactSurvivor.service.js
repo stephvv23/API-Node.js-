@@ -28,6 +28,16 @@ const EmergencyContactSurvivorService = {
   },
 
   /**
+   * Update relationship type of an emergency contact-survivor relation
+   * @param {number} idSurvivor - Survivor ID
+   * @param {number} idEmergencyContact - Emergency Contact ID
+   * @param {string} relationshipType - New relationship type
+   */
+  update: async (idSurvivor, idEmergencyContact, relationshipType) => {
+    return EmergencyContactSurvivorRepository.update(idSurvivor, idEmergencyContact, relationshipType);
+  },
+
+  /**
    * Remove an emergency contact from a survivor (hard delete)
    */
   delete: async (idSurvivor, idEmergencyContact) => {
