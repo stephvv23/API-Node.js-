@@ -235,12 +235,14 @@ const SupplierController = {
   // Get lookup data (categories, headquarters, etc.)
   getLookupData: async (req, res) => {
       try {
+        
+      // Fetch related lookup data in parallel
       const [categories, headquarters, phones] = await Promise.all([
 
-        // Categories relacionadas a proveedores
+        // Categories related to suppliers
         prisma.categorySupplier.findMany({
           orderBy: {
-            category: { name: 'asc' } // Ordenar por category.name
+            category: { name: 'asc' } // Order by category.name
           },
           select: {
             idCategory: true,
@@ -251,10 +253,10 @@ const SupplierController = {
           }
         }),
 
-        // Headquarters relacionadas a proveedores
+        // Headquarters related to suppliers
         prisma.headquarterSupplier.findMany({
           orderBy: {
-            headquarter: { name: 'asc' } // Ordenar por headquarter.name
+            headquarter: { name: 'asc' } // Order by headquarter.name
           },
           select: {
             idHeadquarter: true,
@@ -265,10 +267,10 @@ const SupplierController = {
           }
         }),
 
-        // Phones relacionadas a proveedores
+        // Phones related to suppliers
         prisma.phoneSupplier.findMany({
           orderBy: {
-            phone: { phone: 'asc' } // Ordenar por phone.phone
+            phone: { phone: 'asc' } // Order by phone.phone
           },
           select: {
             idPhone: true,
