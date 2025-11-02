@@ -270,10 +270,10 @@ const CancerSurvivorController = {
   },
 
   /**
-   * DELETE /api/survivors/:id/cancers/:idCancer
-   * Soft delete: Mark the cancer-survivor relation as inactive
+   * PATCH /api/survivors/:id/cancers/:idCancer/status
+   * Toggle status: activate or deactivate cancer-survivor relation
    */
-  delete: async (req, res) => {
+  toggleStatus: async (req, res) => {
     const { id, idCancer } = req.params;
 
     try {
@@ -288,44 +288,55 @@ const CancerSurvivorController = {
         return res.notFound('Superviviente');
       }
 
-      // Validate cancer-survivor relation exists and is active
-      const cancerSurvivor = await CancerSurvivorService.findOne(Number(idNum), Number(idCancerNum));
+      // Check relation exists (any status)
+      const cancerSurvivor = await CancerSurvivorService.findOneAnyStatus(Number(idNum), Number(idCancerNum));
       if (!cancerSurvivor) {
-        // Check if it exists but is inactive
-        const inactiveRelation = await CancerSurvivorService.findOneAnyStatus(Number(idNum), Number(idCancerNum));
-        if (inactiveRelation && inactiveRelation.status === 'inactive') {
-          return res.badRequest('Este cáncer ya está inactivo');
-        }
         return res.notFound('El superviviente no tiene registrado este tipo de cáncer');
       }
 
-      // Check if it's the last active cancer
-      const allCancers = await CancerSurvivorService.getBySurvivor(Number(idNum));
-      
-      if (allCancers.length === 1) {
-        return res.badRequest(
-          'No se puede desactivar el último cáncer activo. Un superviviente debe tener al menos un tipo de cáncer registrado y activo.'
-        );
+      const currentStatus = cancerSurvivor.status;
+      const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+
+      // If trying to deactivate, check if it's the last active cancer
+      if (newStatus === 'inactive') {
+        const allActiveCancers = await CancerSurvivorService.getBySurvivor(Number(idNum));
+        
+        if (allActiveCancers.length === 1) {
+          return res.badRequest(
+            'No se puede desactivar el último cáncer activo. Un superviviente debe tener al menos un tipo de cáncer registrado y activo.'
+          );
+        }
       }
 
-      // Soft delete (mark as inactive)
-      await CancerSurvivorService.softDelete(Number(idNum), Number(idCancerNum));
+      // Toggle status
+      if (newStatus === 'active') {
+        await CancerSurvivorService.reactivate(Number(idNum), Number(idCancerNum));
+      } else {
+        await CancerSurvivorService.softDelete(Number(idNum), Number(idCancerNum));
+      }
 
       // Security log
       const userEmail = req.user?.sub;
+      const action = newStatus === 'active' ? 'REACTIVATE' : 'DELETE';
+      const actionText = newStatus === 'active' ? 'reactivó' : 'desactivó';
+      
       await SecurityLogService.log({
         email: userEmail,
-        action: 'DELETE',
+        action: action,
         description:
-          `Se desactivó (soft delete) el cáncer "${cancerSurvivor.cancer.cancerName}" (ID: ${idCancer}) del superviviente "${survivor.survivorName}" (ID: ${id}). ` +
-          `Etapa: "${cancerSurvivor.stage}". El registro permanece en la base de datos como inactivo.`,
+          `Se ${actionText} el cáncer "${cancerSurvivor.cancer.cancerName}" (ID: ${idCancer}) del superviviente "${survivor.survivorName}" (ID: ${id}). ` +
+          `Etapa: "${cancerSurvivor.stage}". Estado anterior: "${currentStatus}", Estado nuevo: "${newStatus}".`,
         affectedTable: 'CancerSurvivor'
       });
 
-      return res.success(null, 'Cáncer desactivado exitosamente');
+      const message = newStatus === 'active' 
+        ? 'Cáncer reactivado exitosamente' 
+        : 'Cáncer desactivado exitosamente';
+
+      return res.success({ status: newStatus }, message);
     } catch (error) {
-      console.error('[CANCER-SURVIVOR] delete error:', error);
-      return res.error('Error al desactivar el cáncer del superviviente');
+      console.error('[CANCER-SURVIVOR] toggleStatus error:', error);
+      return res.error('Error al cambiar el estado del cáncer del superviviente');
     }
   }
 };

@@ -41,12 +41,12 @@ module.exports = [
     ),
   },
 
-  // Remove a cancer from a survivor
+  // Toggle status (activate/deactivate) a cancer from a survivor
   {
-    method: 'DELETE',
-    path: '/api/survivors/:id/cancers/:idCancer',
+    method: 'PATCH',
+    path: '/api/survivors/:id/cancers/:idCancer/status',
     handler: authenticate(
-      authorizeWindow('Supervivientes', 'read', 'delete')(CancerSurvivorController.delete)
+      authorizeWindow('Supervivientes', 'read', 'update')(CancerSurvivorController.toggleStatus)
     ),
   },
 ];

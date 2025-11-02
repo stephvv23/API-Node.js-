@@ -259,12 +259,23 @@ const SurvivorController = {
         email: userEmail,
         action: "CREATE",
         description:
-          `Se creó un nuevo superviviente con los siguientes datos: ` +
+          `Se creó un nuevo superviviente: ` +
           `ID: "${newSurvivor.idSurvivor}", ` +
           `Nombre: "${newSurvivor.survivorName}", ` +
           `Documento: "${newSurvivor.documentNumber}", ` +
           `Correo: "${newSurvivor.email}", ` +
+          `País: "${newSurvivor.country}", ` +
+          `Género: "${newSurvivor.genre}", ` +
+          `Condición laboral: "${newSurvivor.workingCondition}", ` +
+          `CONAPDIS: ${newSurvivor.CONAPDIS}, ` +
+          `IMAS: ${newSurvivor.IMAS}, ` +
+          `Expediente físico: "${newSurvivor.physicalFileStatus}", ` +
+          `Expediente médico: ${newSurvivor.medicalRecord}, ` +
+          `Fecha hogar SINRUBE: ${newSurvivor.dateHomeSINRUBE}, ` +
+          `Banco de alimentos: ${newSurvivor.foodBank}, ` +
+          `Estudio socioeconómico: ${newSurvivor.socioEconomicStudy}, ` +
           `Cánceres: ${data.cancers.length}, ` +
+          `Contactos emergencia: ${data.emergencyContacts?.length || 0}, ` +
           `Estado: "${newSurvivor.status}".`,
         affectedTable: "Survivor",
       });
@@ -296,6 +307,25 @@ const SurvivorController = {
     // Check for JSON parsing errors
     if (updateData.__jsonError) {
       return res.validationErrors([updateData.__jsonErrorMessage || 'Formato de JSON inválido']);
+    }
+
+    // Define allowed fields for update
+    const allowedFields = [
+      'idHeadquarter', 'survivorName', 'documentNumber', 'country', 'birthday',
+      'email', 'residence', 'genre', 'workingCondition', 'CONAPDIS', 'IMAS',
+      'physicalFileStatus', 'medicalRecord', 'dateHomeSINRUBE', 'foodBank',
+      'socioEconomicStudy', 'notes', 'status'
+    ];
+
+    // Check for unknown fields
+    const receivedFields = Object.keys(updateData);
+    const unknownFields = receivedFields.filter(field => !allowedFields.includes(field));
+    
+    if (unknownFields.length > 0) {
+      return res.validationErrors([
+        `Los siguientes campos no son válidos o no pueden ser actualizados: ${unknownFields.join(', ')}. ` +
+        `Para actualizar relaciones (cánceres, teléfonos, contactos de emergencia), use los endpoints específicos correspondientes.`
+      ]);
     }
 
     const validation = EntityValidators.survivor(updateData, { partial: true });
@@ -413,25 +443,63 @@ const SurvivorController = {
           email: userEmail,
           action: "REACTIVATE",
           description:
-            `Se reactivó el superviviente con ID "${id}". Datos: ` +
-            `Nombre: "${updatedSurvivor.survivorName}", Documento: "${updatedSurvivor.documentNumber}", ` +
-            `Correo: "${updatedSurvivor.email}", Estado: "${updatedSurvivor.status}".`,
+            `Se reactivó el superviviente con ID "${id}". ` +
+            `Nombre: "${updatedSurvivor.survivorName}", ` +
+            `Documento: "${updatedSurvivor.documentNumber}", ` +
+            `Correo: "${updatedSurvivor.email}".`,
           affectedTable: "Survivor",
         });
       } else {
+        // Build a list of changes (only fields that were modified)
+        const changes = [];
+        
+        const fieldsToCheck = {
+          survivorName: 'Nombre',
+          documentNumber: 'Documento',
+          country: 'País',
+          birthday: 'Fecha de nacimiento',
+          email: 'Correo',
+          residence: 'Residencia',
+          genre: 'Género',
+          workingCondition: 'Condición laboral',
+          CONAPDIS: 'CONAPDIS',
+          IMAS: 'IMAS',
+          physicalFileStatus: 'Estado expediente físico',
+          medicalRecord: 'Expediente médico',
+          dateHomeSINRUBE: 'Fecha hogar SINRUBE',
+          foodBank: 'Banco de alimentos',
+          socioEconomicStudy: 'Estudio socioeconómico',
+          notes: 'Notas',
+          status: 'Estado',
+          idHeadquarter: 'ID Sede'
+        };
+
+        for (const [field, label] of Object.entries(fieldsToCheck)) {
+          const oldValue = previousSurvivor[field];
+          const newValue = updatedSurvivor[field];
+          
+          // Handle date comparison
+          if (field === 'birthday') {
+            const oldDate = oldValue ? new Date(oldValue).toISOString().split('T')[0] : null;
+            const newDate = newValue ? new Date(newValue).toISOString().split('T')[0] : null;
+            if (oldDate !== newDate) {
+              changes.push(`${label}: "${oldDate}" → "${newDate}"`);
+            }
+          } else if (oldValue !== newValue) {
+            changes.push(`${label}: "${oldValue}" → "${newValue}"`);
+          }
+        }
+
+        const changeDescription = changes.length > 0 
+          ? `Cambios: ${changes.join(', ')}`
+          : 'Sin cambios detectados';
+
         await SecurityLogService.log({
           email: userEmail,
           action: "UPDATE",
           description:
-            `Se actualizó el superviviente con ID "${id}".\n` +
-            `Versión previa: ` +
-            `Nombre: "${previousSurvivor.survivorName}", Documento: "${previousSurvivor.documentNumber}", ` +
-            `País: "${previousSurvivor.country}", Correo: "${previousSurvivor.email}", ` +
-            `Residencia: "${previousSurvivor.residence}", Estado: "${previousSurvivor.status}".\n` +
-            `Nueva versión: ` +
-            `Nombre: "${updatedSurvivor.survivorName}", Documento: "${updatedSurvivor.documentNumber}", ` +
-            `País: "${updatedSurvivor.country}", Correo: "${updatedSurvivor.email}", ` +
-            `Residencia: "${updatedSurvivor.residence}", Estado: "${updatedSurvivor.status}".`,
+            `Se actualizó el superviviente "${updatedSurvivor.survivorName}" (ID: ${id}). ` +
+            changeDescription,
           affectedTable: "Survivor",
         });
       }
