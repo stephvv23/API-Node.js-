@@ -462,5 +462,17 @@ model TokenBlacklist {
   createdAt DateTime @default(now())
 }
 
+// ------------- Password Reset Tokens -------------
+model PasswordResetToken {
+  id        Int      @id @default(autoincrement())
+  email     String   @db.VarChar(150) // Email del usuario que solicitó el reset
+  token     String   @db.VarChar(255) @unique // Token único para recuperación
+  expiresAt DateTime // Fecha de expiración del token (30 minutos típicamente)
+  used      Boolean  @default(false) // Si el token ya fue usado
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([token])
+}
 
 // -------------  FIN NUEVAS TABLAS Y RELACIONES -------------
