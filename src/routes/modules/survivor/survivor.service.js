@@ -5,8 +5,8 @@ const SurvivorService = {
     return SurvivorRepository.listActive();
   },
 
-  list: async ({ status = 'active', take, skip } = {}) => {
-    return SurvivorRepository.list({ status, take, skip });
+  list: async (filters = {}) => {
+    return SurvivorRepository.list(filters);
   },
 
   findById: async (id) => {

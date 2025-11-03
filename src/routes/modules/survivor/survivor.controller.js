@@ -18,22 +18,87 @@ const SurvivorController = {
     }
   },
 
-  // List survivors with status filter
+  // List survivors with multiple filters
   getAll: async (req, res) => {
     try {
+      // Extract and validate filters from query params
+      const filters = {};
+      
+      // Status filter
       const status = (req.query.status || "active").toLowerCase();
-      const allowed = ["active", "inactive", "all"];
-      if (!allowed.includes(status)) {
+      const allowedStatus = ["active", "inactive", "all"];
+      if (!allowedStatus.includes(status)) {
         return res.validationErrors([
-          'Status must be "active", "inactive" or "all"',
+          'El parámetro status debe ser "active", "inactive" o "all"',
         ]);
       }
+      filters.status = status;
 
-      const survivors = await SurvivorService.list({ status });
+      // Search filter (buscar en nombre, documento, email)
+      if (req.query.search) {
+        filters.search = String(req.query.search).trim();
+      }
+
+      // Cancer ID filter
+      if (req.query.cancerId) {
+        const cancerId = ValidationRules.parseIdParam(String(req.query.cancerId));
+        if (!cancerId) {
+          return res.validationErrors(['El parámetro cancerId debe ser numérico']);
+        }
+        filters.cancerId = Number(cancerId);
+      }
+
+      // Gender filter
+      if (req.query.gender) {
+        const gender = String(req.query.gender).trim();
+        if (gender.length > 25) {
+          return res.validationErrors(['El parámetro gender no debe exceder 25 caracteres']);
+        }
+        filters.gender = gender;
+      }
+
+      // Headquarter ID filter
+      if (req.query.headquarterId) {
+        const headquarterId = ValidationRules.parseIdParam(String(req.query.headquarterId));
+        if (!headquarterId) {
+          return res.validationErrors(['El parámetro headquarterId debe ser numérico']);
+        }
+        filters.headquarterId = Number(headquarterId);
+      }
+
+      // Age range filters
+      if (req.query.ageMin) {
+        const ageMin = parseInt(req.query.ageMin);
+        if (isNaN(ageMin) || ageMin < 0 || ageMin > 150) {
+          return res.validationErrors(['El parámetro ageMin debe ser un número entre 0 y 150']);
+        }
+        filters.ageMin = ageMin;
+      }
+
+      if (req.query.ageMax) {
+        const ageMax = parseInt(req.query.ageMax);
+        if (isNaN(ageMax) || ageMax < 0 || ageMax > 150) {
+          return res.validationErrors(['El parámetro ageMax debe ser un número entre 0 y 150']);
+        }
+        filters.ageMax = ageMax;
+      }
+
+      // Validate age range logic
+      if (filters.ageMin !== undefined && filters.ageMax !== undefined) {
+        if (filters.ageMin > filters.ageMax) {
+          return res.validationErrors(['ageMin no puede ser mayor que ageMax']);
+        }
+      }
+
+      // Pagination
+      const take = parseInt(req.query.take) || 100;
+      const skip = parseInt(req.query.skip) || 0;
+
+      const survivors = await SurvivorService.list({ ...filters, take, skip });
       return res.success(survivors);
     } catch (error) {
       console.error("[SURVIVORS] getAll error:", error);
-      return res.error("Error retrieving survivors");
+      return res.error("Error al obtener supervivientes");
     }
   },
 

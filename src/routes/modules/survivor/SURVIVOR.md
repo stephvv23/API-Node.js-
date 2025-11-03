@@ -28,12 +28,32 @@ Base de datos / campos relevantes
 
 Endpoints principales
 
-1) GET /api/survivors?status=active|inactive|all&take=&skip=
-- Descripción: Lista supervivientes. Por defecto `status=active`.
+1) GET /api/survivors?status=active|inactive|all&take=&skip=&search=&cancerId=&gender=&headquarterId=&ageMin=&ageMax=
+- Descripción: Lista supervivientes con múltiples filtros opcionales. Por defecto `status=active`.
 - Query params:
-  - status (opcional): "active" | "inactive" | "all"
-  - take (opcional): número de registros
-  - skip (opcional): offset
+  - **status** (opcional): "active" | "inactive" | "all" - Default: "active"
+  - **search** (opcional): Busca en nombre, número de documento o email (case-insensitive)
+  - **cancerId** (opcional): Filtra por tipo de cáncer (número). Solo incluye supervivientes con ese cáncer activo
+  - **gender** (opcional): Filtra por género (string, máx 25 caracteres)
+  - **headquarterId** (opcional): Filtra por sede (número)
+  - **ageMin** (opcional): Edad mínima (número entre 0-150)
+  - **ageMax** (opcional): Edad máxima (número entre 0-150)
+  - **take** (opcional): número de registros - Default: 100
+  - **skip** (opcional): offset para paginación - Default: 0
+- Ejemplos:
+  ```
+  GET /api/survivors?status=active
+  GET /api/survivors?search=maria
+  GET /api/survivors?cancerId=1&status=all
+  GET /api/survivors?gender=F&ageMin=18&ageMax=65
+  GET /api/survivors?headquarterId=2&status=active
+  GET /api/survivors?search=juan&cancerId=3&gender=M
+  ```
+- Notas:
+  - Los filtros se pueden combinar
+  - La búsqueda por texto (search) es case-insensitive
+  - El filtro de edad se calcula dinámicamente basado en la fecha de nacimiento
+  - ageMin y ageMax deben ser coherentes (ageMin ≤ ageMax)
 - Respuesta: arreglo de supervivientes (select limitado a campos principales + headquarter).
 
 2) GET /api/survivors/active

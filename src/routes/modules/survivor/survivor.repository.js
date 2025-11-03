@@ -74,15 +74,86 @@ const baseSelect = {
 };
 
 const SurvivorRepository = {
-  // List survivors (by status or all)
-    list: ({ status = 'active', take = 100, skip = 0 } = {}) => {
-    const where = status === 'all' ? {} : { status };
+  // List survivors with multiple filters
+  list: ({ 
+    status = 'active', 
+    search, 
+    cancerId, 
+    gender, 
+    headquarterId,
+    ageMin,
+    ageMax,
+    take = 100, 
+    skip = 0 
+  } = {}) => {
+    // Build where clause dynamically
+    const where = {};
+
+    // Status filter
+    if (status !== 'all') {
+      where.status = status;
+    }
+
+    // Search filter (name, document, or email)
+    if (search) {
+      where.OR = [
+        { survivorName: { contains: search, mode: 'insensitive' } },
+        { documentNumber: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } }
+      ];
+    }
+
+    // Cancer filter
+    if (cancerId) {
+      where.cancerSurvivor = {
+        some: {
+          idCancer: Number(cancerId),
+          status: 'active' // Only active cancer relations
+        }
+      };
+    }
+
+    // Gender filter
+    if (gender) {
+      where.genre = gender; // MySQL VarChar is case-insensitive by default
+    }
+
+    // Headquarter filter
+    if (headquarterId) {
+      where.idHeadquarter = Number(headquarterId);
+    }
+
+    // Age filter (calculated from birthday)
+    if (ageMin !== undefined || ageMax !== undefined) {
+      const today = new Date();
+      
+      // If ageMax is provided, calculate the minimum birthday (oldest person we want)
+      if (ageMax !== undefined) {
+        const minBirthday = new Date(
+          today.getFullYear() - ageMax - 1,
+          today.getMonth(),
+          today.getDate()
+        );
+        where.birthday = { ...where.birthday, gte: minBirthday };
+      }
+      
+      // If ageMin is provided, calculate the maximum birthday (youngest person we want)
+      if (ageMin !== undefined) {
+        const maxBirthday = new Date(
+          today.getFullYear() - ageMin,
+          today.getMonth(),
+          today.getDate()
+        );
+        where.birthday = { ...where.birthday, lte: maxBirthday };
+      }
+    }
+
     return prisma.survivor.findMany({
       where,
       select: baseSelect,
-      orderBy: { idSurvivor: 'asc' }, // Order by ID ascending
-      take,
-      skip,
+      orderBy: { idSurvivor: 'asc' },
+      take: Number(take),
+      skip: Number(skip),
     });
   },
 
