@@ -1,23 +1,6 @@
 // controllers/emergencyContactController.js
 const { EmergencyContactsService } = require('./emergencyContact.service');
 
-// Define valid relationships
-const VALID_RELATIONSHIPS = [
-  "Cónyuge / pareja",
-  "Hijo / hija",
-  "Padre / madre",
-  "Hermano / hermana",
-  "Nieto / nieta",
-  "Tío / tía",
-  "Primo / prima",
-  "Amigo cercano",
-  "Conocido",
-  "Cuidadores profesionales",
-  "Voluntario / apoyo comunitario",
-  "Tutor legal / representante",
-  "Otro"
-];
-
 
 /**
  * EmergencyContactController handles HTTP requests for emergency contacts.
@@ -60,7 +43,7 @@ const EmergencyContactController = {
 
   // CREATE a new emergency contact
    create: async (req, res) => {
-    const { nameEmergencyContact, emailEmergencyContact, relationship, status } = req.body;
+    const { nameEmergencyContact, emailEmergencyContact, identifier, status } = req.body;
     const errors = [];
 
     if (!nameEmergencyContact || typeof nameEmergencyContact !== 'string') {
@@ -73,8 +56,8 @@ const EmergencyContactController = {
       errors.push('emailEmergencyContact must be a valid email');
     }
 
-    if (!relationship || typeof relationship !== 'string' || !VALID_RELATIONSHIPS.includes(relationship)) {
-      errors.push(`relationship must be one of the following: ${VALID_RELATIONSHIPS.join(', ')}`);
+    if (!identifier || typeof identifier !== 'string') {
+      errors.push(`identifier must be one of the following: `);
     }
 
     if (!status || !['active', 'inactive'].includes(status)) {
@@ -86,7 +69,7 @@ const EmergencyContactController = {
     }
 
     try {
-      const newContact = await EmergencyContactsService.create({ nameEmergencyContact, emailEmergencyContact, relationship, status });
+      const newContact = await EmergencyContactsService.create({ nameEmergencyContact, emailEmergencyContact, identifier, status });
       res.status(201).json({ ok: true, data: newContact });
     } catch (err) {
       console.error('[EMERGENCY CONTACTS] create error:', err);
@@ -107,7 +90,7 @@ const EmergencyContactController = {
         }
 
         
-        const { nameEmergencyContact, emailEmergencyContact, relationship, status } = req.body;
+        const { nameEmergencyContact, emailEmergencyContact, identifier, status } = req.body;
         const errors = [];
 
         // Validate fields
@@ -119,10 +102,8 @@ const EmergencyContactController = {
             else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailEmergencyContact))
             errors.push('emailEmergencyContact must be a valid email');
         }
-        if (relationship !== undefined) {
-            if (typeof relationship !== 'string') errors.push('relationship must be a string');
-            else if (!VALID_RELATIONSHIPS.includes(relationship))
-            errors.push(`relationship must be one of: ${VALID_RELATIONSHIPS.join(', ')}`);
+        if (identifier !== undefined) {
+            if (typeof identifier !== 'string') errors.push('identifier must be a string');
         }
         if (status !== undefined && !['active', 'inactive'].includes(status))
             errors.push('status must be "active" or "inactive"');
