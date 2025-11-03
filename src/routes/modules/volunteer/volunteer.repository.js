@@ -147,34 +147,52 @@ const VolunteerRepository = {
   getEmergencyContacts: (idVolunteer) =>
     prisma.emergencyContactVolunteer.findMany({
       where: { idVolunteer: Number(idVolunteer) },
-      include: {
+      select: {
+        relationship: true,
         emergencyContact: {
           select: {
             idEmergencyContact: true,
             nameEmergencyContact: true,
-            relationship: true,
+            emailEmergencyContact: true,
+            status: true,
           }
         }
       }
     }),
 
-  // Add single emergency contact to volunteer
-  addEmergencyContact: (idVolunteer, idEmergencyContact) =>
+  // Add single emergency contact to volunteer with relationship
+  addEmergencyContact: (idVolunteer, idEmergencyContact, relationship) =>
     prisma.emergencyContactVolunteer.create({
       data: {
         idVolunteer: Number(idVolunteer),
         idEmergencyContact: Number(idEmergencyContact),
+        relationship: relationship,
       }
     }),
 
-  // Add multiple emergency contacts to volunteer
-  addEmergencyContacts: (idVolunteer, idEmergencyContacts) =>
+  // Add multiple emergency contacts to volunteer with relationships
+  addEmergencyContacts: (idVolunteer, emergencyContacts) =>
     prisma.emergencyContactVolunteer.createMany({
-      data: idEmergencyContacts.map(idContact => ({
+      data: emergencyContacts.map(contact => ({
         idVolunteer: Number(idVolunteer),
-        idEmergencyContact: Number(idContact),
+        idEmergencyContact: Number(contact.idEmergencyContact),
+        relationship: contact.relationship,
       })),
       skipDuplicates: true, // Skip if relationship already exists
+    }),
+
+  // Update relationship of emergency contact for volunteer
+  updateEmergencyContactRelationship: (idVolunteer, idEmergencyContact, relationship) =>
+    prisma.emergencyContactVolunteer.update({
+      where: {
+        idEmergencyContact_idVolunteer: {
+          idVolunteer: Number(idVolunteer),
+          idEmergencyContact: Number(idEmergencyContact),
+        }
+      },
+      data: {
+        relationship: relationship,
+      }
     }),
 
   // Remove single emergency contact from volunteer

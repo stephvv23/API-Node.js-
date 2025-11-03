@@ -518,56 +518,78 @@ const VolunteerController = {
     }
   },
 
-  // Add emergency contacts to volunteer (single or multiple)
+  // Add emergency contacts to volunteer (single or multiple) with relationships
   addEmergencyContacts: async (req, res) => {
     const { id } = req.params;
-    const { idEmergencyContacts } = req.body;
+    const { emergencyContacts } = req.body;
 
     const validId = parseIdParam(id);
     if (!validId) {
       return res.validationErrors(['idVolunteer debe ser un entero positivo']);
     }
 
-    if (!idEmergencyContacts) {
-      return res.validationErrors(['El campo idEmergencyContacts es requerido']);
+    if (!emergencyContacts) {
+      return res.validationErrors(['El campo emergencyContacts es requerido']);
     }
 
-    if (!Array.isArray(idEmergencyContacts)) {
-      return res.validationErrors(['idEmergencyContacts debe ser un array']);
+    if (!Array.isArray(emergencyContacts)) {
+      return res.validationErrors(['emergencyContacts debe ser un array']);
     }
 
-    if (idEmergencyContacts.length === 0) {
-      return res.validationErrors(['Debe proporcionar al menos un idEmergencyContact en el array']);
+    if (emergencyContacts.length === 0) {
+      return res.validationErrors(['Debe proporcionar al menos un contacto de emergencia en el array']);
     }
 
-    const validContactIds = [];
-    for (const contactId of idEmergencyContacts) {
-      const validContactId = parseIdParam(contactId);
-      if (!validContactId) {
-        return res.validationErrors([`idEmergencyContact ${contactId} debe ser un entero positivo`]);
+    // Validate each contact has idEmergencyContact and relationship
+    const validContacts = [];
+    for (let i = 0; i < emergencyContacts.length; i++) {
+      const contact = emergencyContacts[i];
+      
+      if (!contact.idEmergencyContact) {
+        return res.validationErrors([`El contacto en la posición ${i} debe incluir idEmergencyContact`]);
       }
-      validContactIds.push(validContactId);
+      
+      const validContactId = parseIdParam(contact.idEmergencyContact);
+      if (!validContactId) {
+        return res.validationErrors([`idEmergencyContact ${contact.idEmergencyContact} debe ser un entero positivo`]);
+      }
+      
+      if (!contact.relationship) {
+        return res.validationErrors([`El contacto en la posición ${i} debe incluir relationship (parentesco)`]);
+      }
+      
+      if (typeof contact.relationship !== 'string' || contact.relationship.trim() === '') {
+        return res.validationErrors([`relationship debe ser un texto válido para el contacto ${validContactId}`]);
+      }
+
+      validContacts.push({
+        idEmergencyContact: validContactId,
+        relationship: contact.relationship.trim()
+      });
     }
 
     try {
-      const result = await VolunteerService.addEmergencyContacts(validId, validContactIds);
-      const added = (result && Array.isArray(result.addedIds)) ? result.addedIds : [];
-      const ignored = (result && Array.isArray(result.ignoredInactiveIds)) ? result.ignoredInactiveIds : [];
+      const result = await VolunteerService.addEmergencyContacts(validId, validContacts);
+      const added = result?.addedContacts || [];
+      const ignored = result?.ignoredInactiveIds || [];
+      
       if (ignored.length) {
         res.set('X-Ignored-Ids', ignored.join(','));
       }
+      
       let message = 'contacto(s) de emergencia asociado(s) al voluntario exitosamente';
       if (ignored.length) {
-        const ignoredPart = `Rechazados (inactivos): ${ignored.length}` + (ignored.length ? ` (IDs: ${ignored.join(',')})` : '');
+        const ignoredPart = `Rechazados (inactivos): ${ignored.length} (IDs: ${ignored.join(',')})`;
         message = `${message}. ${ignoredPart}.`;
       }
-      return res.status(201).success(null, message);
+      
+      return res.status(201).success(result, message);
     } catch (error) {
       console.error('[VOLUNTEERS] addEmergencyContacts error:', error);
       if (error.message === 'Voluntario no encontrado') {
         return res.notFound('Voluntario');
       }
-      if (error.message && error.message.includes('no existe')) {
+      if (error.message && (error.message.includes('no existe') || error.message.includes('debe incluir'))) {
         return res.validationErrors([error.message]);
       }
       if (error.message && error.message.includes('inactivo')) {
@@ -578,6 +600,51 @@ const VolunteerController = {
         return res.validationErrors(['Uno o más contactos de emergencia ya están asociados al voluntario']);
       }
       return res.error('Error al asociar el contacto de emergencia al voluntario');
+    }
+  },
+
+  // Update relationship of emergency contact for volunteer
+  updateEmergencyContactRelationship: async (req, res) => {
+    const { id, contactId } = req.params;
+    const { relationship } = req.body;
+
+    const validId = parseIdParam(id);
+    if (!validId) {
+      return res.validationErrors(['idVolunteer debe ser un entero positivo']);
+    }
+
+    const validContactId = parseIdParam(contactId);
+    if (!validContactId) {
+      return res.validationErrors(['idEmergencyContact debe ser un entero positivo']);
+    }
+
+    if (!relationship) {
+      return res.validationErrors(['El campo relationship (parentesco) es requerido']);
+    }
+
+    if (typeof relationship !== 'string' || relationship.trim() === '') {
+      return res.validationErrors(['relationship debe ser un texto válido']);
+    }
+
+    try {
+      const result = await VolunteerService.updateEmergencyContactRelationship(
+        validId, 
+        validContactId, 
+        relationship.trim()
+      );
+      return res.success(result, 'Parentesco actualizado exitosamente');
+    } catch (error) {
+      console.error('[VOLUNTEERS] updateEmergencyContactRelationship error:', error);
+      if (error.message === 'Voluntario no encontrado') {
+        return res.notFound('Voluntario');
+      }
+      if (error.message === 'El contacto de emergencia no existe') {
+        return res.notFound('Contacto de emergencia');
+      }
+      if (error.code === 'P2025') {
+        return res.notFound('Relación entre voluntario y contacto de emergencia');
+      }
+      return res.error('Error al actualizar el parentesco del contacto de emergencia');
     }
   },
 

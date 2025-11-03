@@ -200,7 +200,6 @@ model EmergencyContact {
   idEmergencyContact Int    @id @default(autoincrement())
   nameEmergencyContact String @db.VarChar(150)
   emailEmergencyContact String @db.VarChar(150)
-  relationship       String @db.VarChar(50)
   status             String @default("active") @db.VarChar(25)
 
   emergencyContactVolunteer EmergencyContactVolunteer[] // relational table
@@ -382,6 +381,7 @@ model ActivitySurvivor {
 model EmergencyContactVolunteer {
   idEmergencyContact Int // Foreign key: references EmergencyContact.idEmergencyContact
   idVolunteer        Int // Foreign key: references Volunteer.idVolunteer
+  relationship       String @default("No especificado") @db.VarChar(50) // Relationship between volunteer and emergency contact
 
   // Relations
   emergencyContact EmergencyContact @relation(fields: [idEmergencyContact], references: [idEmergencyContact]) // Connects EmergencyContactVolunteer to EmergencyContact

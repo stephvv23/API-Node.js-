@@ -137,31 +137,46 @@ const VolunteerService = {
   // Get all emergency contacts for a volunteer
   getEmergencyContacts: async (idVolunteer) => {
     const result = await VolunteerRepository.getEmergencyContacts(idVolunteer);
-    // Transform to return only the emergency contact data
-    return result.map(item => item.emergencyContact);
+    // Transform to include relationship in the response
+    return result.map(item => ({
+      ...item.emergencyContact,
+      relationship: item.relationship
+    }));
   },
 
-  // Add emergency contacts to volunteer (single or multiple)
-  addEmergencyContacts: async (idVolunteer, idEmergencyContacts) => {
+  // Add emergency contacts to volunteer (single or multiple) with relationships
+  addEmergencyContacts: async (idVolunteer, emergencyContacts) => {
     const volunteer = await VolunteerRepository.findById(idVolunteer);
     if (!volunteer) {
       throw new Error('Voluntario no encontrado');
     }
 
-    const contactIds = Array.isArray(idEmergencyContacts) ? idEmergencyContacts : [idEmergencyContacts];
+    // Normalize input: if it's a single object, convert to array
+    // Expected format: { idEmergencyContact: number, relationship: string } or array of these
+    const contactsArray = Array.isArray(emergencyContacts) ? emergencyContacts : [emergencyContacts];
+
+    // Validate that each contact has both idEmergencyContact and relationship
+    for (const contact of contactsArray) {
+      if (!contact.idEmergencyContact) {
+        throw new Error('Cada contacto debe incluir idEmergencyContact');
+      }
+      if (!contact.relationship) {
+        throw new Error('Cada contacto debe incluir el campo relationship (parentesco)');
+      }
+    }
 
     const missing = [];
     const inactive = [];
-    const activeIds = [];
+    const activeContacts = [];
 
-    for (const idContact of contactIds) {
-      const contactStatus = await VolunteerRepository.emergencyContactExists(idContact);
+    for (const contact of contactsArray) {
+      const contactStatus = await VolunteerRepository.emergencyContactExists(contact.idEmergencyContact);
       if (!contactStatus.exists) {
-        missing.push(idContact);
+        missing.push(contact.idEmergencyContact);
       } else if (!contactStatus.active) {
-        inactive.push(idContact);
+        inactive.push(contact.idEmergencyContact);
       } else {
-        activeIds.push(idContact);
+        activeContacts.push(contact);
       }
     }
 
@@ -169,22 +184,52 @@ const VolunteerService = {
       throw new Error(`El contacto de emergencia con ID ${missing.join(', ')} no existe`);
     }
 
-    if (activeIds.length === 0) {
+    if (activeContacts.length === 0) {
       throw new Error('Todos los contactos de emergencia proporcionados están inactivos');
     }
 
     let result;
-    if (activeIds.length === 1) {
-      result = await VolunteerRepository.addEmergencyContact(idVolunteer, activeIds[0]);
+    if (activeContacts.length === 1) {
+      result = await VolunteerRepository.addEmergencyContact(
+        idVolunteer, 
+        activeContacts[0].idEmergencyContact,
+        activeContacts[0].relationship
+      );
     } else {
-      result = await VolunteerRepository.addEmergencyContacts(idVolunteer, activeIds);
+      result = await VolunteerRepository.addEmergencyContacts(idVolunteer, activeContacts);
     }
 
     return {
-      addedCount: Array.isArray(result) ? result.length : (result ? 1 : 0),
-      addedIds: activeIds,
+      addedCount: activeContacts.length,
+      addedContacts: activeContacts.map(c => ({
+        idEmergencyContact: c.idEmergencyContact,
+        relationship: c.relationship
+      })),
       ignoredInactiveIds: inactive,
     };
+  },
+
+  // Update relationship of emergency contact for volunteer
+  updateEmergencyContactRelationship: async (idVolunteer, idEmergencyContact, relationship) => {
+    if (!relationship) {
+      throw new Error('El campo relationship (parentesco) es requerido');
+    }
+
+    const volunteer = await VolunteerRepository.findById(idVolunteer);
+    if (!volunteer) {
+      throw new Error('Voluntario no encontrado');
+    }
+
+    const contactStatus = await VolunteerRepository.emergencyContactExists(idEmergencyContact);
+    if (!contactStatus.exists) {
+      throw new Error('El contacto de emergencia no existe');
+    }
+
+    return VolunteerRepository.updateEmergencyContactRelationship(
+      idVolunteer, 
+      idEmergencyContact, 
+      relationship
+    );
   },
 
   // Remove emergency contacts from volunteer (single or multiple)

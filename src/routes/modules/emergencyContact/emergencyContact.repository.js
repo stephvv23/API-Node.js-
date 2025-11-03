@@ -11,7 +11,6 @@ const baseSelect = {
   idEmergencyContact: true,
   nameEmergencyContact: true,
   emailEmergencyContact: true,
-  relationship: true,
   status: true,
 };
 
