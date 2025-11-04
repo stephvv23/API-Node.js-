@@ -83,19 +83,17 @@ const StatsRepository = {
     });
   },
 
-  // Obtain new users this month
+  // Obtain new users this month (based on SecurityLog CREATE action, not login)
   getNewUsersThisMonth: async () => {
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
     
-    return prisma.user.count({
+    return prisma.securityLog.count({
       where: {
-        loginAccess: {
-          some: {
-            date: { gte: startOfMonth }
-          }
-        }
+        action: 'CREATE',
+        affectedTable: 'User',
+        date: { gte: startOfMonth }
       }
     });
   },
@@ -237,32 +235,50 @@ const StatsRepository = {
     }));
   },
 
-  // Obtain new users by month (last 12 months)
+  // Obtain new users by month (last 12 months) - based on SecurityLog CREATE action, not login
   getNewUsersMonthly: async () => {
     const twelveMonthsAgo = new Date();
     twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+    twelveMonthsAgo.setDate(1);
+    twelveMonthsAgo.setHours(0, 0, 0, 0);
 
-    const monthlyUsers = await prisma.loginAccess.groupBy({
-      by: ['date'],
-      _count: { email: true },
+    // Get all SecurityLogs where users were created (action=CREATE, affectedTable=User)
+    const creationLogs = await prisma.securityLog.findMany({
       where: {
+        action: 'CREATE',
+        affectedTable: 'User',
         date: {
           gte: twelveMonthsAgo
         }
       },
-      orderBy: { date: 'asc' }
+      select: {
+        date: true
+      },
+      orderBy: {
+        date: 'asc'
+      }
     });
 
+    // Group by month (YYYY-MM format)
     const monthlyData = {};
-    monthlyUsers.forEach(item => {
-      const monthKey = item.date.toISOString().substring(0, 7); // YYYY-MM
-      monthlyData[monthKey] = (monthlyData[monthKey] || 0) + item._count.email;
+    creationLogs.forEach(log => {
+      const monthKey = log.date.toISOString().substring(0, 7); // YYYY-MM
+      monthlyData[monthKey] = (monthlyData[monthKey] || 0) + 1;
     });
 
-    return Object.entries(monthlyData).map(([month, count]) => ({
-      month: month,
-      count: count
-    }));
+    // Generate all months in the last 12 months with 0 count if no users
+    const result = [];
+    const now = new Date();
+    for (let i = 11; i >= 0; i--) {
+      const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthKey = monthDate.toISOString().substring(0, 7);
+      result.push({
+        month: monthKey,
+        count: monthlyData[monthKey] || 0
+      });
+    }
+
+    return result;
   },
 
   // Obtain the most registered actions in SecurityLog
