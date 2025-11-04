@@ -18,12 +18,12 @@ module.exports = [
    // Headquarters relationships
   { method: 'GET', path: '/api/suppliers/:id/headquarters', handler: authenticate(authorizeWindow('Proveedores','read')(SupplierController.getHeadquarters)) },
   { method: 'POST', path: '/api/suppliers/:id/headquarters', handler: authenticate(authorizeWindow('Proveedores','read','create')(SupplierController.addHeadquarters)) },
-  { method: 'DELETE', path: '/api/suppliers/:id/headquarters', handler: authenticate(authorizeWindow('Proveedores','read','delete')(SupplierController.removeHeadquarters)) },
+  { method: 'DELETE', path: '/api/suppliers/:id/headquarters/:idHeadquarter', handler: authenticate(authorizeWindow('Proveedores','read','delete')(SupplierController.removeHeadquarters)) },
   
   // Categories relationships
-  { method: 'GET', path: '/api/suppliers/:id/emergencyContacts', handler: authenticate(authorizeWindow('Proveedores','read')(SupplierController.getCategories)) },
-  { method: 'POST', path: '/api/suppliers/:id/emergencyContacts', handler: authenticate(authorizeWindow('Proveedores','read','create')(SupplierController.addCategories)) },
-  { method: 'DELETE', path: '/api/suppliers/:id/emergencyContacts', handler: authenticate(authorizeWindow('Proveedores','read','delete')(SupplierController.removeCategories)) },
+  { method: 'GET', path: '/api/suppliers/:id/categories', handler: authenticate(authorizeWindow('Proveedores','read')(SupplierController.getCategories)) },
+  { method: 'POST', path: '/api/suppliers/:id/categories', handler: authenticate(authorizeWindow('Proveedores','read','create')(SupplierController.addCategories)) },
+  { method: 'DELETE', path: '/api/suppliers/:id/categories/:idCategory', handler: authenticate(authorizeWindow('Proveedores','read','delete')(SupplierController.removeCategories)) },
 
   // Phone relationships
   { method: 'GET', path: '/api/suppliers/:id/phones', handler: authenticate(authorizeWindow('Proveedores','read')(SupplierController.getPhones)) },
