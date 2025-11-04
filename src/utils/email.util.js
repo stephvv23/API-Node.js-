@@ -78,112 +78,90 @@ const stripHtml = (html) => {
  */
 const sendPasswordResetEmail = async (to, resetToken, userName = 'Usuario') => {
   // Construir URL completa para reset de contraseña
-  const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5504/view';
+  const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5504';
   // Asegurar que la URL no termine con '/' para evitar '//' en la ruta
   const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
-  const resetUrl = `${cleanBaseUrl}/reset-password.html?token=${resetToken}`;
   
-  const subject = 'Recuperación de contraseña - FUNCA';
+  // ⚠️ CORRECCIÓN: Usar la ruta /reset-password que redirige correctamente
+  const resetUrl = `${cleanBaseUrl}/view/password/reset-password.html?token=${resetToken}`;
+  const subject = 'Recuperación de contraseña - Funcavida';
   
   const html = `
     <!DOCTYPE html>
-    <html lang="es">
+    <html>
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <style>
-        body {
-          font-family: Arial, sans-serif;
-          line-height: 1.6;
-          color: #333;
-          background-color: #f4f4f4;
-          margin: 0;
-          padding: 0;
-        }
-        .container {
-          max-width: 600px;
-          margin: 20px auto;
-          background-color: #ffffff;
-          border-radius: 8px;
-          overflow: hidden;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .header {
-          background-color: #4CAF50;
-          color: white;
-          padding: 20px;
-          text-align: center;
-        }
-        .content {
-          padding: 30px;
-        }
-        .button {
-          display: inline-block;
-          padding: 12px 30px;
-          margin: 20px 0;
-          background-color: #4CAF50;
-          color: white;
-          text-decoration: none;
-          border-radius: 5px;
-          font-weight: bold;
-        }
-        .button:hover {
-          background-color: #45a049;
-        }
-        .footer {
-          background-color: #f4f4f4;
-          padding: 15px;
-          text-align: center;
-          font-size: 12px;
-          color: #777;
-        }
-        .warning {
-          background-color: #fff3cd;
-          border-left: 4px solid #ffc107;
-          padding: 10px;
-          margin: 15px 0;
-        }
-      </style>
     </head>
-    <body>
-      <div class="container">
-        <div class="header">
-          <h1>Recuperación de Contraseña</h1>
-        </div>
-        <div class="content">
-          <p>Hola <strong>${userName}</strong>,</p>
-          
-          <p>Hemos recibido una solicitud para restablecer la contraseña de tu cuenta.</p>
-          
-          <p>Haz clic en el siguiente botón para crear una nueva contraseña:</p>
-          
-          <div style="text-align: center;">
-            <a href="${resetUrl}" class="button">Restablecer Contraseña</a>
-          </div>
-          
-          <p>O copia y pega este enlace en tu navegador:</p>
-          <p style="word-break: break-all; color: #4CAF50; background-color: #f0f0f0; padding: 10px; border-radius: 4px;">${resetUrl}</p>
-          
-          <div class="warning">
-            <strong>⚠️ Importante:</strong>
-            <ul style="margin: 5px 0; padding-left: 20px;">
-              <li>Este enlace expirará en <strong>30 minutos</strong></li>
-              <li>Solo puede ser usado <strong>una vez</strong></li>
-              <li>Si no solicitaste este cambio, ignora este correo y tu contraseña permanecerá sin cambios</li>
-            </ul>
-          </div>
-          
-          <p>Si tienes problemas o no solicitaste este cambio, contacta con el equipo de soporte.</p>
-          
-          <p>Saludos cordiales,<br>
-          <strong>Equipo de FUNCA</strong></p>
-        </div>
-        <div class="footer">
-          <p>Este es un correo automático, por favor no responder.</p>
-          <p><strong>FUNCA</strong> - Fundación Nacional del Cáncer</p>
-          <p>&copy; ${new Date().getFullYear()} Todos los derechos reservados.</p>
-        </div>
-      </div>
+    <body style="margin: 0; padding: 40px 20px; background-color: #F4F2EF; font-family: Arial, sans-serif;">
+      
+      <!-- Contenedor principal -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 14px; box-shadow: 0 8px 16px rgba(0, 0, 0, 0.05);">
+        
+        <!-- Nombre de marca -->
+        <tr>
+          <td style="text-align: center; padding: 40px 20px 20px;">
+            <h2 style="font-size: 28px; font-weight: 700; color: #ff9f2a; margin: 0; letter-spacing: 1px;">FUNCAVIDA</h2>
+          </td>
+        </tr>
+        
+        <!-- Título -->
+        <tr>
+          <td style="padding: 20px 40px;">
+            <h1 style="font-size: 26px; font-weight: 700; color: #222; margin: 0 0 14px; text-align: center;">
+              Recuperación de Contraseña
+            </h1>
+          </td>
+        </tr>
+        
+        <!-- Contenido -->
+        <tr>
+          <td style="padding: 0 40px 30px; color: #222; font-size: 14px; line-height: 1.6;">
+            <p style="margin: 0 0 15px;">Hola <strong>${userName}</strong>,</p>
+            <p style="margin: 0 0 15px;">Recibimos una solicitud para restablecer la contraseña de tu cuenta.</p>
+            <p style="margin: 0 0 15px;">Haz clic en el botón de abajo para crear una nueva contraseña:</p>
+          </td>
+        </tr>
+        
+        <!-- Botón -->
+        <tr>
+          <td style="text-align: center; padding: 0 40px 30px;">
+            <a href="${resetUrl}" style="display: inline-block; padding: 12px 30px; background-color: #ff9f2a; color: #ffffff; text-decoration: none; border-radius: 22px; font-weight: 600; box-shadow: 0 4px 10px rgba(255,159,42,.35);">
+              Restablecer Contraseña
+            </a>
+          </td>
+        </tr>
+        
+        <!-- Enlace alternativo -->
+        <tr>
+          <td style="padding: 0 40px 20px; color: #555; font-size: 13px; text-align: center;">
+            <p style="margin: 0 0 10px;">O copia y pega este enlace en tu navegador:</p>
+            <p style="margin: 0; word-break: break-all; color: #ff9f2a; background-color: #fff8f0; padding: 12px; border-radius: 6px; border: 1px solid #ffe4cc;">
+              ${resetUrl}
+            </p>
+          </td>
+        </tr>
+        
+        <!-- Nota de expiración -->
+        <tr>
+          <td style="padding: 20px 40px 30px; color: #7a7a7a; font-size: 13px; text-align: center;">
+            <p style="margin: 0 0 8px; font-weight: 600;">⏱️ Este enlace expirará en 30 minutos.</p>
+            <p style="margin: 0; color: #999;">Solo puede ser usado una vez.</p>
+          </td>
+        </tr>
+        
+        <!-- Footer -->
+        <tr>
+          <td style="background-color: #262525; color: #ffffff; padding: 25px 40px; border-radius: 0 0 14px 14px; font-size: 13px; text-align: center;">
+            <p style="margin: 0 0 12px; font-weight: 600;">© ${new Date().getFullYear()} Funcavida. Todos los derechos reservados.</p>
+            <p style="margin: 0; color: #cfe2ff; line-height: 1.5;">
+              Si no solicitaste este cambio, ignora este correo y tu contraseña permanecerá sin cambios.
+            </p>
+          </td>
+        </tr>
+        
+      </table>
+      
     </body>
     </html>
   `;
