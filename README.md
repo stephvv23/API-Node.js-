@@ -58,9 +58,9 @@ Se ha implementado un sistema completo de recuperación de contraseña por email
 
 ### Endpoints Disponibles
 
-- **POST `/api/auth/forgot-password`** - Solicitar reset de contraseña
-- **POST `/api/auth/reset-password`** - Resetear contraseña con token
-- **GET `/api/auth/latest-reset-token`** - Obtener último token (desarrollo/testing)
+- **POST `/api/password-recovery/request`** - Solicitar reset de contraseña
+- **POST `/api/password-recovery/verify-token`** - Verificar si un token es válido
+- **POST `/api/password-recovery/reset`** - Resetear contraseña con token
 
 ### Características
 

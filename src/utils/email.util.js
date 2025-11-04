@@ -61,12 +61,46 @@ const sendEmail = async ({ to, subject, html, text = '' }) => {
 };
 
 /**
- * Remove basic HTML tags (helper function)
+ * Remove HTML tags and decode HTML entities (helper function)
  * @param {string} html - HTML content
- * @returns {string} Text without tags
+ * @returns {string} Plain text without tags and decoded entities
  */
 const stripHtml = (html) => {
-  return html.replace(/<[^>]*>/g, '');
+  if (!html) return '';
+  
+  // Remove HTML tags
+  let text = html.replace(/<[^>]*>/g, '');
+  
+  // Decode common HTML entities
+  const entities = {
+    '&nbsp;': ' ',
+    '&amp;': '&',
+    '&lt;': '<',
+    '&gt;': '>',
+    '&quot;': '"',
+    '&#39;': "'",
+    '&apos;': "'",
+    '&cent;': '¢',
+    '&pound;': '£',
+    '&yen;': '¥',
+    '&euro;': '€',
+    '&copy;': '©',
+    '&reg;': '®',
+  };
+  
+  // Replace named entities
+  Object.keys(entities).forEach(entity => {
+    text = text.replace(new RegExp(entity, 'g'), entities[entity]);
+  });
+  
+  // Decode numeric entities (e.g., &#160; or &#xA0;)
+  text = text.replace(/&#(\d+);/g, (match, dec) => String.fromCharCode(dec));
+  text = text.replace(/&#x([0-9A-Fa-f]+);/g, (match, hex) => String.fromCharCode(parseInt(hex, 16)));
+  
+  // Clean up extra whitespace
+  text = text.replace(/\s+/g, ' ').trim();
+  
+  return text;
 };
 
 /**
