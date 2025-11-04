@@ -1,18 +1,18 @@
 /**
  * Email Utility
- * Utilidad para enviar correos electrónicos
+ * Utility for sending emails
  */
 
 const { transporter, emailFrom } = require('../config/email.config');
 
 /**
- * Enviar correo electrónico
- * @param {Object} options - Opciones del correo
- * @param {string} options.to - Email del destinatario
- * @param {string} options.subject - Asunto del correo
- * @param {string} options.html - Contenido HTML del correo
- * @param {string} options.text - Contenido en texto plano (opcional)
- * @returns {Promise<Object>} Resultado del envío
+ * Send email
+ * @param {Object} options - Email options
+ * @param {string} options.to - Recipient's email
+ * @param {string} options.subject - Email subject
+ * @param {string} options.html - HTML content of the email
+ * @param {string} options.text - Plain text content (optional)
+ * @returns {Promise<Object>} Sending result
  */
 const sendEmail = async ({ to, subject, html, text = '' }) => {
   try {
@@ -43,7 +43,7 @@ const sendEmail = async ({ to, subject, html, text = '' }) => {
 
     const info = await transporter.sendMail(mailOptions);
     
-    console.log('✅ Email enviado:', {
+    console.log('✅ Email sent:', {
       to,
       subject,
       messageId: info.messageId,
@@ -55,26 +55,26 @@ const sendEmail = async ({ to, subject, html, text = '' }) => {
       response: info.response,
     };
   } catch (error) {
-    console.error('❌ Error al enviar email:', error);
-    throw new Error(`Error al enviar correo: ${error.message}`);
+    console.error('❌ Error sending email:', error);
+    throw new Error(`Error sending email: ${error.message}`);
   }
 };
 
 /**
- * Remover etiquetas HTML básicas (función auxiliar)
- * @param {string} html - Contenido HTML
- * @returns {string} Texto sin etiquetas
+ * Remove basic HTML tags (helper function)
+ * @param {string} html - HTML content
+ * @returns {string} Text without tags
  */
 const stripHtml = (html) => {
   return html.replace(/<[^>]*>/g, '');
 };
 
 /**
- * Enviar email de recuperación de contraseña
- * @param {string} to - Email del destinatario
- * @param {string} resetToken - Token de recuperación
- * @param {string} userName - Nombre del usuario
- * @returns {Promise<Object>} Resultado del envío
+ * Send password recovery email
+ * @param {string} to - Recipient's email
+ * @param {string} resetToken - Recovery token
+ * @param {string} userName - User's name
+ * @returns {Promise<Object>} Sending result
  */
 const sendPasswordResetEmail = async (to, resetToken, userName = 'Usuario') => {
   // Build complete URL for password reset
@@ -82,7 +82,7 @@ const sendPasswordResetEmail = async (to, resetToken, userName = 'Usuario') => {
   // Ensure URL doesn't end with '/' to avoid '//' in path
   const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
   
-  const resetUrl = `${cleanBaseUrl}/password/reset-password.html?token=${resetToken}`;
+  const resetUrl = `${cleanBaseUrl}/view/password/reset-password.html?token=${resetToken}`;
   const subject = 'Recuperación de contraseña - Funcavida';
   
   const html = `
@@ -94,17 +94,17 @@ const sendPasswordResetEmail = async (to, resetToken, userName = 'Usuario') => {
     </head>
     <body style="margin: 0; padding: 40px 20px; background-color: #F4F2EF; font-family: Arial, sans-serif;">
       
-      <!-- Contenedor principal -->
+      <!-- Main container -->
       <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 14px; box-shadow: 0 8px 16px rgba(0, 0, 0, 0.05);">
         
-        <!-- Nombre de marca -->
+        <!-- Brand name -->
         <tr>
           <td style="text-align: center; padding: 40px 20px 20px;">
             <h2 style="font-size: 28px; font-weight: 700; color: #ff9f2a; margin: 0; letter-spacing: 1px;">FUNCAVIDA</h2>
           </td>
         </tr>
         
-        <!-- Título -->
+        <!-- Title -->
         <tr>
           <td style="padding: 20px 40px;">
             <h1 style="font-size: 26px; font-weight: 700; color: #222; margin: 0 0 14px; text-align: center;">
@@ -113,7 +113,7 @@ const sendPasswordResetEmail = async (to, resetToken, userName = 'Usuario') => {
           </td>
         </tr>
         
-        <!-- Contenido -->
+        <!-- Content -->
         <tr>
           <td style="padding: 0 40px 30px; color: #222; font-size: 14px; line-height: 1.6;">
             <p style="margin: 0 0 15px;">Hola <strong>${userName}</strong>,</p>
@@ -122,7 +122,7 @@ const sendPasswordResetEmail = async (to, resetToken, userName = 'Usuario') => {
           </td>
         </tr>
         
-        <!-- Botón -->
+        <!-- Button -->
         <tr>
           <td style="text-align: center; padding: 0 40px 30px;">
             <a href="${resetUrl}" style="display: inline-block; padding: 12px 30px; background-color: #ff9f2a; color: #ffffff; text-decoration: none; border-radius: 22px; font-weight: 600; box-shadow: 0 4px 10px rgba(255,159,42,.35);">
@@ -131,7 +131,7 @@ const sendPasswordResetEmail = async (to, resetToken, userName = 'Usuario') => {
           </td>
         </tr>
         
-        <!-- Enlace alternativo -->
+        <!-- Alternative link -->
         <tr>
           <td style="padding: 0 40px 20px; color: #555; font-size: 13px; text-align: center;">
             <p style="margin: 0 0 10px;">O copia y pega este enlace en tu navegador:</p>
@@ -141,7 +141,7 @@ const sendPasswordResetEmail = async (to, resetToken, userName = 'Usuario') => {
           </td>
         </tr>
         
-        <!-- Nota de expiración -->
+        <!-- Expiration note -->
         <tr>
           <td style="padding: 20px 40px 30px; color: #7a7a7a; font-size: 13px; text-align: center;">
             <p style="margin: 0 0 8px; font-weight: 600;">⏱️ Este enlace expirará en 30 minutos.</p>

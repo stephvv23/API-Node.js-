@@ -1,3 +1,4 @@
+
 // prisma/seed.js
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcrypt');
@@ -387,7 +388,6 @@ async function main() {
       data: {
         nameEmergencyContact: 'Carlos Fernández',
         emailEmergencyContact: 'carlos.fernandez@example.com',
-        relationship: 'Padre',
         status: 'active',
       },
     }),
@@ -395,14 +395,18 @@ async function main() {
       data: {
         nameEmergencyContact: 'Laura Pérez',
         emailEmergencyContact: 'laura.perez@example.com',
-        relationship: 'Esposa',
         status: 'active',
       },
     }),
   ]);
 
+  // Associate emergency contacts with relationship in the intermediate table
   await prisma.emergencyContactVolunteer.create({
-    data: { idEmergencyContact: ec1.idEmergencyContact, idVolunteer: volunteer.idVolunteer },
+    data: { 
+      idEmergencyContact: ec1.idEmergencyContact, 
+      idVolunteer: volunteer.idVolunteer,
+      relationship: 'Padre' // ✅ Ahora el relationship está aquí
+    },
   });
   await prisma.emergencyContactSurvivor.create({
     data: { idEmergencyContact: ec2.idEmergencyContact, idSurvivor: survivor.idSurvivor },

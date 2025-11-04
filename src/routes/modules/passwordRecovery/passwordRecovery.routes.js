@@ -1,6 +1,6 @@
 /**
  * Password Recovery Routes
- * Rutas para recuperación de contraseña
+ * Routes for password recovery
  */
 
 const passwordRecoveryController = require('./passwordRecovery.controller');
@@ -8,7 +8,7 @@ const passwordRecoveryController = require('./passwordRecovery.controller');
 module.exports = [
   /**
    * @route   POST /api/password-recovery/request
-   * @desc    Solicitar recuperación de contraseña (envía email con token)
+   * @desc    Request password recovery (sends email with token)
    * @access  Public
    * @body    { email: string }
    */
@@ -20,7 +20,7 @@ module.exports = [
 
   /**
    * @route   POST /api/password-recovery/verify-token
-   * @desc    Verificar si un token es válido
+   * @desc    Verify if a token is valid
    * @access  Public
    * @body    { token: string }
    */
@@ -32,7 +32,7 @@ module.exports = [
 
   /**
    * @route   POST /api/password-recovery/reset
-   * @desc    Restablecer contraseña con token
+   * @desc    Reset password with token
    * @access  Public
    * @body    { token: string, newPassword: string, confirmPassword: string }
    */

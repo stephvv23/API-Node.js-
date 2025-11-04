@@ -1,6 +1,6 @@
 /**
  * Password Recovery Service
- * Servicio para manejo de recuperación de contraseñas
+ * Service for password recovery management
  */
 
 const crypto = require('crypto');
@@ -10,10 +10,10 @@ const { sendPasswordResetEmail } = require('../utils/email.util');
 
 class PasswordRecoveryService {
   /**
-   * Solicitar recuperación de contraseña
-   * Genera un token y envía email al usuario
-   * @param {string} email - Email del usuario
-   * @returns {Promise<Object>} Resultado de la operación
+   * Request password recovery
+   * Generates a token and sends email to the user
+   * @param {string} email - User's email
+   * @returns {Promise<Object>} Operation result
    */
   async requestPasswordReset(email) {
     try {
@@ -24,16 +24,12 @@ class PasswordRecoveryService {
       });
 
       if (!user) {
-        // For security, don't reveal that the email doesn't exist
-        return {
-          success: true,
-          message: 'Si el correo existe, recibirás instrucciones para restablecer tu contraseña'
-        };
+        throw new Error('El correo electrónico no está registrado en el sistema');
       }
 
       // Verify that the user is active
       if (user.status !== 'active') {
-        throw new Error('La cuenta no está activa');
+        throw new Error(`No se puede recuperar la contraseña. El estado de la cuenta es: ${user.status}`);
       }
 
       // Generate unique and secure token
@@ -84,9 +80,9 @@ class PasswordRecoveryService {
   }
 
   /**
-   * Verificar si un token es válido
-   * @param {string} token - Token a verificar
-   * @returns {Promise<Object>} Información del token
+   * Verify if a token is valid
+   * @param {string} token - Token to verify
+   * @returns {Promise<Object>} Token information
    */
   async verifyResetToken(token) {
     try {
@@ -133,10 +129,10 @@ class PasswordRecoveryService {
   }
 
   /**
-   * Restablecer contraseña usando un token válido
-   * @param {string} token - Token de recuperación
-   * @param {string} newPassword - Nueva contraseña
-   * @returns {Promise<Object>} Resultado de la operación
+   * Reset password using a valid token
+   * @param {string} token - Recovery token
+   * @param {string} newPassword - New password
+   * @returns {Promise<Object>} Operation result
    */
   async resetPassword(token, newPassword) {
     try {
@@ -197,7 +193,7 @@ class PasswordRecoveryService {
         }
       });
 
-      console.log(`🧹 Tokens limpiados: ${result.count}`);
+      console.log(`🧹 Cleaned tokens: ${result.count}`);
       return result;
     } catch (error) {
       console.error('Error en cleanExpiredTokens:', error);

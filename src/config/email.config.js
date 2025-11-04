@@ -1,13 +1,13 @@
 /**
  * Email Configuration
- * Configuración de Nodemailer para envío de correos
+ * Nodemailer configuration for sending emails
  * 
- * Variables de entorno necesarias:
- * - EMAIL_HOST: Servidor SMTP (ej: smtp.gmail.com)
- * - EMAIL_PORT: Puerto SMTP (ej: 587 para TLS, 465 para SSL)
- * - EMAIL_USER: Usuario/email del remitente
- * - EMAIL_PASSWORD: Contraseña o app password
- * - EMAIL_FROM: Email que aparecerá como remitente
+ * Required environment variables:
+ * - EMAIL_HOST: SMTP server (e.g., smtp.gmail.com)
+ * - EMAIL_PORT: SMTP port (e.g., 587 for TLS, 465 for SSL)
+ * - EMAIL_USER: Sender user/email
+ * - EMAIL_PASSWORD: Password or app password
+ * - EMAIL_FROM: Email that will appear as sender
  */
 
 const nodemailer = require('nodemailer');
@@ -30,14 +30,14 @@ const transporter = nodemailer.createTransport(emailConfig);
 if (process.env.EMAIL_USER && process.env.EMAIL_USER !== 'tu-email@gmail.com') {
   transporter.verify((error, success) => {
     if (error) {
-      console.warn('⚠️  Advertencia: Email no configurado correctamente.');
-      console.warn('   Configura EMAIL_USER y EMAIL_PASSWORD en .env para enviar correos.');
+      console.warn('⚠️  Warning: Email not configured correctly.');
+      console.warn('   Configure EMAIL_USER and EMAIL_PASSWORD in .env to send emails.');
     } else {
-      console.log('✅ Servidor de email listo para enviar mensajes');
+      console.log('✅ Email server ready to send messages');
     }
   });
 } else {
-  console.warn('⚠️  Email no configurado. Los correos se simularán en consola.');
+  console.warn('⚠️  Email not configured. Emails will be simulated in console.');
 }
 
 module.exports = {
