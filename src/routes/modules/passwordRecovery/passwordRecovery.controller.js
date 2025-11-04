@@ -14,12 +14,12 @@ class PasswordRecoveryController {
     try {
       const { email } = req.body;
 
-      // Validación básica
+      // Basic validation
       if (!email) {
         return res.error('El email es requerido', 400);
       }
 
-      // Validar formato de email
+      // Validate email format
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
         return res.error('Formato de email inválido', 400);
@@ -37,7 +37,7 @@ class PasswordRecoveryController {
 
   /**
    * POST /password-recovery/verify-token
-   * Verificar si un token es válido (opcional, para UX)
+   * Verify if a token is valid (optional, for UX)
    */
   async verifyToken(req, res) {
     try {
@@ -59,20 +59,13 @@ class PasswordRecoveryController {
 
   /**
    * POST /password-recovery/reset
-   * Restablecer contraseña con token
+   * Reset password with token
    */
   async resetPassword(req, res) {
     try {
       const { token, newPassword, confirmPassword } = req.body;
 
-      // Debug: Ver qué llega
-      console.log('📥 Datos recibidos:', {
-        token: token ? '✓ Presente' : '✗ Falta',
-        newPassword: newPassword ? '✓ Presente' : '✗ Falta',
-        confirmPassword: confirmPassword ? '✓ Presente' : '✗ Falta'
-      });
-
-      // Validaciones mejoradas
+      // Enhanced validations
       if (!token) {
         return res.error('El token es requerido', 400);
       }
@@ -91,7 +84,7 @@ class PasswordRecoveryController {
         return res.error('La contraseña debe tener al menos 8 caracteres', 400);
       }
 
-      // Validar complejidad de contraseña (opcional)
+      // Validate password complexity (optional)
       const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/;
       if (!passwordRegex.test(newPassword)) {
         return res.error('La contraseña debe contener al menos una mayúscula, una minúscula y un número', 400);

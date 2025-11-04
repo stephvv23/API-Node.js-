@@ -93,7 +93,7 @@ model RoleWindow {
 }
 
 
-//NUEVAS TABLAS Y RELACIONES
+// NEW TABLES AND RELATIONS
 
 model Asset {
     idAsset Int @id @default(autoincrement())
@@ -103,7 +103,7 @@ model Asset {
     type String @db.VarChar(50)
     description String @db.VarChar(750)
     status String @db.VarChar(25)
-    //Relations
+    // Relations
     category     Category     @relation(fields: [idCategory], references: [idCategory])
     headquarter  Headquarter  @relation(fields: [idHeadquarter], references: [idHeadquarter])
 
@@ -136,7 +136,7 @@ model Supplier {
 
 model Activity {
   idActivity     Int @id @default(autoincrement())
-  idHeadquarter  Int //FK for headquarter
+  idHeadquarter  Int // FK for headquarter
   title          String @db.VarChar(150)
   description    String @db.VarChar(750)
   type           String @db.VarChar(50)
@@ -200,7 +200,6 @@ model EmergencyContact {
   idEmergencyContact Int    @id @default(autoincrement())
   nameEmergencyContact String @db.VarChar(150)
   emailEmergencyContact String @db.VarChar(150)
-  relationship       String @db.VarChar(50)
   status             String @default("active") @db.VarChar(25)
 
   emergencyContactVolunteer EmergencyContactVolunteer[] // relational table
@@ -279,7 +278,7 @@ model Headquarter {
   headquarterSupplier HeadquarterSupplier[] // relational table
 }
 
-//RELATIONAL TABLES
+// RELATIONAL TABLES
 model HeadquarterUser {
   idHeadquarter Int    // Foreign key: references Headquarters.idHeadquarters
   email          String @db.VarChar(150) // Foreign key: references User.email
@@ -382,6 +381,7 @@ model ActivitySurvivor {
 model EmergencyContactVolunteer {
   idEmergencyContact Int // Foreign key: references EmergencyContact.idEmergencyContact
   idVolunteer        Int // Foreign key: references Volunteer.idVolunteer
+  relationship       String @default("No especificado") @db.VarChar(50) // Relationship between volunteer and emergency contact
 
   // Relations
   emergencyContact EmergencyContact @relation(fields: [idEmergencyContact], references: [idEmergencyContact]) // Connects EmergencyContactVolunteer to EmergencyContact
@@ -431,7 +431,7 @@ model CategorySupplier {
   category Category @relation(fields: [idCategory], references: [idCategory])
   supplier Supplier @relation(fields: [idSupplier], references: [idSupplier])
 
-  @@id([idCategory, idSupplier]) // PK compuesta
+  @@id([idCategory, idSupplier]) // Composite primary key
 }
 
 
@@ -442,7 +442,7 @@ model PhoneSupplier {
   phone    Phone    @relation(fields: [idPhone], references: [idPhone])
   supplier Supplier @relation(fields: [idSupplier], references: [idSupplier])
 
-  @@id([idPhone, idSupplier]) // PK compuesta
+  @@id([idPhone, idSupplier]) // Composite primary key
 }
 
 model HeadquarterSupplier {
@@ -452,27 +452,15 @@ model HeadquarterSupplier {
   headquarter Headquarter @relation(fields: [idHeadquarter], references: [idHeadquarter])
   supplier     Supplier     @relation(fields: [idSupplier], references: [idSupplier])
 
-  @@id([idHeadquarter, idSupplier]) // PK compuesta
+  @@id([idHeadquarter, idSupplier]) // Composite primary key
 }
 
-// -------------  BlackList -------------
+// ------------- BlackList -------------
 model TokenBlacklist {
   id        Int      @id @default(autoincrement())
   token     String   @db.Text
   createdAt DateTime @default(now())
 }
 
-// ------------- Password Reset Tokens -------------
-model PasswordResetToken {
-  id        Int      @id @default(autoincrement())
-  email     String   @db.VarChar(150) // Email del usuario que solicitó el reset
-  token     String   @db.VarChar(255) @unique // Token único para recuperación
-  expiresAt DateTime // Fecha de expiración del token (30 minutos típicamente)
-  used      Boolean  @default(false) // Si el token ya fue usado
-  createdAt DateTime @default(now())
-
-  @@index([email])
-  @@index([token])
-}
 
 // -------------  FIN NUEVAS TABLAS Y RELACIONES -------------

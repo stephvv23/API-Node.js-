@@ -16,19 +16,19 @@ const { transporter, emailFrom } = require('../config/email.config');
  */
 const sendEmail = async ({ to, subject, html, text = '' }) => {
   try {
-    // Si el email no está configurado, simular el envío
+    // If email is not configured, simulate sending
     if (!process.env.EMAIL_USER || process.env.EMAIL_USER === 'tu-email@gmail.com') {
-      console.log('📧 [SIMULADO] Email que se enviaría:', {
+      console.log('📧 [SIMULATED] Email that would be sent:', {
         to,
         subject,
         from: emailFrom,
       });
-      console.log('   💡 Configura EMAIL_USER y EMAIL_PASSWORD en .env para envío real');
+
       
       return {
         success: true,
         messageId: 'simulated-' + Date.now(),
-        response: 'Email simulado (no enviado)',
+        response: 'Simulated email (not sent)',
         simulated: true,
       };
     }
@@ -38,7 +38,7 @@ const sendEmail = async ({ to, subject, html, text = '' }) => {
       to,
       subject,
       html,
-      text: text || stripHtml(html), // Si no hay texto plano, extrae del HTML
+      text: text || stripHtml(html), // If no plain text, extract from HTML
     };
 
     const info = await transporter.sendMail(mailOptions);
@@ -77,13 +77,12 @@ const stripHtml = (html) => {
  * @returns {Promise<Object>} Resultado del envío
  */
 const sendPasswordResetEmail = async (to, resetToken, userName = 'Usuario') => {
-  // Construir URL completa para reset de contraseña
+  // Build complete URL for password reset
   const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5504';
-  // Asegurar que la URL no termine con '/' para evitar '//' en la ruta
+  // Ensure URL doesn't end with '/' to avoid '//' in path
   const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
   
-  // ⚠️ CORRECCIÓN: Usar la ruta /reset-password que redirige correctamente
-  const resetUrl = `${cleanBaseUrl}/view/password/reset-password.html?token=${resetToken}`;
+  const resetUrl = `${cleanBaseUrl}/password/reset-password.html?token=${resetToken}`;
   const subject = 'Recuperación de contraseña - Funcavida';
   
   const html = `

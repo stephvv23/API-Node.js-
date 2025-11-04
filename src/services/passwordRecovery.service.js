@@ -17,39 +17,39 @@ class PasswordRecoveryService {
    */
   async requestPasswordReset(email) {
     try {
-      // Verificar que el usuario existe
+      // Verify that the user exists
       const user = await prisma.user.findUnique({
         where: { email },
         select: { email: true, name: true, status: true }
       });
 
       if (!user) {
-        // Por seguridad, no revelar que el email no existe
+        // For security, don't reveal that the email doesn't exist
         return {
           success: true,
           message: 'Si el correo existe, recibirás instrucciones para restablecer tu contraseña'
         };
       }
 
-      // Verificar que el usuario está activo
+      // Verify that the user is active
       if (user.status !== 'active') {
         throw new Error('La cuenta no está activa');
       }
 
-      // Generar token único y seguro
+      // Generate unique and secure token
       const resetToken = crypto.randomBytes(32).toString('hex');
       
-      // Hash del token para almacenar en BD (seguridad adicional)
+      // Hash the token for DB storage (additional security)
       const hashedToken = crypto
         .createHash('sha256')
         .update(resetToken)
         .digest('hex');
 
-      // Establecer expiración (30 minutos desde ahora)
+      // Set expiration (30 minutes from now)
       const expiresAt = new Date();
       expiresAt.setMinutes(expiresAt.getMinutes() + 30);
 
-      // Invalidar tokens previos del mismo usuario (opcional)
+      // Invalidate previous tokens from the same user (optional)
       await prisma.passwordResetToken.updateMany({
         where: { 
           email,
@@ -59,7 +59,7 @@ class PasswordRecoveryService {
         data: { used: true }
       });
 
-      // Guardar nuevo token en la base de datos
+      // Save new token in the database
       await prisma.passwordResetToken.create({
         data: {
           email,
@@ -69,7 +69,7 @@ class PasswordRecoveryService {
         }
       });
 
-      // Enviar email con el token original (no el hash)
+      // Send email with the original token (not the hash)
       await sendPasswordResetEmail(email, resetToken, user.name);
 
       return {
@@ -90,13 +90,13 @@ class PasswordRecoveryService {
    */
   async verifyResetToken(token) {
     try {
-      // Hash del token recibido
+      // Hash the received token
       const hashedToken = crypto
         .createHash('sha256')
         .update(token)
         .digest('hex');
 
-      // Buscar token en la base de datos
+      // Search for token in the database
       const tokenRecord = await prisma.passwordResetToken.findUnique({
         where: { token: hashedToken },
         select: {
@@ -107,7 +107,7 @@ class PasswordRecoveryService {
         }
       });
 
-      // Validaciones
+      // Validations
       if (!tokenRecord) {
         throw new Error('Token inválido');
       }
@@ -140,31 +140,31 @@ class PasswordRecoveryService {
    */
   async resetPassword(token, newPassword) {
     try {
-      // Verificar token
+      // Verify token
       const tokenData = await this.verifyResetToken(token);
 
-      // Validar contraseña
+      // Validate password
       if (!newPassword || newPassword.length < 8) {
         throw new Error('La contraseña debe tener al menos 8 caracteres');
       }
 
-      // Hash de la nueva contraseña
+      // Hash the new password
       const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-      // Hash del token
+      // Hash the token
       const hashedToken = crypto
         .createHash('sha256')
         .update(token)
         .digest('hex');
 
-      // Actualizar contraseña y marcar token como usado (transacción)
+      // Update password and mark token as used (transaction)
       await prisma.$transaction([
-        // Actualizar contraseña del usuario
+        // Update user password
         prisma.user.update({
           where: { email: tokenData.email },
           data: { password: hashedPassword }
         }),
-        // Marcar token como usado
+        // Mark token as used
         prisma.passwordResetToken.update({
           where: { token: hashedToken },
           data: { used: true }
@@ -183,8 +183,8 @@ class PasswordRecoveryService {
   }
 
   /**
-   * Limpiar tokens expirados (tarea de mantenimiento)
-   * Ejecutar periódicamente con un cron job
+   * Clean expired tokens (maintenance task)
+   * Run periodically with a cron job
    */
   async cleanExpiredTokens() {
     try {
