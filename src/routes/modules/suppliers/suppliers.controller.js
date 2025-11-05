@@ -182,15 +182,17 @@ const SupplierController = {
   // Update supplier information
   update: async (req, res) => {
     const { id } = req.params;  // Extract supplier ID from URL parameters
-    
+
     // Validate ID format
     const validId = parseIdParam(id);
     if (!validId) {
       return res.validationErrors(['idSupplier debe ser un entero positivo']);
     }
 
-    // Trim all string fields to prevent leading/trailing spaces
-    const updateData = ValidationRules.trimStringFields(req.body);
+  // Trim all string fields to prevent leading/trailing spaces
+  const updateData = ValidationRules.trimStringFields(req.body);
+  // DEBUG: Log phones array received from frontend
+  console.log('[SUPPLIERS][UPDATE] Received phones:', updateData.phones);
 
     // Prevent user from trying to modify the ID
     if (updateData.idSupplier !== undefined) {
@@ -240,9 +242,19 @@ const SupplierController = {
       const previousSupplier = await SupplierService.findById(validId);
       if (!previousSupplier) return res.notFound('Proveedor');
 
-      // ===== UPDATE SUPPLIER =====
+      // ===== UPDATE SUPPLIER (main fields) =====
       const updatedSupplier = await SupplierService.update(validId, updateData);
       const userEmail = req.user?.sub; // Get current user email for logging
+
+      // ===== PHONES UPDATE LOGIC =====
+      if (Array.isArray(updateData.phones)) {
+        // Remove all old phone relationships
+        await SupplierService.removeAllPhones(validId);
+        // Add new phones (if any)
+        if (updateData.phones.length > 0) {
+          await SupplierService.addPhoneStrings(validId, updateData.phones);
+        }
+      }
 
       // ===== LOGGING =====
       // Detect if only status changed from inactive to active
@@ -278,8 +290,10 @@ const SupplierController = {
         });
       }
 
+      // Fetch the updated supplier with all relationships
+      const supplierWithRelations = await SupplierService.findById(validId);
       // Transform and return success response
-      const transformed = transformSupplierData(updatedSupplier);
+      const transformed = transformSupplierData(supplierWithRelations);
       return res.success(transformed, 'Proveedor actualizado exitosamente');
     } catch (error) {
       // Log error and return generic error message

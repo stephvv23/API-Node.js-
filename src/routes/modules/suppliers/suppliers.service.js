@@ -1,9 +1,18 @@
-
 const { SupplierRepository } = require('./suppliers.repository');
 
-
-
 const SupplierService = {
+  // Remove all phone relationships for a supplier
+  removeAllPhones: async (idSupplier) => {
+    // Get all current phone relationships
+    const currentPhones = await SupplierRepository.getPhones(idSupplier);
+    if (!currentPhones || currentPhones.length === 0) return;
+    const phoneIds = currentPhones.map(item => item.phone.idPhone);
+    if (phoneIds.length === 1) {
+      await SupplierRepository.removePhone(idSupplier, phoneIds[0]);
+    } else if (phoneIds.length > 1) {
+      await SupplierRepository.removePhones(idSupplier, phoneIds);
+    }
+  },
   // Lists all active suppliers
   listActive: async () => {
     return SupplierRepository.listActive();
