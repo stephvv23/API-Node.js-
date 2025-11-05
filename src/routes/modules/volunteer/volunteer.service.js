@@ -1,5 +1,6 @@
 const { VolunteerRepository } = require('./volunteer.repository');
 const { ValidationRules } = require('../../../utils/validator');
+const prisma = require('../../../lib/prisma');
 
 const VolunteerService = {
   // Lists all active volunteers
@@ -152,7 +153,6 @@ const VolunteerService = {
     }
 
     // Normalize input: if it's a single object, convert to array
-    // Expected format: { idEmergencyContact: number, relationship: string } or array of these
     const contactsArray = Array.isArray(emergencyContacts) ? emergencyContacts : [emergencyContacts];
 
     // Validate that each contact has both idEmergencyContact and relationship
@@ -165,48 +165,92 @@ const VolunteerService = {
       }
     }
 
-    const missing = [];
-    const inactive = [];
-    const activeContacts = [];
+    const results = {
+      added: [],
+      alreadyExists: [],
+      notFound: [],
+      inactive: []
+    };
 
     for (const contact of contactsArray) {
+      // Check if emergency contact exists
       const contactStatus = await VolunteerRepository.emergencyContactExists(contact.idEmergencyContact);
+      
       if (!contactStatus.exists) {
-        missing.push(contact.idEmergencyContact);
-      } else if (!contactStatus.active) {
-        inactive.push(contact.idEmergencyContact);
-      } else {
-        activeContacts.push(contact);
+        results.notFound.push({
+          idEmergencyContact: contact.idEmergencyContact,
+          relationship: contact.relationship
+        });
+        continue;
       }
+
+      if (!contactStatus.active) {
+        // Get contact name even if inactive
+        const inactiveContact = await prisma.emergencyContact.findUnique({
+          where: { idEmergencyContact: Number(contact.idEmergencyContact) },
+          select: { nameEmergencyContact: true }
+        });
+        
+        results.inactive.push({
+          idEmergencyContact: contact.idEmergencyContact,
+          nameEmergencyContact: inactiveContact?.nameEmergencyContact || 'Desconocido',
+          relationship: contact.relationship
+        });
+        continue;
+      }
+
+      // Check if relationship already exists
+      const existingRelation = await prisma.emergencyContactVolunteer.findUnique({
+        where: {
+          idEmergencyContact_idVolunteer: {
+            idVolunteer: Number(idVolunteer),
+            idEmergencyContact: Number(contact.idEmergencyContact)
+          }
+        },
+        select: {
+          relationship: true,
+          emergencyContact: {
+            select: {
+              nameEmergencyContact: true
+            }
+          }
+        }
+      });
+
+      if (existingRelation) {
+        results.alreadyExists.push({
+          idEmergencyContact: contact.idEmergencyContact,
+          nameEmergencyContact: existingRelation.emergencyContact.nameEmergencyContact,
+          currentRelationship: existingRelation.relationship,
+          attemptedRelationship: contact.relationship
+        });
+        continue;
+      }
+
+      // Add the relationship
+      const created = await prisma.emergencyContactVolunteer.create({
+        data: {
+          idVolunteer: Number(idVolunteer),
+          idEmergencyContact: Number(contact.idEmergencyContact),
+          relationship: contact.relationship
+        },
+        include: {
+          emergencyContact: {
+            select: {
+              nameEmergencyContact: true
+            }
+          }
+        }
+      });
+
+      results.added.push({
+        idEmergencyContact: contact.idEmergencyContact,
+        nameEmergencyContact: created.emergencyContact.nameEmergencyContact,
+        relationship: contact.relationship
+      });
     }
 
-    if (missing.length > 0) {
-      throw new Error(`El contacto de emergencia con ID ${missing.join(', ')} no existe`);
-    }
-
-    if (activeContacts.length === 0) {
-      throw new Error('Todos los contactos de emergencia proporcionados están inactivos');
-    }
-
-    let result;
-    if (activeContacts.length === 1) {
-      result = await VolunteerRepository.addEmergencyContact(
-        idVolunteer, 
-        activeContacts[0].idEmergencyContact,
-        activeContacts[0].relationship
-      );
-    } else {
-      result = await VolunteerRepository.addEmergencyContacts(idVolunteer, activeContacts);
-    }
-
-    return {
-      addedCount: activeContacts.length,
-      addedContacts: activeContacts.map(c => ({
-        idEmergencyContact: c.idEmergencyContact,
-        relationship: c.relationship
-      })),
-      ignoredInactiveIds: inactive,
-    };
+    return results;
   },
 
   // Update relationship of emergency contact for volunteer
@@ -232,17 +276,81 @@ const VolunteerService = {
     );
   },
 
-  // Remove emergency contacts from volunteer (single or multiple)
+  // Remove emergency contacts from volunteer (single or multiple) with detailed feedback
   removeEmergencyContacts: async (idVolunteer, idEmergencyContacts) => {
     // Normalize to array
     const contactIds = Array.isArray(idEmergencyContacts) ? idEmergencyContacts : [idEmergencyContacts];
     
-    // Use batch delete for multiple, single delete for one
-    if (contactIds.length === 1) {
-      return VolunteerRepository.removeEmergencyContact(idVolunteer, contactIds[0]);
-    } else {
-      return VolunteerRepository.removeEmergencyContacts(idVolunteer, contactIds);
+    const results = {
+      deleted: [],
+      notRelated: [],
+      notFound: []
+    };
+
+    // Process each contact ID
+    for (const contactId of contactIds) {
+      // Check if emergency contact exists
+      const contactExists = await prisma.emergencyContact.findUnique({
+        where: { idEmergencyContact: Number(contactId) },
+        select: { 
+          idEmergencyContact: true, 
+          nameEmergencyContact: true,
+          status: true 
+        }
+      });
+
+      if (!contactExists) {
+        results.notFound.push({
+          idEmergencyContact: contactId
+        });
+        continue;
+      }
+
+      // Check if relationship exists
+      const relationship = await prisma.emergencyContactVolunteer.findUnique({
+        where: {
+          idEmergencyContact_idVolunteer: {
+            idVolunteer: Number(idVolunteer),
+            idEmergencyContact: Number(contactId)
+          }
+        },
+        select: {
+          idEmergencyContact: true,
+          relationship: true,
+          emergencyContact: {
+            select: {
+              nameEmergencyContact: true
+            }
+          }
+        }
+      });
+
+      if (!relationship) {
+        results.notRelated.push({
+          idEmergencyContact: contactId,
+          nameEmergencyContact: contactExists.nameEmergencyContact
+        });
+        continue;
+      }
+
+      // Delete the relationship
+      await prisma.emergencyContactVolunteer.delete({
+        where: {
+          idEmergencyContact_idVolunteer: {
+            idVolunteer: Number(idVolunteer),
+            idEmergencyContact: Number(contactId)
+          }
+        }
+      });
+
+      results.deleted.push({
+        idEmergencyContact: contactId,
+        nameEmergencyContact: relationship.emergencyContact.nameEmergencyContact,
+        relationship: relationship.relationship
+      });
     }
+
+    return results;
   },
 };
 
