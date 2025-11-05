@@ -521,7 +521,7 @@ const VolunteerController = {
   // Add emergency contacts to volunteer (single or multiple) with relationships
   addEmergencyContacts: async (req, res) => {
     const { id } = req.params;
-    const { emergencyContacts } = req.body;
+    let { emergencyContacts } = req.body;
 
     const validId = parseIdParam(id);
     if (!validId) {
@@ -539,6 +539,11 @@ const VolunteerController = {
     if (emergencyContacts.length === 0) {
       return res.validationErrors(['Debe proporcionar al menos un contacto de emergencia en el array']);
     }
+
+    // Trim all string fields in emergencyContacts array
+    emergencyContacts = emergencyContacts.map(contact => 
+      ValidationRules.trimStringFields(contact)
+    );
 
     // Validate each contact has idEmergencyContact and relationship
     const validContacts = [];
@@ -558,13 +563,19 @@ const VolunteerController = {
         return res.validationErrors([`El contacto en la posición ${i} debe incluir relationship (parentesco)`]);
       }
       
-      if (typeof contact.relationship !== 'string' || contact.relationship.trim() === '') {
+      const relationship = contact.relationship;
+      
+      if (typeof relationship !== 'string' || relationship === '') {
         return res.validationErrors([`relationship debe ser un texto válido para el contacto ${validContactId}`]);
+      }
+
+      if (relationship.length > 50) {
+        return res.validationErrors([`relationship no puede exceder 50 caracteres para el contacto ${validContactId} (actual: ${relationship.length})`]);
       }
 
       validContacts.push({
         idEmergencyContact: validContactId,
-        relationship: contact.relationship.trim()
+        relationship: relationship
       });
     }
 
@@ -640,7 +651,7 @@ const VolunteerController = {
   // Update relationship of emergency contact for volunteer
   updateEmergencyContactRelationship: async (req, res) => {
     const { id, contactId } = req.params;
-    const { relationship } = req.body;
+    let { relationship } = req.body;
 
     const validId = parseIdParam(id);
     if (!validId) {
@@ -656,24 +667,44 @@ const VolunteerController = {
       return res.validationErrors(['El campo relationship (parentesco) es requerido']);
     }
 
-    if (typeof relationship !== 'string' || relationship.trim() === '') {
+    // Trim and normalize the relationship field
+    const trimmedBody = ValidationRules.trimStringFields({ relationship });
+    relationship = trimmedBody.relationship;
+
+    if (typeof relationship !== 'string' || relationship === '') {
       return res.validationErrors(['relationship debe ser un texto válido']);
+    }
+
+    if (relationship.length > 50) {
+      return res.validationErrors([`relationship no puede exceder 50 caracteres (actual: ${relationship.length})`]);
     }
 
     try {
       const result = await VolunteerService.updateEmergencyContactRelationship(
         validId, 
         validContactId, 
-        relationship.trim()
+        relationship
       );
       return res.success(result, 'Parentesco actualizado exitosamente');
     } catch (error) {
-      console.error('[VOLUNTEERS] updateEmergencyContactRelationship error:', error);
+      // Only log unexpected errors, not validation errors
+      const isValidationError = 
+        error.message === 'Voluntario no encontrado' || 
+        error.message === 'El contacto de emergencia no existe' ||
+        error.message === 'El voluntario no tiene asociado este contacto de emergencia';
+      
+      if (!isValidationError) {
+        console.error('[VOLUNTEERS] updateEmergencyContactRelationship error:', error);
+      }
+      
       if (error.message === 'Voluntario no encontrado') {
         return res.notFound('Voluntario');
       }
       if (error.message === 'El contacto de emergencia no existe') {
         return res.notFound('Contacto de emergencia');
+      }
+      if (error.message === 'El voluntario no tiene asociado este contacto de emergencia') {
+        return res.validationErrors(['El voluntario no tiene asociado este contacto de emergencia']);
       }
       if (error.code === 'P2025') {
         return res.notFound('Relación entre voluntario y contacto de emergencia');

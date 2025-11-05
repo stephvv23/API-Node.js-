@@ -181,6 +181,19 @@ const VolunteerRepository = {
       skipDuplicates: true, // Skip if relationship already exists
     }),
 
+  // Check if emergency contact relationship exists for volunteer
+  checkEmergencyContactRelationship: async (idVolunteer, idEmergencyContact) => {
+    const relationship = await prisma.emergencyContactVolunteer.findUnique({
+      where: {
+        idEmergencyContact_idVolunteer: {
+          idVolunteer: Number(idVolunteer),
+          idEmergencyContact: Number(idEmergencyContact),
+        }
+      }
+    });
+    return relationship !== null;
+  },
+
   // Update relationship of emergency contact for volunteer
   updateEmergencyContactRelationship: (idVolunteer, idEmergencyContact, relationship) =>
     prisma.emergencyContactVolunteer.update({

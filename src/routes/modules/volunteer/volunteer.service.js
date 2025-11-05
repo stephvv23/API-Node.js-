@@ -269,6 +269,16 @@ const VolunteerService = {
       throw new Error('El contacto de emergencia no existe');
     }
 
+    // Check if the relationship between volunteer and emergency contact exists
+    const relationshipExists = await VolunteerRepository.checkEmergencyContactRelationship(
+      idVolunteer, 
+      idEmergencyContact
+    );
+    
+    if (!relationshipExists) {
+      throw new Error('El voluntario no tiene asociado este contacto de emergencia');
+    }
+
     return VolunteerRepository.updateEmergencyContactRelationship(
       idVolunteer, 
       idEmergencyContact, 
