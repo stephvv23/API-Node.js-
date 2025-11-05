@@ -2,20 +2,64 @@
 
 const { SupplierService } = require('./suppliers.service'); // Import the SupplierService
 const { SecurityLogService } = require('../../../services/securitylog.service'); // Import SecurityLogService
-const { EntityValidators } = require('../../../utils/validator'); // Import EntityValidators
+const { EntityValidators, ValidationRules } = require('../../../utils/validator'); // Import EntityValidators and ValidationRules
 let prisma = require('../../../lib/prisma.js'); // Import Prisma client
+
+// Helper function to parse and validate ID parameter
+function parseIdParam(id) {
+  const n = Number(id);
+  return Number.isInteger(n) && n > 0 ? n : null;
+}
 
 // Helper function to format logs
 const formatField = (field) => field || 'N/A';
 
+// Helper function to transform supplier data from DB format to API format
+function transformSupplierData(supplier) {
+  if (!supplier) return null;
+  
+  return {
+    ...supplier,
+    // Transform categorySupplier to categories array
+    categories: supplier.categorySupplier?.map(cs => cs.category) || [],
+    // Transform headquarterSupplier to headquarters array
+    headquarters: supplier.headquarterSupplier?.map(hs => hs.headquarter) || [],
+    // Transform phoneSupplier to phones array (convert phone integers to strings)
+    phones: supplier.phoneSupplier?.map(ps => String(ps.phone?.phone || '')) || [],
+    // Remove junction table data
+    categorySupplier: undefined,
+    headquarterSupplier: undefined,
+    phoneSupplier: undefined
+  };
+}
+
 // SupplierController handles HTTP requests related to suppliers
 const SupplierController = {
 
-  // List all suppliers
+  // List all active suppliers
+  getAllActive: async (_req, res) => {
+    try {
+      const suppliers = await SupplierService.listActive();
+      const transformed = suppliers.map(transformSupplierData);
+      return res.success(transformed);
+    } catch (error) {
+      console.error('[SUPPLIERS] getAllActive error:', error);
+      return res.error('Error al obtener los proveedores activos');
+    }
+  },
+
+  // List all suppliers with optional status filter
   getAll: async (req, res, next) => {
     try {
-      const suppliers = await SupplierService.list();
-      return res.success(suppliers);
+      const { status = 'active' } = req.query;
+      const allowed = ['active', 'inactive', 'all'];
+      if (!allowed.includes(status)) {
+        return res.validationErrors(['El estado debe ser "active", "inactive" o "all"']);
+      }
+
+      const suppliers = await SupplierService.list({ status });
+      const transformed = suppliers.map(transformSupplierData);
+      return res.success(transformed);
     } catch (error) {
       console.error('[SUPPLIERS] getAll error:', error);
       return res.error('Error al obtener los proveedores');
@@ -28,20 +72,22 @@ const SupplierController = {
     const { id } = req.params; // Extract supplier ID from request parameters
 
     // Validate that ID is a number
-      if(isNaN(Number(id))) {
-        return res.validationErrors(['El id del proveedor debe ser un número válido']);
-      }
+    const validId = parseIdParam(id);
+    if (!validId) {
+      return res.validationErrors(['El id del proveedor debe ser un número válido']);
+    }
 
     try {
 
       // Fetch supplier by ID
-      const supplier = await SupplierService.findById(id);
+      const supplier = await SupplierService.findById(validId);
 
       // If supplier not found, return 404
       if (!supplier) return res.notFound('Proveedor');
 
-      // Return supplier data
-      return res.success(supplier);
+      // Transform and return supplier data
+      const transformed = transformSupplierData(supplier);
+      return res.success(transformed);
     } catch (error) {
 
       // Log and return error response
@@ -53,24 +99,15 @@ const SupplierController = {
   // Create new supplier
   create: async (req, res) => {
 
-    let { name, taxId, type, email, address, paymentTerms, description, status } = req.body;
+    // Trim all string fields to prevent leading/trailing spaces
+    const trimmedBody = ValidationRules.trimStringFields(req.body);
+    
+    let { name, taxId, type, email, address, paymentTerms, description, status, categories, headquarters, phones } = trimmedBody;
 
-     if (!name && !taxId && !type && !email && !address && !paymentTerms && !description && !status) {
-      return res.status(400).json({
-        ok: false,
-        message: 'El formato JSON no es válido o cuerpo vacío',
-      });
+    // Handle undefined taxId
+    if (taxId === undefined || taxId === null || taxId === '') {
+      taxId = "Indefinido";
     }
-
-    // Trim input fields and eliminate extra spaces
-    name = name?.trim().replace(/\s+/g, ' ');
-    taxId = (taxId === undefined || taxId === null || taxId === '') ? "Indefinido" : taxId.trim().replace(/\s+/g, ' ');
-    type = type?.trim().replace(/\s+/g, ' ');
-    email = email?.trim().replace(/\s+/g, ' ');
-    address = address?.trim().replace(/\s+/g, ' ');
-    paymentTerms = paymentTerms?.trim().replace(/\s+/g, ' ');
-    description = description?.trim().replace(/\s+/g, ' ');
-    status = status?.trim().replace(/\s+/g, ' ');
 
     // Validation
     const validation = EntityValidators.supplier(
@@ -101,17 +138,39 @@ const SupplierController = {
       // Create supplier when no duplicates
       const newSupplier = await SupplierService.create({ name, taxId, type, email, address, paymentTerms, description, status });
 
+      // Add relationships if provided
+      const supplierId = newSupplier.idSupplier;
+
+      // Add headquarters
+      if (Array.isArray(headquarters) && headquarters.length > 0) {
+        await SupplierService.addHeadquarters(supplierId, headquarters);
+      }
+
+      // Add categories
+      if (Array.isArray(categories) && categories.length > 0) {
+        await SupplierService.addCategories(supplierId, categories);
+      }
+
+      // Add phones (handles phone strings, not IDs)
+      if (Array.isArray(phones) && phones.length > 0) {
+        await SupplierService.addPhoneStrings(supplierId, phones);
+      }
+
+      // Fetch the complete supplier with all relationships
+      const completeSupplier = await SupplierService.findById(supplierId);
+
       // Log creation action
       const userEmail = req.user?.sub;
       await SecurityLogService.log({
         email: userEmail,
         action: 'CREATE',
-        description: `Se creó el proveedor: ID: "${newSupplier.idSupplier}", Nombre: "${newSupplier.name}", Número de identificación fiscal: "${newSupplier.taxId}", Tipo: "${newSupplier.type}", Email: "${newSupplier.email}", Dirección: "${newSupplier.address}", Términos de pago: "${newSupplier.paymentTerms}", Descripción: "${newSupplier.description}", Estado: "${newSupplier.status}".`,
+        description: `Se creó el proveedor: ID: "${completeSupplier.idSupplier}", Nombre: "${completeSupplier.name}", Número de identificación fiscal: "${completeSupplier.taxId}", Tipo: "${completeSupplier.type}", Email: "${completeSupplier.email}", Dirección: "${completeSupplier.address}", Términos de pago: "${completeSupplier.paymentTerms}", Descripción: "${completeSupplier.description}", Estado: "${completeSupplier.status}".`,
         affectedTable: 'Supplier',
       });
 
-      // Return success response
-      return res.status(201).success(newSupplier, 'Proveedor creado exitosamente'); 
+      // Transform and return success response
+      const transformed = transformSupplierData(completeSupplier);
+      return res.status(201).success(transformed, 'Proveedor creado exitosamente'); 
 
       //If error occurs while creating supplier
     } catch (error) {
@@ -120,34 +179,29 @@ const SupplierController = {
     }
   },
 
-    // Update supplier information
+  // Update supplier information
   update: async (req, res) => {
     const { id } = req.params;  // Extract supplier ID from URL parameters
-    const updateData = req.body; // Extract data to update from request body
+    
+    // Validate ID format
+    const validId = parseIdParam(id);
+    if (!validId) {
+      return res.validationErrors(['idSupplier debe ser un entero positivo']);
+    }
 
-    // Validate that ID is a valid number
-    if (isNaN(Number(id))) {
-      return res.validationErrors(['The supplier ID must be a valid number']);
+    // Trim all string fields to prevent leading/trailing spaces
+    const updateData = ValidationRules.trimStringFields(req.body);
+
+    // Prevent user from trying to modify the ID
+    if (updateData.idSupplier !== undefined) {
+      return res.validationErrors(['No se puede modificar el ID del proveedor']);
     }
 
     // ===== TAX ID HANDLING =====
     // If taxId is empty or null, assign the default value "Indefinido"
     if (updateData.taxId === undefined || updateData.taxId === null || updateData.taxId === '') {
       updateData.taxId = 'Indefinido';
-    } else {
-      // Remove spaces from taxId since the validator does not allow spaces
-      updateData.taxId = updateData.taxId.trim().replace(/\s+/g, '');
     }
-
-    // ===== TRIM AND CLEAN OTHER FIELDS =====
-    // Remove extra spaces from all string fields if they exist
-    if (updateData.name) updateData.name = updateData.name.trim().replace(/\s+/g, ' ');
-    if (updateData.type) updateData.type = updateData.type.trim().replace(/\s+/g, ' ');
-    if (updateData.email) updateData.email = updateData.email.trim().replace(/\s+/g, ' ');
-    if (updateData.address) updateData.address = updateData.address.trim().replace(/\s+/g, ' ');
-    if (updateData.paymentTerms) updateData.paymentTerms = updateData.paymentTerms.trim().replace(/\s+/g, ' ');
-    if (updateData.description) updateData.description = updateData.description.trim().replace(/\s+/g, ' ');
-    if (updateData.status) updateData.status = updateData.status.trim().replace(/\s+/g, ' ');
 
     // ===== VALIDATION =====
     // Perform partial validation using EntityValidators
@@ -155,39 +209,39 @@ const SupplierController = {
     if (!validation.isValid) return res.validationErrors(validation.errors);
 
     try {
-      // ===== FETCH EXISTING SUPPLIER =====
-      const previousSupplier = await SupplierService.findById(id); // Get current supplier data
-      if (!previousSupplier) return res.notFound('Supplier');
-
       // ===== DUPLICATE CHECKS =====
       const duplicateErrors = [];
 
       // Check if name is being updated and if it already exists in another supplier
       if (updateData.name) {
         const existsName = await SupplierService.findByName(updateData.name);
-        if (existsName && Number(existsName.idSupplier) !== Number(id))
-          duplicateErrors.push('A supplier with this name already exists');
+        if (existsName && existsName.idSupplier !== validId)
+          duplicateErrors.push('Ya existe un proveedor con ese nombre');
       }
 
       // Check if email is being updated and if it already exists in another supplier
       if (updateData.email) {
         const existsEmail = await SupplierService.findByEmail(updateData.email);
-        if (existsEmail && Number(existsEmail.idSupplier) !== Number(id))
-          duplicateErrors.push('A supplier with this email already exists');
+        if (existsEmail && existsEmail.idSupplier !== validId)
+          duplicateErrors.push('Ya existe un proveedor con ese correo');
       }
 
       // Check if taxId is being updated, but ignore default "Indefinido" values in duplicates
       if (updateData.taxId && updateData.taxId !== 'Indefinido') {
         const existsTaxId = await SupplierService.findByTaxId(updateData.taxId);
-        if (existsTaxId && Number(existsTaxId.idSupplier) !== Number(id))
-          duplicateErrors.push('A supplier with this tax ID already exists');
+        if (existsTaxId && existsTaxId.idSupplier !== validId)
+          duplicateErrors.push('Ya existe un proveedor con ese número de identificación fiscal');
       }
 
       // If any duplicates found, return validation errors
       if (duplicateErrors.length > 0) return res.validationErrors(duplicateErrors);
 
+      // ===== FETCH EXISTING SUPPLIER =====
+      const previousSupplier = await SupplierService.findById(validId);
+      if (!previousSupplier) return res.notFound('Proveedor');
+
       // ===== UPDATE SUPPLIER =====
-      const updatedSupplier = await SupplierService.update(id, updateData);
+      const updatedSupplier = await SupplierService.update(validId, updateData);
       const userEmail = req.user?.sub; // Get current user email for logging
 
       // ===== LOGGING =====
@@ -197,6 +251,7 @@ const SupplierController = {
         updatedSupplier.status === 'active' &&
         previousSupplier.name === updatedSupplier.name &&
         previousSupplier.email === updatedSupplier.email &&
+        previousSupplier.taxId === updatedSupplier.taxId &&
         previousSupplier.type === updatedSupplier.type &&
         previousSupplier.address === updatedSupplier.address &&
         previousSupplier.paymentTerms === updatedSupplier.paymentTerms &&
@@ -207,7 +262,7 @@ const SupplierController = {
         await SecurityLogService.log({
           email: userEmail,
           action: 'REACTIVATE',
-          description: `Supplier reactivated: ID "${updatedSupplier.idSupplier}", Name "${updatedSupplier.name}", Tax ID "${updatedSupplier.taxId}", Type "${updatedSupplier.type}", Email "${updatedSupplier.email}", Address "${updatedSupplier.address}", Payment Terms "${updatedSupplier.paymentTerms}", Description "${updatedSupplier.description}", Status "${updatedSupplier.status}".`,
+          description: `Se reactivó el proveedor: ID "${updatedSupplier.idSupplier}", Nombre: "${updatedSupplier.name}", Número de identificación fiscal: "${updatedSupplier.taxId}", Tipo: "${updatedSupplier.type}", Email: "${updatedSupplier.email}", Dirección: "${updatedSupplier.address}", Términos de pago: "${updatedSupplier.paymentTerms}", Descripción: "${updatedSupplier.description}", Estado: "${updatedSupplier.status}".`,
           affectedTable: 'Supplier',
         });
       } else {
@@ -216,19 +271,20 @@ const SupplierController = {
           email: userEmail,
           action: 'UPDATE',
           description:
-            `Supplier updated: ID "${id}".\n` +
-            `Previous version: Name "${previousSupplier.name}", Tax ID "${previousSupplier.taxId}", Type "${previousSupplier.type}", Email "${previousSupplier.email}", Address "${previousSupplier.address}", Payment Terms "${previousSupplier.paymentTerms}", Description "${previousSupplier.description}", Status "${previousSupplier.status}".\n` +
-            `New version: Name "${updatedSupplier.name}", Tax ID "${updatedSupplier.taxId}", Type "${updatedSupplier.type}", Email "${updatedSupplier.email}", Address "${updatedSupplier.address}", Payment Terms "${updatedSupplier.paymentTerms}", Description "${updatedSupplier.description}", Status "${updatedSupplier.status}".`,
+            `Se actualizó el proveedor: ID "${validId}".\n` +
+            `Versión anterior: Nombre: "${previousSupplier.name}", Número de identificación fiscal: "${previousSupplier.taxId}", Tipo: "${previousSupplier.type}", Email: "${previousSupplier.email}", Dirección: "${previousSupplier.address}", Términos de pago: "${previousSupplier.paymentTerms}", Descripción: "${previousSupplier.description}", Estado: "${previousSupplier.status}".\n` +
+            `Nueva versión: Nombre: "${updatedSupplier.name}", Número de identificación fiscal: "${updatedSupplier.taxId}", Tipo: "${updatedSupplier.type}", Email: "${updatedSupplier.email}", Dirección: "${updatedSupplier.address}", Términos de pago: "${updatedSupplier.paymentTerms}", Descripción: "${updatedSupplier.description}", Estado: "${updatedSupplier.status}".`,
           affectedTable: 'Supplier',
         });
       }
 
-      // Return success response
-      return res.success(updatedSupplier, 'Supplier updated successfully');
+      // Transform and return success response
+      const transformed = transformSupplierData(updatedSupplier);
+      return res.success(transformed, 'Proveedor actualizado exitosamente');
     } catch (error) {
       // Log error and return generic error message
       console.error('[SUPPLIERS] update error:', error);
-      return res.error('Error updating supplier');
+      return res.error('Error al actualizar el proveedor');
     }
   },
 
@@ -239,29 +295,31 @@ const SupplierController = {
     const { id } = req.params;
 
     // Validate that ID is a number
-    if(isNaN(Number(id))) {
+    const validId = parseIdParam(id);
+    if (!validId) {
       return res.validationErrors(['El id del proveedor debe ser un número válido']);
     }
 
     // Check if supplier exists by id before attempting deletion
-    const exists = await SupplierService.findById(id);
+    const exists = await SupplierService.findById(validId);
     if (!exists) return res.notFound('Proveedor');
 
     //If supplier exists, proceed to inactivate
     try {
-      const deletedSupplier = await SupplierService.remove(id); // Soft delete (inactivate) supplier
+      const deletedSupplier = await SupplierService.remove(validId); // Soft delete (inactivate) supplier
       const userEmail = req.user?.sub; // Get user email for logging
 
       // Log inactivation action
       await SecurityLogService.log({
         email: userEmail,
         action: 'INACTIVE',
-        description: `Se inactivó el proveedor: ID "${id}", Nombre: "${deletedSupplier.name}", Número de identificación fiscal: "${deletedSupplier.taxId}", Tipo: "${deletedSupplier.type}", Email: "${deletedSupplier.email}", Dirección: "${deletedSupplier.address}", Términos de pago: "${deletedSupplier.paymentTerms}", Descripción: "${deletedSupplier.description}", Estado: "${deletedSupplier.status}".`,
+        description: `Se inactivó el proveedor: ID "${validId}", Nombre: "${deletedSupplier.name}", Número de identificación fiscal: "${deletedSupplier.taxId}", Tipo: "${deletedSupplier.type}", Email: "${deletedSupplier.email}", Dirección: "${deletedSupplier.address}", Términos de pago: "${deletedSupplier.paymentTerms}", Descripción: "${deletedSupplier.description}", Estado: "${deletedSupplier.status}".`,
         affectedTable: 'Supplier',
       });
 
-      // Return success response
-      return res.success(deletedSupplier, 'Proveedor inactivado exitosamente'); 
+      // Transform and return success response
+      const transformed = transformSupplierData(deletedSupplier);
+      return res.success(transformed, 'Proveedor inactivado exitosamente'); 
 
       //If does not exist or error occurs while deleting supplier
     } catch (error) {

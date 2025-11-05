@@ -64,13 +64,26 @@ const baseSelect = {
 // SupplierRepository encapsulates all database operations related to suppliers
 const SupplierRepository = {
 
-  // List all suppliers (active and inactive)
-  list: () => {
+  // Lists suppliers with optional status, pagination, and ordering
+  list: ({ status = 'active', take = 100, skip = 0 } = {}) => {
+    const where = status === 'all' ? {} : { status };
     return prisma.supplier.findMany({
+      where,
       select: baseSelect,
-      orderBy: { name: 'asc' }
+      orderBy: {
+        name: 'asc'
+      },
+      take,
+      skip,
     });
   },
+
+  // Lists all active suppliers
+  listActive: () =>
+    prisma.supplier.findMany({
+      where: { status: 'active' },
+      select: baseSelect
+    }),
 
   // Find supplier by ID
   findById: (id) =>
@@ -241,7 +254,7 @@ const SupplierRepository = {
   getPhones: (idSupplier) =>
     prisma.phoneSupplier.findMany({
       where: { idSupplier: Number(idSupplier) },
-      include: { phone: { select: { idPhone: true, phone: true, type: true } } } // Include phone details
+      include: { phone: { select: { idPhone: true, phone: true } } } // Include phone details
     }),
 
   // Add a single phone relationship to a supplier
@@ -280,13 +293,37 @@ const SupplierRepository = {
       }
     }),
 
-  // Check if a phone exists and whether it is active
+  // Check if a phone exists
   phoneExists: async (idPhone) => {
     const phone = await prisma.phone.findUnique({
       where: { idPhone: Number(idPhone) },
-      select: { status: true } // Only retrieve status
+      select: { idPhone: true } // Only retrieve idPhone to check existence
     });
-    return phone ? { exists: true, active: phone.status === 'active' } : { exists: false, active: false };
+    return phone ? { exists: true, active: true } : { exists: false, active: false };
+  },
+
+  // Create or get existing phone by phone string
+  createOrGetPhone: async (phoneString) => {
+    // Convert phone string to integer (remove non-numeric characters)
+    const phoneNumber = parseInt(phoneString.replace(/\D/g, ''), 10);
+    
+    if (isNaN(phoneNumber)) {
+      throw new Error(`Invalid phone number: ${phoneString}`);
+    }
+
+    // Try to find existing phone
+    let phone = await prisma.phone.findFirst({
+      where: { phone: phoneNumber }
+    });
+
+    // If not found, create it
+    if (!phone) {
+      phone = await prisma.phone.create({
+        data: { phone: phoneNumber }
+      });
+    }
+
+    return phone;
   }
 
 };

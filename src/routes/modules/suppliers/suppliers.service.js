@@ -4,9 +4,14 @@ const { SupplierRepository } = require('./suppliers.repository');
 
 
 const SupplierService = {
-  // List all suppliers (active and inactive)
-  list: async () => {
-    return SupplierRepository.list();
+  // Lists all active suppliers
+  listActive: async () => {
+    return SupplierRepository.listActive();
+  },
+
+  // Lists suppliers with optional status filter
+  list: async ({status = 'active', take, skip} = {}) => {
+    return SupplierRepository.list({status, take, skip});
   },
 
   // Retrieves a supplier by id
@@ -198,6 +203,34 @@ const SupplierService = {
 
     // Map to return only phone objects
     return result.map(item => item.phone);
+  },
+
+  // Add phone strings (creates Phone records and links them)
+  addPhoneStrings: async (idSupplier, phoneStrings) => {
+    // Ensure supplier exists
+    const supplier = await SupplierRepository.findById(idSupplier);
+    if (!supplier) throw new Error('Supplier not found');
+
+    // Normalize input to array
+    const phones = Array.isArray(phoneStrings) ? phoneStrings : [phoneStrings];
+
+    // Filter out empty strings
+    const validPhones = phones.filter(p => p && p.trim());
+    if (validPhones.length === 0) return { addedCount: 0 };
+
+    // Create or get phone IDs for each phone string
+    const phoneIds = [];
+    for (const phoneStr of validPhones) {
+      const phoneRecord = await SupplierRepository.createOrGetPhone(phoneStr.trim());
+      phoneIds.push(phoneRecord.idPhone);
+    }
+
+    // Link phones to supplier - always use batch method for consistency
+    if (phoneIds.length > 0) {
+      await SupplierRepository.addPhones(idSupplier, phoneIds);
+    }
+
+    return { addedCount: phoneIds.length };
   },
 
   addPhones: async (idSupplier, idPhones) => {
