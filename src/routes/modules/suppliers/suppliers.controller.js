@@ -91,9 +91,9 @@ const SupplierController = {
   // Create new supplier
   create: async (req, res) => {
 
+
     // Trim all string fields to prevent leading/trailing spaces
     const trimmedBody = ValidationRules.trimStringFields(req.body);
-    
     let { name, taxId, type, email, address, paymentTerms, description, status, categories, headquarters, phones } = trimmedBody;
 
     // Handle undefined taxId
@@ -106,26 +106,29 @@ const SupplierController = {
       { name, taxId, type, email, address, paymentTerms, description, status },
       { partial: false }
     );
-
-    //if validation fails, return errors
-  if (!validation.isValid) return res.validationErrors(validation.errors); 
+    if (!validation.isValid) return res.validationErrors(validation.errors);
 
     try {
-      // Check duplicates
-      const allSuppliers = await SupplierService.list(); // Fetch all suppliers to check for duplicates
-      const duplicateErrors = []; // Collect duplicate errors
+      // Check duplicates against ALL suppliers (active and inactive), normalized
+      const allSuppliers = await SupplierService.list({ status: 'all' });
+      const duplicateErrors = [];
+      const norm = v => (typeof v === 'string' ? v.trim().toLowerCase() : '');
 
-      // Check for name, taxID and email and if duplicates found, add to errors
-  if (allSuppliers.some(s => s.name === name)) duplicateErrors.push('Ya existe un proveedor con este nombre');
-  if (allSuppliers.some(s => s.email === email)) duplicateErrors.push('Ya existe un proveedor con este correo');
-
-      //It ignores 'Indefinido' taxId for duplicate check
-      if (taxId !== 'Indefinido' && allSuppliers.some(s => s.taxId === taxId)) {
-  duplicateErrors.push('Ya existe un proveedor con este número de identificación fiscal');
+      // Check for name duplicate (normalized)
+      if (name && allSuppliers.some(s => norm(s.name) === norm(name))) {
+        duplicateErrors.push('Ya existe un proveedor con este nombre');
       }
-      
-      //If duplicates found, return validation errors
-  if (duplicateErrors.length > 0) return res.validationErrors(duplicateErrors);
+      // Check for email duplicate (normalized)
+      if (email && allSuppliers.some(s => norm(s.email) === norm(email))) {
+        duplicateErrors.push('Ya existe un proveedor con este correo');
+      }
+      // Check for taxId duplicate (normalized, ignore 'Indefinido')
+      if (taxId && norm(taxId) !== 'indefinido') {
+        if (allSuppliers.some(s => norm(s.taxId) === norm(taxId))) {
+          duplicateErrors.push('Ya existe un proveedor con este número de identificación fiscal');
+        }
+      }
+      if (duplicateErrors.length > 0) return res.validationErrors(duplicateErrors);
 
       // Create supplier when no duplicates
       const newSupplier = await SupplierService.create({ name, taxId, type, email, address, paymentTerms, description, status });
@@ -200,32 +203,50 @@ const SupplierController = {
   if (!validation.isValid) return res.validationErrors(validation.errors);
 
     try {
-      // ===== DUPLICATE CHECKS =====
+      // ===== DUPLICATE CHECKS (ALL SUPPLIERS, NORMALIZED, EXCLUDE SELF, IGNORE IF SAME AS CURRENT) =====
+      const allSuppliers = await SupplierService.list({ status: 'all' });
       const duplicateErrors = [];
 
-      // Check if name is being updated and if it already exists in another supplier
+      // Normalize helper
+      const norm = v => (typeof v === 'string' ? v.trim().toLowerCase() : '');
+      const selfId = validId;
+      const currentSupplier = allSuppliers.find(s => s.idSupplier === selfId);
+
+      // Check for name duplicate (excluding self, normalized, ignore if same as current)
       if (updateData.name) {
-        const existsName = await SupplierService.findByName(updateData.name);
-        if (existsName && existsName.idSupplier !== validId)
-          duplicateErrors.push('Ya existe un proveedor con este nombre');
+        const normName = norm(updateData.name);
+        const currentNormName = currentSupplier ? norm(currentSupplier.name) : null;
+        if (normName !== currentNormName) {
+          if (allSuppliers.some(s => norm(s.name) === normName && s.idSupplier !== selfId)) {
+            duplicateErrors.push('Ya existe un proveedor con este nombre');
+          }
+        }
       }
 
-      // Check if email is being updated and if it already exists in another supplier
+      // Check for email duplicate (excluding self, normalized, ignore if same as current)
       if (updateData.email) {
-        const existsEmail = await SupplierService.findByEmail(updateData.email);
-        if (existsEmail && existsEmail.idSupplier !== validId)
-          duplicateErrors.push('Ya existe un proveedor con este correo');
+        const normEmail = norm(updateData.email);
+        const currentNormEmail = currentSupplier ? norm(currentSupplier.email) : null;
+        if (normEmail !== currentNormEmail) {
+          if (allSuppliers.some(s => norm(s.email) === normEmail && s.idSupplier !== selfId)) {
+            duplicateErrors.push('Ya existe un proveedor con este correo');
+          }
+        }
       }
 
-      // Check if taxId is being updated, but ignore default "Indefinido" values in duplicates
-      if (updateData.taxId && updateData.taxId !== 'Indefinido') {
-        const existsTaxId = await SupplierService.findByTaxId(updateData.taxId);
-        if (existsTaxId && existsTaxId.idSupplier !== validId)
-          duplicateErrors.push('Ya existe un proveedor con este número de identificación fiscal');
+      // Check for taxId duplicate (excluding self, normalized, and ignoring 'Indefinido', ignore if same as current)
+      if (updateData.taxId && norm(updateData.taxId) !== 'indefinido') {
+        const normTaxId = norm(updateData.taxId);
+        const currentNormTaxId = currentSupplier ? norm(currentSupplier.taxId) : null;
+        if (normTaxId !== currentNormTaxId) {
+          if (allSuppliers.some(s => norm(s.taxId) === normTaxId && s.idSupplier !== selfId)) {
+            duplicateErrors.push('Ya existe un proveedor con este número de identificación fiscal');
+          }
+        }
       }
 
       // If any duplicates found, return validation errors
-  if (duplicateErrors.length > 0) return res.validationErrors(duplicateErrors);
+      if (duplicateErrors.length > 0) return res.validationErrors(duplicateErrors);
 
       // ===== FETCH EXISTING SUPPLIER =====
       const previousSupplier = await SupplierService.findById(validId);
