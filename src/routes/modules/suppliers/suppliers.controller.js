@@ -43,8 +43,7 @@ const SupplierController = {
       const transformed = suppliers.map(transformSupplierData);
       return res.success(transformed);
     } catch (error) {
-      console.error('[SUPPLIERS] getAllActive error:', error);
-      return res.error('Error al obtener los proveedores activos');
+  return res.error('Error al obtener los proveedores activos');
     }
   },
 
@@ -54,15 +53,14 @@ const SupplierController = {
       const { status = 'active' } = req.query;
       const allowed = ['active', 'inactive', 'all'];
       if (!allowed.includes(status)) {
-        return res.validationErrors(['El estado debe ser "active", "inactive" o "all"']);
+    return res.validationErrors(['El estado debe ser "activo", "inactivo" o "todos"']);
       }
 
       const suppliers = await SupplierService.list({ status });
       const transformed = suppliers.map(transformSupplierData);
       return res.success(transformed);
     } catch (error) {
-      console.error('[SUPPLIERS] getAll error:', error);
-      return res.error('Error al obtener los proveedores');
+  return res.error('Error al obtener los proveedores');
     }
   },
 
@@ -74,25 +72,19 @@ const SupplierController = {
     // Validate that ID is a number
     const validId = parseIdParam(id);
     if (!validId) {
-      return res.validationErrors(['El id del proveedor debe ser un número válido']);
+  return res.validationErrors(['El ID del proveedor debe ser un número válido']);
     }
 
     try {
-
       // Fetch supplier by ID
       const supplier = await SupplierService.findById(validId);
-
       // If supplier not found, return 404
-      if (!supplier) return res.notFound('Proveedor');
-
+  if (!supplier) return res.notFound('Proveedor');
       // Transform and return supplier data
       const transformed = transformSupplierData(supplier);
       return res.success(transformed);
     } catch (error) {
-
-      // Log and return error response
-      console.error('[SUPPLIERS] getById error:', error);
-      return res.error('Error al obtener el proveedor');
+  return res.error('Error al obtener el proveedor');
     }
   },
 
@@ -116,7 +108,7 @@ const SupplierController = {
     );
 
     //if validation fails, return errors
-    if (!validation.isValid) return res.validationErrors(validation.errors); 
+  if (!validation.isValid) return res.validationErrors(validation.errors); 
 
     try {
       // Check duplicates
@@ -124,16 +116,16 @@ const SupplierController = {
       const duplicateErrors = []; // Collect duplicate errors
 
       // Check for name, taxID and email and if duplicates found, add to errors
-      if (allSuppliers.some(s => s.name === name)) duplicateErrors.push('Ya existe un proveedor con ese nombre');
-      if (allSuppliers.some(s => s.email === email)) duplicateErrors.push('Ya existe un proveedor con ese correo');
+  if (allSuppliers.some(s => s.name === name)) duplicateErrors.push('Ya existe un proveedor con este nombre');
+  if (allSuppliers.some(s => s.email === email)) duplicateErrors.push('Ya existe un proveedor con este correo');
 
       //It ignores 'Indefinido' taxId for duplicate check
       if (taxId !== 'Indefinido' && allSuppliers.some(s => s.taxId === taxId)) {
-        duplicateErrors.push('Ya existe un proveedor con ese número de identificación fiscal');
+  duplicateErrors.push('Ya existe un proveedor con este número de identificación fiscal');
       }
       
       //If duplicates found, return validation errors
-      if (duplicateErrors.length > 0) return res.validationErrors(duplicateErrors);
+  if (duplicateErrors.length > 0) return res.validationErrors(duplicateErrors);
 
       // Create supplier when no duplicates
       const newSupplier = await SupplierService.create({ name, taxId, type, email, address, paymentTerms, description, status });
@@ -170,12 +162,11 @@ const SupplierController = {
 
       // Transform and return success response
       const transformed = transformSupplierData(completeSupplier);
-      return res.status(201).success(transformed, 'Proveedor creado exitosamente'); 
+  return res.status(201).success(transformed, 'Proveedor creado exitosamente'); 
 
       //If error occurs while creating supplier
     } catch (error) {
-      console.error('[SUPPLIERS] create error:', error);
-      return res.error('Error al crear el proveedor');
+  return res.error('Error al crear el proveedor');
     }
   },
 
@@ -186,13 +177,11 @@ const SupplierController = {
     // Validate ID format
     const validId = parseIdParam(id);
     if (!validId) {
-      return res.validationErrors(['idSupplier debe ser un entero positivo']);
+      return res.validationErrors(['El ID del proveedor debe ser un número entero positivo']);
     }
 
   // Trim all string fields to prevent leading/trailing spaces
   const updateData = ValidationRules.trimStringFields(req.body);
-  // DEBUG: Log phones array received from frontend
-  console.log('[SUPPLIERS][UPDATE] Received phones:', updateData.phones);
 
     // Prevent user from trying to modify the ID
     if (updateData.idSupplier !== undefined) {
@@ -208,7 +197,7 @@ const SupplierController = {
     // ===== VALIDATION =====
     // Perform partial validation using EntityValidators
     const validation = EntityValidators.supplier(updateData, { partial: true });
-    if (!validation.isValid) return res.validationErrors(validation.errors);
+  if (!validation.isValid) return res.validationErrors(validation.errors);
 
     try {
       // ===== DUPLICATE CHECKS =====
@@ -218,29 +207,29 @@ const SupplierController = {
       if (updateData.name) {
         const existsName = await SupplierService.findByName(updateData.name);
         if (existsName && existsName.idSupplier !== validId)
-          duplicateErrors.push('Ya existe un proveedor con ese nombre');
+          duplicateErrors.push('Ya existe un proveedor con este nombre');
       }
 
       // Check if email is being updated and if it already exists in another supplier
       if (updateData.email) {
         const existsEmail = await SupplierService.findByEmail(updateData.email);
         if (existsEmail && existsEmail.idSupplier !== validId)
-          duplicateErrors.push('Ya existe un proveedor con ese correo');
+          duplicateErrors.push('Ya existe un proveedor con este correo');
       }
 
       // Check if taxId is being updated, but ignore default "Indefinido" values in duplicates
       if (updateData.taxId && updateData.taxId !== 'Indefinido') {
         const existsTaxId = await SupplierService.findByTaxId(updateData.taxId);
         if (existsTaxId && existsTaxId.idSupplier !== validId)
-          duplicateErrors.push('Ya existe un proveedor con ese número de identificación fiscal');
+          duplicateErrors.push('Ya existe un proveedor con este número de identificación fiscal');
       }
 
       // If any duplicates found, return validation errors
-      if (duplicateErrors.length > 0) return res.validationErrors(duplicateErrors);
+  if (duplicateErrors.length > 0) return res.validationErrors(duplicateErrors);
 
       // ===== FETCH EXISTING SUPPLIER =====
       const previousSupplier = await SupplierService.findById(validId);
-      if (!previousSupplier) return res.notFound('Proveedor');
+  if (!previousSupplier) return res.notFound('Proveedor');
 
       // ===== UPDATE SUPPLIER (main fields) =====
       const updatedSupplier = await SupplierService.update(validId, updateData);
@@ -294,11 +283,9 @@ const SupplierController = {
       const supplierWithRelations = await SupplierService.findById(validId);
       // Transform and return success response
       const transformed = transformSupplierData(supplierWithRelations);
-      return res.success(transformed, 'Proveedor actualizado exitosamente');
+  return res.success(transformed, 'Proveedor actualizado exitosamente');
     } catch (error) {
-      // Log error and return generic error message
-      console.error('[SUPPLIERS] update error:', error);
-      return res.error('Error al actualizar el proveedor');
+  return res.error('Error al actualizar el proveedor');
     }
   },
 
@@ -311,12 +298,12 @@ const SupplierController = {
     // Validate that ID is a number
     const validId = parseIdParam(id);
     if (!validId) {
-      return res.validationErrors(['El id del proveedor debe ser un número válido']);
+      return res.validationErrors(['El ID del proveedor debe ser un número válido']);
     }
 
     // Check if supplier exists by id before attempting deletion
     const exists = await SupplierService.findById(validId);
-    if (!exists) return res.notFound('Proveedor');
+  if (!exists) return res.notFound('Proveedor');
 
     //If supplier exists, proceed to inactivate
     try {
@@ -333,12 +320,11 @@ const SupplierController = {
 
       // Transform and return success response
       const transformed = transformSupplierData(deletedSupplier);
-      return res.success(transformed, 'Proveedor inactivado exitosamente'); 
+  return res.success(transformed, 'Proveedor inactivado exitosamente'); 
 
       //If does not exist or error occurs while deleting supplier
     } catch (error) {
-      console.error('[SUPPLIERS] delete error:', error);
-      return res.error('Error al inactivar el proveedor');
+  return res.error('Error al inactivar el proveedor');
     }
   },
 
@@ -394,8 +380,7 @@ const SupplierController = {
 
       return res.success({ categories, headquarters, phones });
     } catch (error) {
-      console.error('[SUPPLIERS] getLookupData error:', error);
-      return res.error('Error al obtener los datos de referencia para proveedores');
+  return res.error('Error al obtener los datos de referencia para proveedores');
     }
   },
 
@@ -405,21 +390,17 @@ const SupplierController = {
   getHeadquarters: async (req, res) => {
     const { id } = req.params; // Extract supplier ID from the request URL
     const validId = parseIdParam(id); // Validate that the supplier ID is a positive integer
-    if (!validId) return res.validationErrors(['idSupplier must be a positive integer']); // Return validation error if invalid
+  if (!validId) return res.validationErrors(['El ID del proveedor debe ser un número entero positivo']); // Return validation error if invalid
 
     try {
       const supplier = await SupplierService.findById(validId); // Check if the supplier exists in the database
-      if (!supplier) return res.notFound('Supplier'); // Return 404 if supplier does not exist
-
+  if (!supplier) return res.notFound('Proveedor'); // Return 404 if supplier does not exist
       // Fetch all headquarters linked to the supplier using the service layer
       const headquarters = await SupplierService.getHeadquarters(validId);
-
       // Return the list of headquarters as a success response
       return res.success(headquarters);
     } catch (error) {
-      // Log errors for debugging and return a generic error response
-      console.error('[SUPPLIERS] getHeadquarters error:', error);
-      return res.error('Error fetching supplier headquarters');
+  return res.error('Error al obtener las sedes del proveedor');
     }
   },
 
@@ -429,17 +410,17 @@ const SupplierController = {
     const { idHeadquarters } = req.body; // Extract the array of headquarters IDs to associate
 
     const validId = parseIdParam(id); // Validate supplier ID
-    if (!validId) return res.validationErrors(['idSupplier must be a positive integer']);
+  if (!validId) return res.validationErrors(['El ID del proveedor debe ser un número entero positivo']);
 
     // Validate that input is a non-empty array of IDs
     if (!idHeadquarters || !Array.isArray(idHeadquarters) || idHeadquarters.length === 0) {
-      return res.validationErrors(['A valid array of idHeadquarters must be provided']);
+      return res.validationErrors(['Debe proporcionarse una matriz válida de id de sedes']);
     }
 
     // Convert and validate each headquarter ID to ensure positive integers
     const validHqIds = idHeadquarters.map(hqId => {
       const validHqId = parseIdParam(hqId);
-      if (!validHqId) throw new Error(`idHeadquarter ${hqId} must be a positive integer`);
+      if (!validHqId) throw new Error(`idHeadquarter ${hqId} debe ser un número entero positivo`);
       return validHqId;
     });
 
@@ -453,16 +434,15 @@ const SupplierController = {
       if (ignored.length) res.set('X-Ignored-Ids', ignored.join(',')); // Optionally include ignored IDs in response headers
 
       // Prepare a message explaining what happened
-      let message = 'Headquarter(s) associated with supplier successfully';
-      if (ignored.length) message += `. Ignored (inactive): ${ignored.join(',')}`;
-      return res.status(201).success(null, message); // Send a success response with status 201
+  let message = 'Sede(s) asociada(s) correctamente al proveedor';
+  if (ignored.length) message += `. Ignoradas (inactivas): ${ignored.join(',')}`;
+  return res.status(201).success(null, message); // Send a success response with status 201
     } catch (error) {
-      console.error('[SUPPLIERS] addHeadquarters error:', error);
       // Handle specific error cases with clear messages
-      if (error.message === 'Supplier not found') return res.notFound('Supplier');
-      if (error.message?.includes('does not exist') || error.message?.includes('inactive')) return res.validationErrors([error.message]);
-      if (error.code === 'P2002') return res.validationErrors(['One or more headquarters are already associated with the supplier']);
-      return res.error('Error associating headquarters with supplier');
+  if (error.message === 'Supplier not found') return res.notFound('Proveedor');
+  if (error.message?.includes('does not exist') || error.message?.includes('inactive')) return res.validationErrors([error.message]);
+  if (error.code === 'P2002') return res.validationErrors(['Una o más sedes ya están asociadas al proveedor']);
+  return res.error('Error al asociar sedes al proveedor');
     }
   },
 
@@ -472,28 +452,27 @@ const SupplierController = {
     const { idHeadquarters } = req.body;
 
     const validId = parseIdParam(id); // Validate supplier ID
-    if (!validId) return res.validationErrors(['idSupplier must be a positive integer']);
+  if (!validId) return res.validationErrors(['El ID del proveedor debe ser un número entero positivo']);
 
     // Validate input array
     if (!idHeadquarters || !Array.isArray(idHeadquarters) || idHeadquarters.length === 0) {
-      return res.validationErrors(['A valid array of idHeadquarters must be provided']);
+      return res.validationErrors(['Debe proporcionarse una matriz válida de id de sedes']);
     }
 
     // Validate each headquarter ID
     const validHqIds = idHeadquarters.map(hqId => {
       const validHqId = parseIdParam(hqId);
-      if (!validHqId) throw new Error(`idHeadquarter ${hqId} must be a positive integer`);
+      if (!validHqId) throw new Error(`idHeadquarter ${hqId} debe ser un número entero positivo`);
       return validHqId;
     });
 
     try {
       // Remove the headquarters relationships using the service
       await SupplierService.removeHeadquarters(validId, validHqIds);
-      return res.success(null, 'Headquarter(s) removed from supplier successfully');
+  return res.success(null, 'Sede(s) eliminada(s) del proveedor con éxito');
     } catch (error) {
-      console.error('[SUPPLIERS] removeHeadquarters error:', error);
-      if (error.code === 'P2025') return res.notFound('Supplier-headquarter relationship'); // Specific error if relation not found
-      return res.error('Error removing headquarters from supplier');
+  if (error.code === 'P2025') return res.notFound('Relación proveedor-sede no encontrada'); // Specific error if relation not found
+  return res.error('Error al eliminar sedes del proveedor');
     }
   },
 
@@ -503,18 +482,16 @@ const SupplierController = {
   getCategories: async (req, res) => {
     const { id } = req.params;
     const validId = parseIdParam(id); // Ensure supplier ID is valid
-    if (!validId) return res.validationErrors(['idSupplier must be a positive integer']);
+  if (!validId) return res.validationErrors(['El ID del proveedor debe ser un número entero positivo']);
 
     try {
       const supplier = await SupplierService.findById(validId);
-      if (!supplier) return res.notFound('Supplier'); // Return 404 if supplier does not exist
-
+  if (!supplier) return res.notFound('Proveedor'); // Return 404 if supplier does not exist
       // Fetch categories associated with the supplier
       const categories = await SupplierService.getCategories(validId);
       return res.success(categories);
     } catch (error) {
-      console.error('[SUPPLIERS] getCategories error:', error);
-      return res.error('Error fetching supplier categories');
+  return res.error('Error al obtener las categorías del proveedor');
     }
   },
 
@@ -524,17 +501,17 @@ const SupplierController = {
     const { idCategories } = req.body;
 
     const validId = parseIdParam(id); // Validate supplier ID
-    if (!validId) return res.validationErrors(['idSupplier must be a positive integer']);
+  if (!validId) return res.validationErrors(['El ID del proveedor debe ser un número entero positivo']);
 
     // Validate input array
     if (!idCategories || !Array.isArray(idCategories) || idCategories.length === 0) {
-      return res.validationErrors(['A valid array of idCategories must be provided']);
+      return res.validationErrors(['Debe proporcionarse una matriz válida de id de categorías']);
     }
 
     // Validate each category ID
     const validCatIds = idCategories.map(catId => {
       const validCatId = parseIdParam(catId);
-      if (!validCatId) throw new Error(`idCategory ${catId} must be a positive integer`);
+      if (!validCatId) throw new Error(`idCategory ${catId} debe ser un número entero positivo`);
       return validCatId;
     });
 
@@ -546,15 +523,14 @@ const SupplierController = {
       const ignored = (result && Array.isArray(result.ignoredInactiveIds)) ? result.ignoredInactiveIds : [];
       if (ignored.length) res.set('X-Ignored-Ids', ignored.join(','));
 
-      let message = 'Category(s) associated with supplier successfully';
-      if (ignored.length) message += `. Ignored (inactive): ${ignored.join(',')}`;
-      return res.status(201).success(null, message);
+  let message = 'Categoría(s) asociada(s) correctamente al proveedor';
+  if (ignored.length) message += `. Ignoradas (inactivas): ${ignored.join(',')}`;
+  return res.status(201).success(null, message);
     } catch (error) {
-      console.error('[SUPPLIERS] addCategories error:', error);
-      if (error.message === 'Supplier not found') return res.notFound('Supplier');
-      if (error.message?.includes('does not exist') || error.message?.includes('inactive')) return res.validationErrors([error.message]);
-      if (error.code === 'P2002') return res.validationErrors(['One or more categories are already associated with the supplier']);
-      return res.error('Error associating categories with supplier');
+  if (error.message === 'Supplier not found') return res.notFound('Proveedor');
+  if (error.message?.includes('does not exist') || error.message?.includes('inactive')) return res.validationErrors([error.message]);
+  if (error.code === 'P2002') return res.validationErrors(['Una o más categorías ya están asociadas al proveedor']);
+  return res.error('Error al asociar categorías al proveedor');
     }
   },
 
@@ -564,26 +540,25 @@ const SupplierController = {
     const { idCategories } = req.body;
 
     const validId = parseIdParam(id); // Validate supplier ID
-    if (!validId) return res.validationErrors(['idSupplier must be a positive integer']);
+  if (!validId) return res.validationErrors(['El ID del proveedor debe ser un número entero positivo']);
 
     if (!idCategories || !Array.isArray(idCategories) || idCategories.length === 0) {
-      return res.validationErrors(['A valid array of idCategories must be provided']);
+      return res.validationErrors(['Debe proporcionarse una matriz válida de id de categorías']);
     }
 
     const validCatIds = idCategories.map(catId => {
       const validCatId = parseIdParam(catId);
-      if (!validCatId) throw new Error(`idCategory ${catId} must be a positive integer`);
+      if (!validCatId) throw new Error(`idCategory ${catId} debe ser un número entero positivo`);
       return validCatId;
     });
 
     try {
       // Remove categories using the service
       await SupplierService.removeCategories(validId, validCatIds);
-      return res.success(null, 'Category(s) removed from supplier successfully');
+  return res.success(null, 'Categoría(s) eliminada(s) del proveedor exitosamente');
     } catch (error) {
-      console.error('[SUPPLIERS] removeCategories error:', error);
-      if (error.code === 'P2025') return res.notFound('Supplier-category relationship');
-      return res.error('Error removing categories from supplier');
+  if (error.code === 'P2025') return res.notFound('Relación proveedor-categoría no encontrada');
+  return res.error('Error al eliminar categorías del proveedor');
     }
   },
 
@@ -593,17 +568,15 @@ const SupplierController = {
   getPhones: async (req, res) => {
     const { id } = req.params;
     const validId = parseIdParam(id);
-    if (!validId) return res.validationErrors(['idSupplier must be a positive integer']);
+  if (!validId) return res.validationErrors(['El ID del proveedor debe ser un número entero positivo']);
 
     try {
       const supplier = await SupplierService.findById(validId);
-      if (!supplier) return res.notFound('Supplier');
-
+  if (!supplier) return res.notFound('Proveedor');
       const phones = await SupplierService.getPhones(validId);
       return res.success(phones);
     } catch (error) {
-      console.error('[SUPPLIERS] getPhones error:', error);
-      return res.error('Error fetching supplier phones');
+  return res.error('Error al obtener los teléfonos del proveedor');
     }
   },
 
@@ -613,14 +586,14 @@ const SupplierController = {
     const { idPhones } = req.body;
 
     const validId = parseIdParam(id);
-    if (!validId) return res.validationErrors(['idSupplier must be a positive integer']);
+  if (!validId) return res.validationErrors(['El ID del proveedor debe ser un número entero positivo']);
     if (!idPhones || !Array.isArray(idPhones) || idPhones.length === 0) {
-      return res.validationErrors(['A valid array of idPhones must be provided']);
+      return res.validationErrors(['Debe proporcionarse una matriz válida de id de teléfonos']);
     }
 
     const validPhoneIds = idPhones.map(phoneId => {
       const validPhoneId = parseIdParam(phoneId);
-      if (!validPhoneId) throw new Error(`idPhone ${phoneId} must be a positive integer`);
+      if (!validPhoneId) throw new Error(`idPhone ${phoneId} debe ser un número entero positivo`);
       return validPhoneId;
     });
 
@@ -630,15 +603,14 @@ const SupplierController = {
       const ignored = (result && Array.isArray(result.ignoredInactiveIds)) ? result.ignoredInactiveIds : [];
       if (ignored.length) res.set('X-Ignored-Ids', ignored.join(','));
 
-      let message = 'Phone(s) associated with supplier successfully';
-      if (ignored.length) message += `. Ignored (inactive): ${ignored.join(',')}`;
-      return res.status(201).success(null, message);
+  let message = 'Teléfono(s) asociado(s) correctamente al proveedor';
+  if (ignored.length) message += `. Ignorados (inactivos): ${ignored.join(',')}`;
+  return res.status(201).success(null, message);
     } catch (error) {
-      console.error('[SUPPLIERS] addPhones error:', error);
-      if (error.message === 'Supplier not found') return res.notFound('Supplier');
-      if (error.message?.includes('does not exist') || error.message?.includes('inactive')) return res.validationErrors([error.message]);
-      if (error.code === 'P2002') return res.validationErrors(['One or more phones are already associated with the supplier']);
-      return res.error('Error associating phones with supplier');
+  if (error.message === 'Supplier not found') return res.notFound('Proveedor');
+  if (error.message?.includes('does not exist') || error.message?.includes('inactive')) return res.validationErrors([error.message]);
+  if (error.code === 'P2002') return res.validationErrors(['Uno o más teléfonos ya están asociados al proveedor']);
+  return res.error('Error al asociar teléfonos al proveedor');
     }
   },
 
@@ -648,25 +620,24 @@ const SupplierController = {
     const { idPhones } = req.body;
 
     const validId = parseIdParam(id);
-    if (!validId) return res.validationErrors(['idSupplier must be a positive integer']);
+  if (!validId) return res.validationErrors(['El ID del proveedor debe ser un número entero positivo']);
     if (!idPhones || !Array.isArray(idPhones) || idPhones.length === 0) {
-      return res.validationErrors(['A valid array of idPhones must be provided']);
+      return res.validationErrors(['Debe proporcionarse una matriz válida de id de teléfonos']);
     }
 
     const validPhoneIds = idPhones.map(phoneId => {
       const validPhoneId = parseIdParam(phoneId);
-      if (!validPhoneId) throw new Error(`idPhone ${phoneId} must be a positive integer`);
+      if (!validPhoneId) throw new Error(`idPhone ${phoneId} debe ser un número entero positivo`);
       return validPhoneId;
     });
 
     try {
       // Remove phones using the service
       await SupplierService.removePhones(validId, validPhoneIds);
-      return res.success(null, 'Phone(s) removed from supplier successfully');
+  return res.success(null, 'Teléfono(s) eliminado(s) del proveedor correctamente');
     } catch (error) {
-      console.error('[SUPPLIERS] removePhones error:', error);
-      if (error.code === 'P2025') return res.notFound('Supplier-phone relationship');
-      return res.error('Error removing phones from supplier');
+  if (error.code === 'P2025') return res.notFound('Relación proveedor-teléfono no encontrada');
+  return res.error('Error al eliminar teléfonos del proveedor');
     }
   },
 
