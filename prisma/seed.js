@@ -387,7 +387,7 @@ async function main() {
       data: {
         nameEmergencyContact: 'Carlos Fernández',
         emailEmergencyContact: 'carlos.fernandez@example.com',
-        relationship: 'Padre',
+        identifier: '0-000-0000',
         status: 'active',
       },
     }),
@@ -395,7 +395,7 @@ async function main() {
       data: {
         nameEmergencyContact: 'Laura Pérez',
         emailEmergencyContact: 'laura.perez@example.com',
-        relationship: 'Esposa',
+        identifier: '0-000-0000',
         status: 'active',
       },
     }),

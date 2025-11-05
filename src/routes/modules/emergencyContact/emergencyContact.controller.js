@@ -1,260 +1,159 @@
 
-// Import required services and utilities
-const { EmergencyContactsService } = require('./emergencyContact.service'); 
-const { SecurityLogService } = require('../../../services/securitylog.service');
-const { EntityValidators, ValidationRules } = require('../../../utils/validator');
+// controllers/emergencyContactController.js
+const { EmergencyContactsService } = require('./emergencyContact.service');
 
 
-// Define the list of valid relationship types for emergency contacts
-const VALID_RELATIONSHIPS = [
-  'Cónyuge / pareja',
-  'Hijo / hija',
-  'Padre / madre',
-  'Hermano / hermana',
-  'Nieto / nieta',
-  'Tío / tía',
-  'Primo / prima',
-  'Amigo cercano',
-  'Conocido',
-  'Cuidadores profesionales',
-  'Voluntario / apoyo comunitario',
-  'Tutor legal / representante',
-  'Otro'
-];
-
-// Controller that handles all operations related to emergency contacts
+/**
+ * EmergencyContactController handles HTTP requests for emergency contacts.
+ */
 const EmergencyContactController = {
-
-  // List all emergency contacts
-  list: async (_req, res) => {
+  /**
+   * List all emergency contacts.
+   * GET /emergency-contacts
+   */
+  list: async (_req, res, next) => {
     try {
-      const contacts = await EmergencyContactsService.list(); // Retrieve all contacts from the service
-      return res.success(contacts); // Return the list of contacts
-    } catch (error) {
-      console.error('[EMERGENCY CONTACTS] list error:', error);
-      return res.error('Error al obtener los contactos de emergencia');
+      const emergencyContacts = await EmergencyContactsService.list();
+      res.json(emergencyContacts);
+    } catch (err) {
+      console.error("Error en el método de listado:", err);
+      next(err);
     }
+   
   },
 
-  // Get emergency contact by its unique ID
+  // GET a single emergency contact by ID
   get: async (req, res) => {
     const { idEmergencyContact } = req.params;
+
+    if (!/^\d+$/.test(idEmergencyContact?.trim())) {
+      return res.status(400).json({ ok: false, message: 'idEmergencyContact debe ser un número entero' });
+    }
+
     try {
-      const contact = await EmergencyContactsService.get(idEmergencyContact); // Retrieve the contact by ID
+      const contact = await EmergencyContactsService.get(Number(idEmergencyContact));
       if (!contact) {
-        return res.notFound('Contacto de emergencia'); // Return 404 not found if contact doesn't exist
+        return res.status(404).json({ ok: false, message: 'No se encontró el contacto de emergencia' });
       }
-      return res.success(contact); // Return the found contact
+      res.json({ ok: true, data: contact });
     } catch (error) {
-      console.error('[EMERGENCY CONTACTS] get error:', error);
-      return res.error('Error al obtener el contacto de emergencia');
+      console.error('[EMERGENCY CONTACT] error al obtener:', error);
+      res.status(500).json({ ok: false, message: 'Error al obtener el contacto de emergencia' });
     }
   },
 
-  // Create new emergency contact
-  create: async (req, res) => {
+  // CREATE a new emergency contact
+   create: async (req, res) => {
+    const { nameEmergencyContact, emailEmergencyContact, identifier, status } = req.body;
+    const errors = [];
 
-     // Clean whitespace from request body strings
-    const trimmedBody = ValidationRules.trimStringFields(req.body);
-    const { nameEmergencyContact, emailEmergencyContact, relationship, status } = trimmedBody;
-
-    // Validate required fields and data structure
-    const validation = EntityValidators.emergencyContact(
-      { nameEmergencyContact, emailEmergencyContact, relationship, status },
-      { partial: false }
-    );
-
-    const errors = [...validation.errors];
-
-     // Validate that relationship is among predefined valid ones
-    if (relationship && !VALID_RELATIONSHIPS.includes(relationship)) {
-      errors.push(`La relación debe ser una de: ${VALID_RELATIONSHIPS.join(', ')}`);
+    if (!nameEmergencyContact || typeof nameEmergencyContact !== 'string') {
+      errors.push('El nombre del contacto de emergencia es obligatorio y debe ser una cadena de texto');
     }
 
-     // Return validation errors if found
+    if (!emailEmergencyContact || typeof emailEmergencyContact !== 'string') {
+      errors.push('El correo electrónico es obligatorio y debe ser una cadena de texto');
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailEmergencyContact)) {
+      errors.push('El correo electrónico debe ser válido');
+    }
+
+    if (!identifier || typeof identifier !== 'string') {
+      errors.push('El identificador es obligatorio y debe ser una cadena de texto');
+    }
+
+    if (!status || !['active', 'inactive'].includes(status)) {
+      errors.push('El estado debe ser "active" o "inactive"');
+    }
+
     if (errors.length > 0) {
-      return res.validationErrors(errors);
+      return res.status(400).json({ ok: false, errors });
     }
 
     try {
-      const allContacts = await EmergencyContactsService.list(); // Retrieve all existing contacts for duplication check
-      const duplicateErrors = [];
-
-      // Check for duplicate name or email
-      if (allContacts.some(c => c.nameEmergencyContact === nameEmergencyContact)) {
-        duplicateErrors.push('Ya existe un contacto con ese nombre');
-      }
-      if (allContacts.some(c => c.emailEmergencyContact === emailEmergencyContact)) {
-        duplicateErrors.push('Ya existe un contacto con ese correo electrónico');
-      }
-
-      // Return duplicate errors if found
-      if (duplicateErrors.length > 0) {
-        return res.validationErrors(duplicateErrors);
-      }
-
-      // Create new emergency contact
-      const newContact = await EmergencyContactsService.create({
-        nameEmergencyContact, emailEmergencyContact, relationship, status
-      });
-
-      // Log creation action in the security log
-      const userEmail = req.user?.sub;
-      await SecurityLogService.log({
-        email: userEmail,
-        action: 'CREATE',
-        description:
-          `Se creó el contacto de emergencia con los siguientes datos: ` +
-          `ID: "${newContact.idEmergencyContact}", ` +
-          `Nombre: "${newContact.nameEmergencyContact}", ` +
-          `Correo: "${newContact.emailEmergencyContact}", ` +
-          `Relación: "${newContact.relationship}", ` +
-          `Estado: "${newContact.status}".`,
-        affectedTable: 'EmergencyContact',
-      });
-
-      return res.status(201).success(newContact, 'Contacto de emergencia creado exitosamente');
-    } catch (error) {
-      console.error('[EMERGENCY CONTACTS] create error:', error);
-      return res.error('Error al crear el contacto de emergencia');
+      const newContact = await EmergencyContactsService.create({ nameEmergencyContact, emailEmergencyContact, identifier, status });
+      res.status(201).json({ ok: true, data: newContact });
+    } catch (err) {
+      console.error('[EMERGENCY CONTACTS] error al crear:', err);
+      res.status(500).json({ ok: false, message: 'Error al crear el contacto de emergencia' });
     }
   },
 
-  // Update existing emergency contact
-  update: async (req, res) => {
-    const { idEmergencyContact } = req.params;
-    const updateData = ValidationRules.trimStringFields(req.body); // Clean input data
-
-    // Validate partial update fields
-    const validation = EntityValidators.emergencyContact(updateData, { partial: true });
-    const errors = [...validation.errors];
-    if (updateData.relationship && !VALID_RELATIONSHIPS.includes(updateData.relationship)) {
-      errors.push(`La relación debe ser una de: ${VALID_RELATIONSHIPS.join(', ')}`);
+    // UPDATE an existing emergency contact by ID
+    update: async (req, res) => {
+    const idParam = req.params.idEmergencyContact;
+    // Convert to number directly
+    const id = Number(idParam);
+    // If conversion fails or NaN, send error
+    if (!Number.isInteger(id)) {
+      return res.status(400).json({ ok: false, error: 'idEmergencyContact debe ser un número entero' });
     }
 
-     // Check for valid relationship type
-    if (errors.length > 0) {
-      return res.validationErrors(errors);
+    // Check for empty or invalid JSON body
+    if (!req.body || Object.keys(req.body).length === 0) {
+      return res.status(400).json({ ok: false, error: 'Formato del JSON inválido o body vacío' });
     }
+
+    const { nameEmergencyContact, emailEmergencyContact, identifier, status } = req.body;
+    const errors = [];
+
+    // Validate fields
+    if (nameEmergencyContact !== undefined && typeof nameEmergencyContact !== 'string') {
+      errors.push('El nombre del contacto de emergencia debe ser una cadena de texto');
+    }
+    if (emailEmergencyContact !== undefined) {
+      if (typeof emailEmergencyContact !== 'string') errors.push('El correo electrónico debe ser una cadena de texto');
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailEmergencyContact))
+      errors.push('El correo electrónico debe ser válido');
+    }
+    if (identifier !== undefined) {
+      if (typeof identifier !== 'string') errors.push('El identificador debe ser una cadena de texto');
+    }
+    if (status !== undefined && !['active', 'inactive'].includes(status))
+      errors.push('El estado debe ser "active" o "inactive"');
+
+    if (errors.length > 0) return res.status(400).json({ ok: false, errors });
 
     try {
+      const updated = await EmergencyContactsService.update(id, req.body);
+      if (!updated)
+      return res.status(404).json({ ok: false, message: `No se encontró un contacto de emergencia con el ID ${id}` });
 
-      // Retrieve the existing contact before updating
-      const previousContact = await EmergencyContactsService.get(idEmergencyContact);
-      if (!previousContact) {
-        return res.notFound('Contacto de emergencia');
+      res.json({ ok: true, data: updated });
+    } catch (err) {
+      if (err.code === 'P2025') {
+      return res.status(404).json({ ok: false, message: `No se encontró un contacto de emergencia con el ID ${id}` });
       }
-
-      // Check duplicates (excluding current)
-      const allContacts = await EmergencyContactsService.list();
-      const duplicateErrors = [];
-      if (updateData.nameEmergencyContact && allContacts.some(c =>
-        c.nameEmergencyContact === updateData.nameEmergencyContact &&
-        c.idEmergencyContact != idEmergencyContact)) {
-        duplicateErrors.push('Ya existe un contacto con ese nombre');
-      }
-      if (updateData.emailEmergencyContact && allContacts.some(c =>
-        c.emailEmergencyContact === updateData.emailEmergencyContact &&
-        c.idEmergencyContact != idEmergencyContact)) {
-        duplicateErrors.push('Ya existe un contacto con ese correo electrónico');
-      }
-
-      // Return duplicate errors if found
-      if (duplicateErrors.length > 0) {
-        return res.validationErrors(duplicateErrors);
-      }
-
-      // Perform the update
-      const updatedContact = await EmergencyContactsService.update(idEmergencyContact, updateData);
-      const userEmail = req.user?.sub;
-
-       // Check if only the status changed from inactive to active (reactivation)
-      const onlyStatusChange =
-        previousContact.status === 'inactive' &&
-        updatedContact.status === 'active' &&
-        previousContact.nameEmergencyContact === updatedContact.nameEmergencyContact &&
-        previousContact.emailEmergencyContact === updatedContact.emailEmergencyContact &&
-        previousContact.relationship === updatedContact.relationship;
-
-       // Log different actions depending on the update type
-      if (onlyStatusChange) {
-
-        // Log reactivation action
-        await SecurityLogService.log({
-          email: userEmail,
-          action: 'REACTIVATE',
-          description:
-            `Se reactivó el contacto de emergencia con ID "${idEmergencyContact}". ` +
-            `Datos: Nombre: "${updatedContact.nameEmergencyContact}", ` +
-            `Correo: "${updatedContact.emailEmergencyContact}", ` +
-            `Relación: "${updatedContact.relationship}", ` +
-            `Estado: "${updatedContact.status}".`,
-          affectedTable: 'EmergencyContact',
-        });
-      } else {
-
-        // Log general update action with previous and new values
-        await SecurityLogService.log({
-          email: userEmail,
-          action: 'UPDATE',
-          description:
-            `Se actualizó el contacto de emergencia con ID "${idEmergencyContact}".\n` +
-            `Versión previa: Nombre: "${previousContact.nameEmergencyContact}", ` +
-            `Correo: "${previousContact.emailEmergencyContact}", ` +
-            `Relación: "${previousContact.relationship}", ` +
-            `Estado: "${previousContact.status}".\n` +
-            `Nueva versión: Nombre: "${updatedContact.nameEmergencyContact}", ` +
-            `Correo: "${updatedContact.emailEmergencyContact}", ` +
-            `Relación: "${updatedContact.relationship}", ` +
-            `Estado: "${updatedContact.status}".`,
-          affectedTable: 'EmergencyContact',
-        });
-      }
-
-      return res.success(updatedContact, 'Contacto de emergencia actualizado exitosamente');
-    } catch (error) {
-      console.error('[EMERGENCY CONTACTS] update error:', error);
-      return res.error('Error al actualizar el contacto de emergencia');
+      console.error('[EMERGENCY CONTACTS] update error:', err);
+      res.status(500).json({ ok: false, message: 'Error al actualizar el contacto de emergencia' });
     }
   },
 
-  // Soft delete emergency contact
+  // DELETE /emergencyContacts/:idEmergencyContact - soft delete
   delete: async (req, res) => {
-    const { idEmergencyContact } = req.params;
+    const idParam = req.params.idEmergencyContact;
 
-    try {
-
-      // Check if the contact exists
-      const exists = await EmergencyContactsService.get(idEmergencyContact);
-      if (!exists) {
-        return res.notFound('Contacto de emergencia');
-      }
-
-      // Perform soft delete
-      const deleted = await EmergencyContactsService.softDelete(idEmergencyContact);
-      const userEmail = req.user?.sub;
-
-      // Log inactivation action
-      await SecurityLogService.log({
-        email: userEmail,
-        action: 'INACTIVE',
-        description:
-          `Se inactivó el contacto de emergencia: ` +
-          `ID "${idEmergencyContact}", ` +
-          `Nombre: "${deleted.nameEmergencyContact}", ` +
-          `Correo: "${deleted.emailEmergencyContact}", ` +
-          `Relación: "${deleted.relationship}", ` +
-          `Estado: "${deleted.status}".`,
-        affectedTable: 'EmergencyContact',
-      });
-
-      return res.success(deleted, 'Contacto de emergencia inactivado exitosamente');
-    } catch (error) {
-      console.error('[EMERGENCY CONTACTS] delete error:', error);
-      return res.error('Error al inactivar el contacto de emergencia');
-    }
+    // Validate that the ID contains only digits
+  if (!/^\d+$/.test(idParam)) {
+    return res.status(400).json({ ok: false, error: 'idEmergencyContact debe ser un número entero' });
   }
+
+    const id = Number(idParam);
+
+  try {
+    const deleted = await EmergencyContactsService.softDelete(id); // softDelete cambia status a inactive
+    res.json({ ok: true, data: deleted });
+  } catch (err) {
+    // Handle Prisma "record not found" error
+    if (err.code === 'P2025') {
+    return res.status(404).json({ ok: false, message: `No se encontró un contacto de emergencia con el ID ${id}` });
+    }
+    console.error('[EMERGENCY CONTACTS] error al eliminar:', err);
+    res.status(500).json({ ok: false, message: 'Error al realizar la eliminación lógica del contacto de emergencia' });
+  }
+  },
+
 };
 
-// Export the EmergencyContactController for use in routing
+
+// Export the controller for use in routes
 module.exports = { EmergencyContactController };

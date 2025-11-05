@@ -200,7 +200,7 @@ model EmergencyContact {
   idEmergencyContact Int    @id @default(autoincrement())
   nameEmergencyContact String @db.VarChar(150)
   emailEmergencyContact String @db.VarChar(150)
-  relationship       String @db.VarChar(50)
+  identifier       String @db.VarChar(50)
   status             String @default("active") @db.VarChar(25)
 
   emergencyContactVolunteer EmergencyContactVolunteer[] // relational table
