@@ -91,10 +91,23 @@ const SupplierController = {
   // Create new supplier
   create: async (req, res) => {
 
-
     // Trim all string fields to prevent leading/trailing spaces
     const trimmedBody = ValidationRules.trimStringFields(req.body);
     let { name, taxId, type, email, address, paymentTerms, description, status, categories, headquarters, phones } = trimmedBody;
+
+    // Phone number max value for Int (32-bit signed)
+    const MAX_PHONE = 2147483647;
+    // Validate phone numbers (if provided)
+    if (Array.isArray(phones) && phones.length > 0) {
+      for (const phone of phones) {
+        if (!/^[0-9]+$/.test(phone)) {
+          return res.validationErrors(['El número de teléfono solo puede contener dígitos.']);
+        }
+        if (Number(phone) > MAX_PHONE) {
+          return res.validationErrors(['El número de teléfono no puede contener más de 10 dígitos.']);
+        }
+      }
+    }
 
     // Handle undefined taxId
     if (taxId === undefined || taxId === null || taxId === '') {
@@ -175,6 +188,24 @@ const SupplierController = {
 
   // Update supplier information
   update: async (req, res) => {
+
+    // Trim all string fields to prevent leading/trailing spaces
+    const updateData = ValidationRules.trimStringFields(req.body);
+
+    // Phone number max value for Int (32-bit signed)
+    const MAX_PHONE = 2147483647;
+    // Validate phone numbers (if provided)
+    if (Array.isArray(updateData.phones) && updateData.phones.length > 0) {
+      for (const phone of updateData.phones) {
+        if (!/^[0-9]+$/.test(phone)) {
+          return res.validationErrors(['El número de teléfono solo puede contener dígitos.']);
+        }
+        if (Number(phone) > MAX_PHONE) {
+          return res.validationErrors(['El número de teléfono no puede contener más de 10 dígitos.']);
+        }
+      }
+    }
+
     const { id } = req.params;  // Extract supplier ID from URL parameters
 
     // Validate ID format
@@ -182,9 +213,6 @@ const SupplierController = {
     if (!validId) {
       return res.validationErrors(['El ID del proveedor debe ser un número entero positivo']);
     }
-
-  // Trim all string fields to prevent leading/trailing spaces
-  const updateData = ValidationRules.trimStringFields(req.body);
 
     // Prevent user from trying to modify the ID
     if (updateData.idSupplier !== undefined) {
