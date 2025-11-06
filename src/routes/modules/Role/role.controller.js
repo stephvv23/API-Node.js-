@@ -9,13 +9,13 @@ const roleController = {
             const status = (req.query.status || 'active').toLowerCase();
             const allowed = ['active', 'inactive', 'all'];
             if (!allowed.includes(status)) {
-                return res.validationErrors(['Status must be "active", "inactive" or "all"']);
+                return res.validationErrors(['Status debe ser "active", "inactive" o "all"']);
             }
             const data = await roleService.list({ status });
             return res.success(data);
         } catch (error) {
             console.error('[ROLE] list error:', error);
-            return res.error('Error retrieving roles');
+            return res.error('Error recibiendo los roles');
         }
     },
 
@@ -23,7 +23,7 @@ const roleController = {
     getById: async (req, res) => {
         const { id } = req.params;
         if (!/^[0-9\s]+$/.test(id)) {
-            return res.validationErrors(['id must be a number']);
+            return res.validationErrors(['id debe ser un numero']);
         }
         try {
             const role = await roleService.getById(id);
@@ -33,7 +33,7 @@ const roleController = {
             return res.success(role);
         } catch (error) {
             console.error('[ROLE] getById error:', error);
-            return res.error('Error retrieving role');
+            return res.error('error recibiendo el rol');
         }
     },
 
@@ -46,7 +46,7 @@ const roleController = {
         // Check for duplicate role name
         const allRoles = await roleService.list({ status: 'all' });
         if (allRoles.some(c => c.rolName === rolName)) {
-            errors.push('A role with that name already exists');
+            errors.push('un rol con ese nombre ya existe');
         }
         if (errors.length > 0) {
             return res.validationErrors(errors);
@@ -57,15 +57,15 @@ const roleController = {
             await SecurityLogService.log({
                 email: userEmail,
                 action: 'CREATE',
-                description: `Role created: ID: "${newRole.idRole}", ` +
+                description: `Role creado: ID: "${newRole.idRole}", ` +
                  ` Name: "${newRole.rolName}", ` +
                  `Status: "${newRole.status}"`,
                 affectedTable: 'Role',
             });
-            return res.status(201).success(newRole, 'Role created successfully');
+            return res.status(201).success(newRole, 'Role creado con éxito');
         } catch (error) {
             console.error('[ROLE] create error:', error);
-            return res.error('Error creating role');
+            return res.error('Error creando el rol');
         }
     },
 
@@ -79,8 +79,11 @@ const roleController = {
             if (!/^[0-9\s]+$/.test(id)) {
                 return res.validationErrors(['id solo puede ser un número']);
             }
-            if (id ==1) {
-                return res.validationErrors(['El rol de admin no puede ser modificado']);
+            if (Number(id) === 1) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'El rol de admin no puede ser modificado'
+                });
             }
             // Check existence before update
             const exists = await roleService.getById(id);
@@ -133,7 +136,7 @@ const roleController = {
                     await SecurityLogService.log({
                         email: userEmail,
                         action: 'UPDATE',
-                        description: `Role updated: ID: "${id}", ` +
+                        description: `Role actualizado: ID: "${id}", ` +
                             `Name: "${updated.rolName}", ` +
                             `Status: "${updated.status}"`,
                         affectedTable: 'Role',
@@ -164,7 +167,10 @@ const roleController = {
                 return res.validationErrors(['id solo puede ser un número']);
             }
             if (raw == '1') {
-                return res.validationErrors(['El rol de admin no puede ser eliminado']);
+                return res.status(403).json({
+                    success: false,
+                    message: 'El rol de admin no puede ser eliminado'
+                });
             }
             const id = Number.parseInt(raw, 10);
             // Check existence before delete
@@ -183,7 +189,7 @@ const roleController = {
                         `Status: "${deleted.status}"`,
                     affectedTable: 'Role',
                 });
-                return res.success(deleted, 'Role deleted successfully');
+                return res.success(deleted, 'Role eliminado con éxito');
             } catch (error) {
                 if (error?.code === 'P2025') {
                     return res.notFound('Role');
@@ -196,7 +202,7 @@ const roleController = {
                     });
                 }
                 console.error('[ROLE] delete error:', error);
-                return res.error('Error deleting role');
+                return res.error('Error eliminando el rol');
             }
         },
 };

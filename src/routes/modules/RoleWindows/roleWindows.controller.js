@@ -9,13 +9,13 @@ const roleWindowController = {
             const status = (req.query.status || 'active').toLowerCase();
             const allowed = ['active', 'inactive', 'all'];
             if (!allowed.includes(status)) {
-                return res.validationErrors(['Status must be "active", "inactive" or "all"']);
+                return res.validationErrors(['estatus solo puede ser "active", "inactive" o "all"']);
             }
             const data = await roleWindowService.listWindows({ status });
             return res.success(data);
         } catch (error) {
             console.error('[ROLEWINDOWS] listWindows error:', error);
-            return res.error('Error retrieving windows');
+            return res.error('Error recibiendo las ventanas');
         }
     },
 
@@ -28,13 +28,13 @@ const roleWindowController = {
             const remove = (Number(req.query.delete) || 0);
             const allowed = [1, 0];
             if (!allowed.includes(create) || !allowed.includes(read) || !allowed.includes(update) || !allowed.includes(remove)) {
-                return res.validationErrors(['Permissions must be 0 or 1']);
+                return res.validationErrors(['Permisos solo pueden ser 0 o 1']);
             }
             const data = await roleWindowService.list({ create, read, update, remove });
             return res.success(data);
         } catch (error) {
             console.error('[ROLEWINDOWS] list error:', error);
-            return res.error('Error retrieving role-window permissions');
+            return res.error('Error recibiendo los permisos de role-ventana');
         }
     },
 
@@ -42,10 +42,10 @@ const roleWindowController = {
     getByIds: async (req, res) => {
         const { idRole, idWindow } = req.params;
         if (!ValidationRules.onlyNumbers(idRole) === true) {
-            return res.validationErrors(['idRole must be a number']);
+            return res.validationErrors(['idRole solo puede ser un número']);
         }
         if (!ValidationRules.onlyNumbers(idWindow) === true) {
-            return res.validationErrors(['idWindow must be a number']);
+            return res.validationErrors(['idWindow solo puede ser un número']);
         }
         try {
             const roleWindow = await roleWindowService.getByIds(idRole, idWindow);
@@ -63,7 +63,7 @@ const roleWindowController = {
     getByIdRole: async (req, res) => {
         const { idRole } = req.params;
         if (!ValidationRules.onlyNumbers(idRole) === true) {
-            return res.validationErrors(['idRole must be a number']);
+            return res.validationErrors(['idRole debe ser un número']);
         }
         try {
             const roleWindow = await roleWindowService.getByIdRole(idRole);
@@ -82,18 +82,18 @@ const roleWindowController = {
         const { idRole, idWindow, create, read, update, remove } = req.body;
         const errors = [];
         if (idRole === undefined || idWindow === undefined) {
-            errors.push('idRole and idWindow are required');
+            errors.push('idRole y idWindow son requeridos');
         }
         if (!ValidationRules.onlyNumbers(idRole) === true) {
-            errors.push('idRole must be a number');
+            errors.push('idRole solo puede ser un número');
         }
         if (!ValidationRules.onlyNumbers(idWindow) === true) {
-            errors.push('idWindow must be a number');
+            errors.push('idWindow solo puede ser un número');
         }
         const allowed = [1, 0];
         ['create', 'read', 'update', 'remove'].forEach(flag => {
             if (![0, 1, '0', '1', true, false].includes(req.body[flag])) {
-                errors.push(`${flag} must be 0 or 1`);
+                errors.push(`${flag} solo puede ser 0 o 1`);
             }
         });
         if (errors.length > 0) {
@@ -132,7 +132,7 @@ const roleWindowController = {
                 affectedTable: 'RoleWindow',
             });
 
-            return res.status(201).success(newRoleWindow, 'Role-Window created successfully');
+            return res.status(201).success(newRoleWindow, 'Role-Window creado exitosamente');
         } catch (error) {
             // Check if it's the admin role protection error
             if (error.message && error.message.includes('ADMIN')) {
@@ -142,7 +142,7 @@ const roleWindowController = {
                 });
             }
             console.error('[ROLEWINDOWS] create error:', error);
-            return res.error('Error creating role-window');
+            return res.error('Error creando role-window');
         }
     },
 
@@ -156,7 +156,7 @@ const roleWindowController = {
                 if (!ValidationRules.onlyNumbers(idWindow) === true) {
                     return res.validationErrors(['idWindow solo puede ser un número']);
                 }
-                if (idRole ==1) {
+                if (idRole ===1) {
                     return res.validationErrors(['No se pueden modificar los permisos del rol administrador']);
                 }
                 // Check existence before update
@@ -187,13 +187,13 @@ const roleWindowController = {
                             `remove: ${flags.delete}]`,
                         affectedTable: 'RoleWindow',
                     });
-                    return res.success(updated, 'Role-Window updated successfully');
+                    return res.success(updated, 'Role-Window modificado con éxito');
                 } catch (error) {
                     if (error.code === 'P2025') {
                         return res.notFound('Role-Window');
                     }
                     // Check if it's the admin role protection error
-                    if (error.message && error.message.includes('ADMIN')) {
+                    if (error.message && error.message.includes('No se puede modificar los permisos del rol administrador')) {
                         return res.status(403).json({
                             success: false,
                             message: error.message
@@ -232,7 +232,7 @@ const roleWindowController = {
                         description: `Role-Window deleted: Role ID: "${idRole}", Window ID: "${idWindow}"`,
                         affectedTable: 'RoleWindow',
                     });
-                    return res.success(deletedRoleWindow, 'Role-Window deleted successfully');
+                    return res.success(deletedRoleWindow, 'Role-Window eliminado exitosamente');
                 } catch (error) {
                     if (error.code === 'P2025') {
                         return res.notFound('Role-Window');
@@ -245,7 +245,7 @@ const roleWindowController = {
                         });
                     }
                     console.error('[ROLEWINDOWS] delete error:', error);
-                    return res.error('Error deleting role-window');
+                    return res.error('Error eliminando role-window');
                 }
             },
 };

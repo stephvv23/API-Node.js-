@@ -11,7 +11,7 @@ const categoryRepository = {
 
     // List categories, optionally filtered by status, with pagination.
     list: async () => {
-        return await prisma.category.findMany({
+        return prisma.category.findMany({
             orderBy: {
                 name: 'asc'
             },
