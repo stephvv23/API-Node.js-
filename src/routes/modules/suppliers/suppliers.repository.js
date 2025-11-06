@@ -304,22 +304,22 @@ const SupplierRepository = {
 
   // Create or get existing phone by phone string
   createOrGetPhone: async (phoneString) => {
-    // Convert phone string to integer (remove non-numeric characters)
-    const phoneNumber = parseInt(phoneString.replace(/\D/g, ''), 10);
-    
-    if (isNaN(phoneNumber)) {
+    // Remove non-numeric characters, but keep as string
+    const phoneValue = phoneString.replace(/\D/g, '');
+
+    if (!phoneValue) {
       throw new Error(`Invalid phone number: ${phoneString}`);
     }
 
     // Try to find existing phone
     let phone = await prisma.phone.findFirst({
-      where: { phone: phoneNumber }
+      where: { phone: phoneValue }
     });
 
     // If not found, create it
     if (!phone) {
       phone = await prisma.phone.create({
-        data: { phone: phoneNumber }
+        data: { phone: phoneValue }
       });
     }
 

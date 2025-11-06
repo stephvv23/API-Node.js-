@@ -95,16 +95,14 @@ const SupplierController = {
     const trimmedBody = ValidationRules.trimStringFields(req.body);
     let { name, taxId, type, email, address, paymentTerms, description, status, categories, headquarters, phones } = trimmedBody;
 
-    // Phone number max value for Int (32-bit signed)
-    const MAX_PHONE = 2147483647;
     // Validate phone numbers (if provided)
     if (Array.isArray(phones) && phones.length > 0) {
       for (const phone of phones) {
         if (!/^[0-9]+$/.test(phone)) {
           return res.validationErrors(['El número de teléfono solo puede contener dígitos.']);
         }
-        if (Number(phone) > MAX_PHONE) {
-          return res.validationErrors(['El número de teléfono no puede contener más de 10 dígitos.']);
+        if (phone.length > 12) {
+          return res.validationErrors(['El número de teléfono no puede contener más de 12 dígitos.']);
         }
       }
     }
@@ -192,16 +190,14 @@ const SupplierController = {
     // Trim all string fields to prevent leading/trailing spaces
     const updateData = ValidationRules.trimStringFields(req.body);
 
-    // Phone number max value for Int (32-bit signed)
-    const MAX_PHONE = 2147483647;
     // Validate phone numbers (if provided)
     if (Array.isArray(updateData.phones) && updateData.phones.length > 0) {
       for (const phone of updateData.phones) {
         if (!/^[0-9]+$/.test(phone)) {
           return res.validationErrors(['El número de teléfono solo puede contener dígitos.']);
         }
-        if (Number(phone) > MAX_PHONE) {
-          return res.validationErrors(['El número de teléfono no puede contener más de 10 dígitos.']);
+        if (phone.length > 12) {
+          return res.validationErrors(['El número de teléfono no puede contener más de 12 dígitos.']);
         }
       }
     }
@@ -239,6 +235,7 @@ const SupplierController = {
       const norm = v => (typeof v === 'string' ? v.trim().toLowerCase() : '');
       const selfId = validId;
       const currentSupplier = allSuppliers.find(s => s.idSupplier === selfId);
+
 
       // Check for name duplicate (excluding self, normalized, ignore if same as current)
       if (updateData.name) {

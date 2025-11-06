@@ -1124,7 +1124,7 @@ const EntityValidators = {
    */
   phone: (data, options = { partial: false }) => {
     const validator = Validator.create();
-    
+
     const shouldValidateField = (fieldValue) => {
       return !options.partial || (fieldValue !== undefined && fieldValue !== null);
     };
@@ -1133,9 +1133,13 @@ const EntityValidators = {
     if (shouldValidateField(data.phone)) {
       const phoneValidator = validator.field('phone', data.phone);
       if (!options.partial) phoneValidator.required();
-      phoneValidator.integer();
+      if (typeof data.phone !== 'string' || !/^\d+$/.test(data.phone)) {
+        phoneValidator.errors.push('El número de teléfono solo puede contener dígitos (sin espacios, guiones ni otros caracteres).');
+      } else if (data.phone.length > 12) {
+        phoneValidator.errors.push('El número de teléfono no puede contener más de 12 dígitos.');
+      }
     }
-    
+
     return validator.validate();
   },
 
