@@ -132,6 +132,19 @@ const ActivityService = {
 
   validateGodparentsExist: (godparentIds) => {
     return ActivityRepository.validateGodparentsExist(godparentIds);
+  },
+
+  // Get valid records and filter out invalid ones
+  getValidVolunteers: (volunteerIds) => {
+    return ActivityRepository.getValidVolunteers(volunteerIds);
+  },
+
+  getValidSurvivors: (survivorIds) => {
+    return ActivityRepository.getValidSurvivors(survivorIds);
+  },
+
+  getValidGodparents: (godparentIds) => {
+    return ActivityRepository.getValidGodparents(godparentIds);
   }
 };
 
