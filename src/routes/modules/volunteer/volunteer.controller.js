@@ -580,7 +580,11 @@ const VolunteerController = {
     }
 
     try {
-      const result = await VolunteerService.addEmergencyContacts(validId, validContacts);
+      const result = await VolunteerService.addEmergencyContacts(
+        validId, 
+        validContacts, 
+        req.user?.sub || req.user?.email
+      );
       
       // Build detailed response message
       const messages = [];
@@ -745,7 +749,11 @@ const VolunteerController = {
     }
 
     try {
-      const result = await VolunteerService.removeEmergencyContacts(validId, validContactIds);
+      const result = await VolunteerService.removeEmergencyContacts(
+        validId, 
+        validContactIds, 
+        req.user?.sub || req.user?.email
+      );
       
       // Build detailed response message
       const messages = [];

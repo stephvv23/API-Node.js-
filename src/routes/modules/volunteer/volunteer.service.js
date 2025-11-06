@@ -1,5 +1,6 @@
 const { VolunteerRepository } = require('./volunteer.repository');
 const { ValidationRules } = require('../../../utils/validator');
+const { SecurityLogService } = require('../../../services/securitylog.service');
 const prisma = require('../../../lib/prisma');
 
 const VolunteerService = {
@@ -146,7 +147,7 @@ const VolunteerService = {
   },
 
   // Add emergency contacts to volunteer (single or multiple) with relationships
-  addEmergencyContacts: async (idVolunteer, emergencyContacts) => {
+  addEmergencyContacts: async (idVolunteer, emergencyContacts, userEmail = null) => {
     const volunteer = await VolunteerRepository.findById(idVolunteer);
     if (!volunteer) {
       throw new Error('Voluntario no encontrado');
@@ -248,6 +249,21 @@ const VolunteerService = {
         nameEmergencyContact: created.emergencyContact.nameEmergencyContact,
         relationship: contact.relationship
       });
+
+      // Log security event for CREATE
+      if (userEmail) {
+        try {
+          await SecurityLogService.log({
+            email: userEmail,
+            action: 'CREATE',
+            description: `Emergency contact assigned to volunteer: ${volunteer.name} (ID: ${idVolunteer}) - Contact: ${created.emergencyContact.nameEmergencyContact} (ID: ${contact.idEmergencyContact}) with relationship: ${contact.relationship}`,
+            affectedTable: 'EmergencyContactVolunteer'
+          });
+        } catch (logError) {
+          console.error('Error logging security event:', logError);
+          // Don't fail the operation if logging fails
+        }
+      }
     }
 
     return results;
@@ -287,9 +303,12 @@ const VolunteerService = {
   },
 
   // Remove emergency contacts from volunteer (single or multiple) with detailed feedback
-  removeEmergencyContacts: async (idVolunteer, idEmergencyContacts) => {
+  removeEmergencyContacts: async (idVolunteer, idEmergencyContacts, userEmail = null) => {
     // Normalize to array
     const contactIds = Array.isArray(idEmergencyContacts) ? idEmergencyContacts : [idEmergencyContacts];
+    
+    // Get volunteer info for logging
+    const volunteer = await VolunteerRepository.findById(idVolunteer);
     
     const results = {
       deleted: [],
@@ -358,6 +377,21 @@ const VolunteerService = {
         nameEmergencyContact: relationship.emergencyContact.nameEmergencyContact,
         relationship: relationship.relationship
       });
+
+      // Log security event for DELETE
+      if (userEmail && volunteer) {
+        try {
+          await SecurityLogService.log({
+            email: userEmail,
+            action: 'DELETE',
+            description: `Emergency contact removed from volunteer: ${volunteer.name} (ID: ${idVolunteer}) - Contact: ${relationship.emergencyContact.nameEmergencyContact} (ID: ${contactId}) with relationship: ${relationship.relationship}`,
+            affectedTable: 'EmergencyContactVolunteer'
+          });
+        } catch (logError) {
+          console.error('Error logging security event:', logError);
+          // Don't fail the operation if logging fails
+        }
+      }
     }
 
     return results;
