@@ -37,13 +37,13 @@ const StatsController = {
     }
   },
 
-  // Obtain active users by role and campus for combined chart
-  getUsersByRoleSede: async (req, res) => {
+  // Obtain active users by role and headquarter for combined chart
+  getUsersByRoleHeadquarter: async (req, res) => {
     try {
-      const chartData = await StatsService.getUsersByRoleSede();
+      const chartData = await StatsService.getUsersByRoleHeadquarter();
       return res.success(chartData);
     } catch (error) {
-      console.error('[STATS] getUsersByRoleSede error:', error);
+      console.error('[STATS] getUsersByRoleHeadquarter error:', error);
       return res.error('Error al obtener usuarios por rol y sede');
     }
   },

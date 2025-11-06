@@ -5,7 +5,7 @@ module.exports = [
   { method: 'GET', path: '/api/security-logs', handler: authenticate(authorizeWindow('Reportes','read')(StatsController.getSecurityLogs)) },
   { method: 'GET', path: '/api/users/stats', handler: authenticate(authorizeWindow('Reportes','read')(StatsController.getUsersStats)) },
   { method: 'GET', path: '/api/stats/general', handler: authenticate(authorizeWindow('Reportes','read')(StatsController.getGeneralStats)) },
-  { method: 'GET', path: '/api/stats/users-by-role-sede', handler: authenticate(authorizeWindow('Reportes','read')(StatsController.getUsersByRoleSede)) },
+  { method: 'GET', path: '/api/stats/users-by-role-headquarter', handler: authenticate(authorizeWindow('Reportes','read')(StatsController.getUsersByRoleHeadquarter)) },
   { method: 'GET', path: '/api/stats/new-users-monthly', handler: authenticate(authorizeWindow('Reportes','read')(StatsController.getNewUsersMonthly)) },
   { method: 'GET', path: '/api/stats/top-actions', handler: authenticate(authorizeWindow('Reportes','read')(StatsController.getTopActions)) },
   { method: 'GET', path: '/api/stats/incidents-by-table', handler: authenticate(authorizeWindow('Reportes','read')(StatsController.getIncidentsByTable)) },

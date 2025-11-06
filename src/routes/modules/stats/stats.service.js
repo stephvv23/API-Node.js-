@@ -8,10 +8,10 @@ const StatsService = {
 
   // Obtain user statistics
   getUserStats: async () => {
-    const [basicStats, usersByRole, usersBySede, newUsersThisMonth, topUsersByAccess, lastAccessByUser] = await Promise.all([
+    const [basicStats, usersByRole, usersByHeadquarter, newUsersThisMonth, topUsersByAccess, lastAccessByUser] = await Promise.all([
       StatsRepository.getUserStats(),
       StatsRepository.getUsersByRole(),
-      StatsRepository.getUsersBySede(),
+      StatsRepository.getUsersByHeadquarter(),
       StatsRepository.getNewUsersThisMonth(),
       StatsRepository.getTopUsersByAccess(),
       StatsRepository.getLastAccessByUser()
@@ -21,7 +21,7 @@ const StatsService = {
       ...basicStats,
       newUsersThisMonth,
       usersByRole,
-      usersBySede,
+      usersByHeadquarter,
       topUsersByAccess,
       lastAccessByUser
     };
@@ -42,9 +42,9 @@ const StatsService = {
     };
   },
 
-  // Obtain users by role and campus for combined chart
-  getUsersByRoleSede: async () => {
-    return StatsRepository.getUsersByRoleSede();
+  // Obtain users by role and headquarter for combined chart
+  getUsersByRoleHeadquarter: async () => {
+    return StatsRepository.getUsersByRoleHeadquarter();
   },
 
   // Obtain new users by month (last 12 months)

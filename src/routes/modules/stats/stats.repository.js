@@ -61,23 +61,23 @@ const StatsRepository = {
     });
   },
 
-  // Obtain users by campus
-  getUsersBySede: async () => {
-    const usersBySedeRaw = await prisma.headquarterUser.groupBy({
+  // Obtain users by headquarter
+  getUsersByHeadquarter: async () => {
+    const usersByHeadquarterRaw = await prisma.headquarterUser.groupBy({
       by: ['idHeadquarter'],
       _count: { email: true }
     });
     
-    const headquarterIds = usersBySedeRaw.map(item => item.idHeadquarter);
+    const headquarterIds = usersByHeadquarterRaw.map(item => item.idHeadquarter);
     const headquarters = await prisma.headquarter.findMany({
       where: { idHeadquarter: { in: headquarterIds } },
       select: { idHeadquarter: true, name: true }
     });
     
-    return usersBySedeRaw.map(item => {
+    return usersByHeadquarterRaw.map(item => {
       const headquarter = headquarters.find(h => h.idHeadquarter === item.idHeadquarter);
       return {
-        sede: headquarter ? headquarter.name : 'Unknown',
+        headquarter: headquarter ? headquarter.name : 'Unknown',
         count: item._count.email
       };
     });
@@ -206,8 +206,8 @@ const StatsRepository = {
     };
   },
 
-  // Obtain users by role and campus for combined chart
-  getUsersByRoleSede: async () => {
+  // Obtain users by role and headquarter for combined chart
+  getUsersByRoleHeadquarter: async () => {
     const users = await prisma.user.findMany({
       include: {
         roles: {
