@@ -28,33 +28,79 @@ Base de datos / campos relevantes
 
 Endpoints principales
 
-1) GET /api/survivors?status=active|inactive|all&take=&skip=&search=&cancerId=&gender=&headquarterId=&ageMin=&ageMax=
+1) GET /api/survivors?[filtros]&take=&skip=
 - Descripción: Lista supervivientes con múltiples filtros opcionales. Por defecto `status=active`.
-- Query params:
-  - **status** (opcional): "active" | "inactive" | "all" - Default: "active"
-  - **search** (opcional): Busca en nombre, número de documento o email (case-insensitive)
-  - **cancerId** (opcional): Filtra por tipo de cáncer (número). Solo incluye supervivientes con ese cáncer activo
-  - **gender** (opcional): Filtra por género (string, máx 25 caracteres)
-  - **headquarterId** (opcional): Filtra por sede (número)
-  - **ageMin** (opcional): Edad mínima (número entre 0-150)
-  - **ageMax** (opcional): Edad máxima (número entre 0-150)
-  - **take** (opcional): número de registros - Default: 100
-  - **skip** (opcional): offset para paginación - Default: 0
-- Ejemplos:
+- Query params disponibles:
+  
+  **Filtros generales:**
+  - **status** (string): "active" | "inactive" | "all" - Default: "active"
+  - **search** (string): Busca en nombre, número de documento o email (case-insensitive)
+  
+  **Filtros por relaciones:**
+  - **cancerId** (number): Filtra por tipo de cáncer. Solo incluye supervivientes con ese cáncer activo
+  - **headquarterId** (number): Filtra por sede
+  - **emergencyContactId** (number): Filtra por contacto de emergencia
+  
+  **Filtros demográficos:**
+  - **gender** (string): Filtra por género (máx 25 caracteres)
+  - **country** (string): Filtra por país (máx 75 caracteres)
+  - **ageMin** (number): Edad mínima (0-150)
+  - **ageMax** (number): Edad máxima (0-150)
+  
+  **Filtros laborales y administrativos:**
+  - **workingCondition** (string): Condición laboral (máx 50 caracteres)
+  - **physicalFileStatus** (string): Estado del expediente físico (máx 50 caracteres)
+  
+  **Filtros booleanos (aceptan: true/false, 1/0, si/no):**
+  - **CONAPDIS** (boolean): Filtrar por inscripción en CONAPDIS
+  - **IMAS** (boolean): Filtrar por inscripción en IMAS
+  - **medicalRecord** (boolean): Filtrar por tenencia de expediente médico
+  - **foodBank** (boolean): Filtrar por acceso a banco de alimentos
+  - **socioEconomicStudy** (boolean): Filtrar por realización de estudio socioeconómico
+  
+  **Paginación:**
+  - **take** (number): Registros a retornar - Default: 100
+  - **skip** (number): Offset para paginación - Default: 0
+
+- Ejemplos de uso:
   ```
+  # Básicos
   GET /api/survivors?status=active
   GET /api/survivors?search=maria
+  GET /api/survivors?gender=F&country=Costa Rica
+  
+  # Por relaciones
   GET /api/survivors?cancerId=1&status=all
-  GET /api/survivors?gender=F&ageMin=18&ageMax=65
   GET /api/survivors?headquarterId=2&status=active
-  GET /api/survivors?search=juan&cancerId=3&gender=M
+  GET /api/survivors?emergencyContactId=5
+  
+  # Por edad
+  GET /api/survivors?ageMin=18&ageMax=65
+  
+  # Por condiciones administrativas
+  GET /api/survivors?workingCondition=Empleado
+  GET /api/survivors?physicalFileStatus=Completo
+  
+  # Por programas sociales (booleanos)
+  GET /api/survivors?CONAPDIS=true
+  GET /api/survivors?IMAS=si&foodBank=1
+  GET /api/survivors?medicalRecord=true&socioEconomicStudy=false
+  
+  # Combinaciones complejas
+  GET /api/survivors?gender=F&ageMin=18&CONAPDIS=true&headquarterId=2
+  GET /api/survivors?search=juan&cancerId=3&IMAS=si&status=active
+  GET /api/survivors?country=Costa Rica&workingCondition=Desempleado&foodBank=true
   ```
-- Notas:
-  - Los filtros se pueden combinar
+
+- Notas importantes:
+  - Todos los filtros son opcionales y se pueden combinar
   - La búsqueda por texto (search) es case-insensitive
   - El filtro de edad se calcula dinámicamente basado en la fecha de nacimiento
   - ageMin y ageMax deben ser coherentes (ageMin ≤ ageMax)
-- Respuesta: arreglo de supervivientes (select limitado a campos principales + headquarter).
+  - Los filtros booleanos aceptan múltiples formatos: true/false, 1/0, si/no (case-insensitive)
+  - Los filtros de relaciones (cancerId, emergencyContactId) solo cuentan relaciones activas
+  
+- Respuesta: Array de supervivientes con select completo incluyendo relaciones (cánceres activos, teléfono, contactos de emergencia, sede).
 
 2) GET /api/survivors/active
 - Descripción: Lista solo los supervivientes activos (alias conveniente).

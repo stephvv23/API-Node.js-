@@ -83,6 +83,15 @@ const SurvivorRepository = {
     headquarterId,
     ageMin,
     ageMax,
+    country,
+    physicalFileStatus,
+    workingCondition,
+    CONAPDIS,
+    IMAS,
+    foodBank,
+    socioEconomicStudy,
+    medicalRecord,
+    emergencyContactId,
     take = 100, 
     skip = 0 
   } = {}) => {
@@ -115,12 +124,61 @@ const SurvivorRepository = {
 
     // Gender filter
     if (gender) {
-      where.genre = gender; // MySQL VarChar is case-insensitive by default
+      where.genre = gender;
     }
 
     // Headquarter filter
     if (headquarterId) {
       where.idHeadquarter = Number(headquarterId);
+    }
+
+    // Country filter
+    if (country) {
+      where.country = { contains: country, mode: 'insensitive' };
+    }
+
+    // Physical file status filter
+    if (physicalFileStatus) {
+      where.physicalFileStatus = physicalFileStatus;
+    }
+
+    // Working condition filter
+    if (workingCondition) {
+      where.workingCondition = workingCondition;
+    }
+
+    // CONAPDIS filter (boolean)
+    if (CONAPDIS !== undefined) {
+      where.CONAPDIS = CONAPDIS === 'true' || CONAPDIS === true;
+    }
+
+    // IMAS filter (boolean)
+    if (IMAS !== undefined) {
+      where.IMAS = IMAS === 'true' || IMAS === true;
+    }
+
+    // Food bank filter (boolean)
+    if (foodBank !== undefined) {
+      where.foodBank = foodBank === 'true' || foodBank === true;
+    }
+
+    // Socioeconomic study filter (boolean)
+    if (socioEconomicStudy !== undefined) {
+      where.socioEconomicStudy = socioEconomicStudy === 'true' || socioEconomicStudy === true;
+    }
+
+    // Medical record filter (boolean)
+    if (medicalRecord !== undefined) {
+      where.medicalRecord = medicalRecord === 'true' || medicalRecord === true;
+    }
+
+    // Emergency contact filter
+    if (emergencyContactId) {
+      where.emergencyContactSurvivor = {
+        some: {
+          idEmergencyContact: Number(emergencyContactId)
+        }
+      };
     }
 
     // Age filter (calculated from birthday)

@@ -66,6 +66,83 @@ const SurvivorController = {
         filters.headquarterId = Number(headquarterId);
       }
 
+      // Country filter
+      if (req.query.country) {
+        const country = String(req.query.country).trim();
+        if (country.length > 75) {
+          return res.validationErrors(['El parámetro country no debe exceder 75 caracteres']);
+        }
+        filters.country = country;
+      }
+
+      // Physical file status filter
+      if (req.query.physicalFileStatus) {
+        const physicalFileStatus = String(req.query.physicalFileStatus).trim();
+        if (physicalFileStatus.length > 50) {
+          return res.validationErrors(['El parámetro physicalFileStatus no debe exceder 50 caracteres']);
+        }
+        filters.physicalFileStatus = physicalFileStatus;
+      }
+
+      // Working condition filter
+      if (req.query.workingCondition) {
+        const workingCondition = String(req.query.workingCondition).trim();
+        if (workingCondition.length > 50) {
+          return res.validationErrors(['El parámetro workingCondition no debe exceder 50 caracteres']);
+        }
+        filters.workingCondition = workingCondition;
+      }
+
+      // Boolean filters (CONAPDIS, IMAS, foodBank, socioEconomicStudy, medicalRecord)
+      if (req.query.CONAPDIS !== undefined) {
+        const conapdis = String(req.query.CONAPDIS).toLowerCase();
+        if (!['true', 'false', '1', '0', 'si', 'no'].includes(conapdis)) {
+          return res.validationErrors(['El parámetro CONAPDIS debe ser true, false, 1, 0, si o no']);
+        }
+        filters.CONAPDIS = ['true', '1', 'si'].includes(conapdis);
+      }
+
+      if (req.query.IMAS !== undefined) {
+        const imas = String(req.query.IMAS).toLowerCase();
+        if (!['true', 'false', '1', '0', 'si', 'no'].includes(imas)) {
+          return res.validationErrors(['El parámetro IMAS debe ser true, false, 1, 0, si o no']);
+        }
+        filters.IMAS = ['true', '1', 'si'].includes(imas);
+      }
+
+      if (req.query.foodBank !== undefined) {
+        const foodBank = String(req.query.foodBank).toLowerCase();
+        if (!['true', 'false', '1', '0', 'si', 'no'].includes(foodBank)) {
+          return res.validationErrors(['El parámetro foodBank debe ser true, false, 1, 0, si o no']);
+        }
+        filters.foodBank = ['true', '1', 'si'].includes(foodBank);
+      }
+
+      if (req.query.socioEconomicStudy !== undefined) {
+        const socioEconomicStudy = String(req.query.socioEconomicStudy).toLowerCase();
+        if (!['true', 'false', '1', '0', 'si', 'no'].includes(socioEconomicStudy)) {
+          return res.validationErrors(['El parámetro socioEconomicStudy debe ser true, false, 1, 0, si o no']);
+        }
+        filters.socioEconomicStudy = ['true', '1', 'si'].includes(socioEconomicStudy);
+      }
+
+      if (req.query.medicalRecord !== undefined) {
+        const medicalRecord = String(req.query.medicalRecord).toLowerCase();
+        if (!['true', 'false', '1', '0', 'si', 'no'].includes(medicalRecord)) {
+          return res.validationErrors(['El parámetro medicalRecord debe ser true, false, 1, 0, si o no']);
+        }
+        filters.medicalRecord = ['true', '1', 'si'].includes(medicalRecord);
+      }
+
+      // Emergency contact filter
+      if (req.query.emergencyContactId) {
+        const emergencyContactId = ValidationRules.parseIdParam(String(req.query.emergencyContactId));
+        if (!emergencyContactId) {
+          return res.validationErrors(['El parámetro emergencyContactId debe ser numérico']);
+        }
+        filters.emergencyContactId = Number(emergencyContactId);
+      }
+
       // Age range filters
       if (req.query.ageMin) {
         const ageMin = parseInt(req.query.ageMin);
