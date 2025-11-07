@@ -725,7 +725,7 @@ const SurvivorController = {
         email: userEmail,
         action: "REACTIVATE",
         description:
-          `Se reactivÃ³ el superviviente con ID "${id}", Nombre: "${reactivated.survivorName}", ` +
+          `Se reactivó el superviviente con ID "${id}", Nombre: "${reactivated.survivorName}", ` +
           `Documento: "${reactivated.documentNumber}", Estado: "${reactivated.status}".`,
         affectedTable: "Survivor",
       });
