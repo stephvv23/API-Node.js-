@@ -32,6 +32,14 @@ module.exports = [
     ),
   },
 
+  // Update cancer stage for a survivor
+  {
+    method: 'PUT',
+    path: '/api/survivors/:id/cancers/:idCancer',
+    handler: authenticate(
+      authorizeWindow('Supervivientes', 'read', 'update')(CancerSurvivorController.update)
+    ),
+  },
 
   // Toggle status (activate/deactivate) a cancer from a survivor
   {
