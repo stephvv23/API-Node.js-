@@ -174,7 +174,7 @@ const PhoneSurvivorController = {
       }
 
       // Find or create new phone using normalized string
-      const newPhoneRecord = await PhoneService.findOrCreate(Number(phoneStr));
+      const newPhoneRecord = await PhoneService.findOrCreate(phoneStr);
 
       // Check if trying to update to the same phone
       if (oldPhoneSurvivor.idPhone === newPhoneRecord.idPhone) {
