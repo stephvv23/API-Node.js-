@@ -92,7 +92,7 @@ const PhoneSurvivorController = {
       }
 
       // Find or create phone (immutable phone record) using normalized string
-      const phoneRecord = await PhoneService.findOrCreate(Number(phoneStr));
+      const phoneRecord = await PhoneService.findOrCreate(phoneStr);
 
       // Create relation
       const newPhoneSurvivor = await PhoneSurvivorService.create(Number(idNum), phoneRecord.idPhone);
