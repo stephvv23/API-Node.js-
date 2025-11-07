@@ -93,7 +93,7 @@ model RoleWindow {
 }
 
 
-//NUEVAS TABLAS Y RELACIONES
+// NEW TABLES AND RELATIONS
 
 model Asset {
     idAsset Int @id @default(autoincrement())
@@ -228,8 +228,8 @@ model Survivor {
   socioEconomicStudy Boolean 
   notes          String? @db.VarChar(250)
   status         String @default("active") @db.VarChar(25)
-  createdAt      DateTime @default(now()) // Fecha y hora de creación
-  updatedAt      DateTime? // Fecha y hora de última actualización
+  createdAt      DateTime @default(now()) // Creation date and time
+  updatedAt      DateTime? // Last update date and time
 
   emergencyContactSurvivor EmergencyContactSurvivor[] // relational table
   phoneSurvivor PhoneSurvivor[] // relational table
@@ -466,4 +466,4 @@ model TokenBlacklist {
 }
 
 
-// -------------  FIN NUEVAS TABLAS Y RELACIONES -------------
+// ------------- END NEW TABLES AND RELATIONS -------------
