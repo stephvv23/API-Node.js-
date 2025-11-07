@@ -1,5 +1,5 @@
 const { roleService } = require('./role.service');
-const { EntityValidators } = require('../../../utils/validator');
+const { EntityValidators, ValidationRules } = require('../../../utils/validator');
 const { SecurityLogService } = require('../../../services/securitylog.service');
 
 const roleController = {
@@ -28,7 +28,7 @@ const roleController = {
         try {
             const role = await roleService.getById(id);
             if (!role) {
-                return res.notFound('Role');
+                return res.notFound('Rol');
             }
             return res.success(role);
         } catch (error) {
@@ -39,7 +39,10 @@ const roleController = {
 
     // Create a new role
     create: async (req, res) => {
-        const { rolName, status } = req.body;
+        // Trim string fields to avoid whitespace issues
+        const trimmedBody = ValidationRules.trimStringFields(req.body);
+        const { rolName, status } = trimmedBody;
+        
         // Validate using centralized validator
         const validation = EntityValidators.role({ rolName, status }, { partial: false });
         const errors = [...validation.errors];
@@ -57,12 +60,12 @@ const roleController = {
             await SecurityLogService.log({
                 email: userEmail,
                 action: 'CREATE',
-                description: `Role creado: ID: "${newRole.idRole}", ` +
-                 ` Name: "${newRole.rolName}", ` +
-                 `Status: "${newRole.status}"`,
+                description: `Rol creado: ID: "${newRole.idRole}", ` +
+                 ` Nombre: "${newRole.rolName}", ` +
+                 `Estado: "${newRole.status}"`,
                 affectedTable: 'Role',
             });
-            return res.status(201).success(newRole, 'Role creado con éxito');
+            return res.status(201).success(newRole, 'Rol creado con éxito');
         } catch (error) {
             console.error('[ROLE] create error:', error);
             return res.error('Error creando el rol');
@@ -72,7 +75,10 @@ const roleController = {
         // Update a role by ID
         update: async (req, res) => {
             const { id } = req.params;
-            let { rolName, name, status } = req.body;
+            
+            // Trim string fields to avoid whitespace issues
+            const trimmedBody = ValidationRules.trimStringFields(req.body);
+            let { rolName, name, status } = trimmedBody;
             
             if (rolName === undefined && name !== undefined) rolName = name;
             // Validate ID
@@ -88,14 +94,14 @@ const roleController = {
             // Check existence before update
             const exists = await roleService.getById(id);
             if (!exists) {
-                return res.notFound('Role');
+                return res.notFound('Rol');
             }
             // Validate using centralized validator (partial mode)
             const validation = EntityValidators.role({ rolName, status }, { partial: true });
             const errors = [...validation.errors];
             // Check for duplicate role name if provided
             if (rolName !== undefined && !errors.length) {
-                const exist = await roleService.findByName(String(rolName).trim());
+                const exist = await roleService.findByName(rolName);
                 const existId = exist?.idRole ?? exist?.id ?? exist?._id ?? exist?.ID;
                 if (exist && String(existId) !== String(id)) {
                     errors.push('Ya existe un rol con ese nombre');
@@ -105,8 +111,8 @@ const roleController = {
                 return res.validationErrors(errors);
             }
             const payload = {};
-            if (rolName !== undefined) payload.rolName = String(rolName).trim();
-            if (status !== undefined) payload.status = String(status).trim();
+            if (rolName !== undefined) payload.rolName = rolName;
+            if (status !== undefined) payload.status = status;
             if (!Object.keys(payload).length) {
                 return res.validationErrors(['nada para actualizar']);
             }
@@ -127,26 +133,26 @@ const roleController = {
                         await SecurityLogService.log({
                         email: userEmail,
                         action,
-                        description: `Role modificado: ID: "${id}", ` +
-                            `Name: "${updated.rolName}", ` +
-                            `Status: "${updated.status}"`,
+                        description: `Rol modificado: ID: "${id}", ` +
+                            `Nombre: "${updated.rolName}", ` +
+                            `Estado: "${updated.status}"`,
                         affectedTable: 'Role',
                     });
                 } else {
                     await SecurityLogService.log({
                         email: userEmail,
                         action: 'UPDATE',
-                        description: `Role actualizado: ID: "${id}", ` +
-                            `Name: "${updated.rolName}", ` +
-                            `Status: "${updated.status}"`,
+                        description: `Rol actualizado: ID: "${id}", ` +
+                            `Nombre: "${updated.rolName}", ` +
+                            `Estado: "${updated.status}"`,
                         affectedTable: 'Role',
                     });
                 }
 
-                return res.success(updated, 'Role modificado con éxito');
+                return res.success(updated, 'Rol modificado con éxito');
             } catch (error) {
                 if (error?.code === 'P2025') {
-                    return res.notFound('Role');
+                    return res.notFound('Rol');
                 }
                 // Check if it's the admin role protection error
                 if (error.message && error.message.includes('ADMIN')) {
@@ -176,7 +182,7 @@ const roleController = {
             // Check existence before delete
             const exists = await roleService.getById(id);
             if (!exists) {
-                return res.notFound('Role');
+                return res.notFound('Rol');
             }
             try {
                 const deleted = await roleService.delete(id);
@@ -184,15 +190,15 @@ const roleController = {
                 await SecurityLogService.log({
                     email: userEmail,
                     action: 'DELETE',
-                    description: `Role deleted: ID: "${id}", ` +
-                        `Name: "${deleted.rolName}", ` +
-                        `Status: "${deleted.status}"`,
+                    description: `Rol eliminado: ID: "${id}", ` +
+                        `Nombre: "${deleted.rolName}", ` +
+                        `Estado: "${deleted.status}"`,
                     affectedTable: 'Role',
                 });
-                return res.success(deleted, 'Role eliminado con éxito');
+                return res.success(deleted, 'Rol eliminado con éxito');
             } catch (error) {
                 if (error?.code === 'P2025') {
-                    return res.notFound('Role');
+                    return res.notFound('Rol');
                 }
                 // Check if it's the admin role protection error
                 if (error.message && error.message.includes('ADMIN')) {
