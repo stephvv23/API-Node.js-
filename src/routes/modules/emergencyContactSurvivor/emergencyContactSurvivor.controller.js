@@ -321,12 +321,9 @@ const EmergencyContactSurvivorController = {
       
       const isMinor = actualAge < 18;
       
-      // Don't allow deletion if it's the last emergency contact
-      if (allContacts.length <= 1) {
-        if (isMinor) {
-          return res.badRequest('No se puede eliminar el único contacto de emergencia de un superviviente menor de edad');
-        }
-        return res.badRequest('No se puede eliminar el único contacto de emergencia del superviviente');
+      // Don't allow deletion if it's the last emergency contact AND survivor is a minor
+      if (allContacts.length <= 1 && isMinor) {
+        return res.badRequest('No se puede eliminar el único contacto de emergencia de un superviviente menor de edad');
       }
 
       // Hard delete (permanent removal)

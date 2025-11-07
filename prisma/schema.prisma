@@ -221,7 +221,7 @@ model Survivor {
   workingCondition String @db.VarChar(50)
   CONAPDIS      Boolean
   IMAS          Boolean
-  physicalFileStatus String @db.VarChar(50) // Estado del expediente físico (ej: "Completo", "Incompleto", "En proceso")
+  physicalFileStatus String @db.VarChar(50)
   medicalRecord  Boolean 
   dateHomeSINRUBE Boolean 
   foodBank       Boolean 

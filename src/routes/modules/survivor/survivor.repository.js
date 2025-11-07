@@ -300,7 +300,7 @@ const SurvivorRepository = {
       where: { idSurvivor: Number(id) },
       data: {
         ...data,
-        updatedAt: new Date() // Actualizar timestamp automáticamente
+        updatedAt: new Date() //  Update timestap 
       },
       select: baseSelect
     }),
@@ -311,7 +311,7 @@ const SurvivorRepository = {
       where: { idSurvivor: Number(id) },
       data: { 
         status: 'inactive',
-        updatedAt: new Date() // Actualizar timestamp
+        updatedAt: new Date() //  Update timestap 
       },
       select: baseSelect
     }),
@@ -322,7 +322,7 @@ const SurvivorRepository = {
       where: { idSurvivor: Number(id) },
       data: { 
         status: 'active',
-        updatedAt: new Date() // Actualizar timestamp
+        updatedAt: new Date() //  Update timestap 
       },
       select: baseSelect
     }),
