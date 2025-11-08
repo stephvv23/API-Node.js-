@@ -518,66 +518,202 @@ const VolunteerController = {
     }
   },
 
-  // Add emergency contacts to volunteer (single or multiple)
+  // Add emergency contacts to volunteer (single or multiple) with relationships
   addEmergencyContacts: async (req, res) => {
     const { id } = req.params;
-    const { idEmergencyContacts } = req.body;
+    let { emergencyContacts } = req.body;
 
     const validId = parseIdParam(id);
     if (!validId) {
       return res.validationErrors(['idVolunteer debe ser un entero positivo']);
     }
 
-    if (!idEmergencyContacts) {
-      return res.validationErrors(['El campo idEmergencyContacts es requerido']);
+    if (!emergencyContacts) {
+      return res.validationErrors(['El campo emergencyContacts es requerido']);
     }
 
-    if (!Array.isArray(idEmergencyContacts)) {
-      return res.validationErrors(['idEmergencyContacts debe ser un array']);
+    if (!Array.isArray(emergencyContacts)) {
+      return res.validationErrors(['emergencyContacts debe ser un array']);
     }
 
-    if (idEmergencyContacts.length === 0) {
-      return res.validationErrors(['Debe proporcionar al menos un idEmergencyContact en el array']);
+    if (emergencyContacts.length === 0) {
+      return res.validationErrors(['Debe proporcionar al menos un contacto de emergencia en el array']);
     }
 
-    const validContactIds = [];
-    for (const contactId of idEmergencyContacts) {
-      const validContactId = parseIdParam(contactId);
-      if (!validContactId) {
-        return res.validationErrors([`idEmergencyContact ${contactId} debe ser un entero positivo`]);
+    // Trim all string fields in emergencyContacts array
+    emergencyContacts = emergencyContacts.map(contact => 
+      ValidationRules.trimStringFields(contact)
+    );
+
+    // Validate each contact has idEmergencyContact and relationship
+    const validContacts = [];
+    for (let i = 0; i < emergencyContacts.length; i++) {
+      const contact = emergencyContacts[i];
+      
+      if (!contact.idEmergencyContact) {
+        return res.validationErrors([`El contacto en la posición ${i} debe incluir idEmergencyContact`]);
       }
-      validContactIds.push(validContactId);
+      
+      const validContactId = parseIdParam(contact.idEmergencyContact);
+      if (!validContactId) {
+        return res.validationErrors([`idEmergencyContact ${contact.idEmergencyContact} debe ser un entero positivo`]);
+      }
+      
+      if (!contact.relationship) {
+        return res.validationErrors([`El contacto en la posición ${i} debe incluir relationship (parentesco)`]);
+      }
+      
+      const relationship = contact.relationship;
+      
+      if (typeof relationship !== 'string' || relationship === '') {
+        return res.validationErrors([`relationship debe ser un texto válido para el contacto ${validContactId}`]);
+      }
+
+      if (relationship.length > 50) {
+        return res.validationErrors([`relationship no puede exceder 50 caracteres para el contacto ${validContactId} (actual: ${relationship.length})`]);
+      }
+
+      validContacts.push({
+        idEmergencyContact: validContactId,
+        relationship: relationship
+      });
     }
 
     try {
-      const result = await VolunteerService.addEmergencyContacts(validId, validContactIds);
-      const added = (result && Array.isArray(result.addedIds)) ? result.addedIds : [];
-      const ignored = (result && Array.isArray(result.ignoredInactiveIds)) ? result.ignoredInactiveIds : [];
-      if (ignored.length) {
-        res.set('X-Ignored-Ids', ignored.join(','));
+      const result = await VolunteerService.addEmergencyContacts(
+        validId, 
+        validContacts, 
+        req.user?.sub || req.user?.email
+      );
+      
+      // Build detailed response message
+      const messages = [];
+      
+      if (result.added.length > 0) {
+        const addedList = result.added.map(c => 
+          `ID: ${c.idEmergencyContact} - ${c.nameEmergencyContact} (${c.relationship})`
+        ).join(', ');
+        messages.push(`✅ Agregados: ${addedList}`);
       }
-      let message = 'contacto(s) de emergencia asociado(s) al voluntario exitosamente';
-      if (ignored.length) {
-        const ignoredPart = `Rechazados (inactivos): ${ignored.length}` + (ignored.length ? ` (IDs: ${ignored.join(',')})` : '');
-        message = `${message}. ${ignoredPart}.`;
+      
+      if (result.alreadyExists.length > 0) {
+        const existsList = result.alreadyExists.map(c => 
+          `ID: ${c.idEmergencyContact} - ${c.nameEmergencyContact} (Ya existe con relación: ${c.currentRelationship})`
+        ).join(', ');
+        messages.push(`⚠️ Ya agregados: ${existsList}`);
       }
-      return res.status(201).success(null, message);
+      
+      if (result.inactive.length > 0) {
+        const inactiveList = result.inactive.map(c => 
+          `ID: ${c.idEmergencyContact} - ${c.nameEmergencyContact}`
+        ).join(', ');
+        messages.push(`⚠️ Inactivos: ${inactiveList}`);
+      }
+      
+      if (result.notFound.length > 0) {
+        const notFoundList = result.notFound.map(c => 
+          `ID: ${c.idEmergencyContact}`
+        ).join(', ');
+        messages.push(`❌ No existen: ${notFoundList}`);
+      }
+      
+      const finalMessage = messages.length > 0 
+        ? messages.join(' | ') 
+        : 'No se realizaron cambios';
+      
+      // Determine status code based on results
+      const statusCode = result.added.length > 0 ? 201 : 200;
+      
+      return res.status(statusCode).success({
+        summary: {
+          added: result.added.length,
+          alreadyExists: result.alreadyExists.length,
+          inactive: result.inactive.length,
+          notFound: result.notFound.length,
+          total: validContacts.length
+        },
+        details: result
+      }, finalMessage);
     } catch (error) {
-      console.error('[VOLUNTEERS] addEmergencyContacts error:', error);
+      // Don't log validation errors to console - only return in response
+      
+      // Volunteer not found
       if (error.message === 'Voluntario no encontrado') {
         return res.notFound('Voluntario');
       }
-      if (error.message && error.message.includes('no existe')) {
+      
+      // Missing required fields
+      if (error.message && error.message.includes('debe incluir')) {
         return res.validationErrors([error.message]);
       }
-      if (error.message && error.message.includes('inactivo')) {
-        return res.validationErrors([error.message]);
-      }
-      // Prisma unique constraint error
-      if (error.code === 'P2002') {
-        return res.validationErrors(['Uno o más contactos de emergencia ya están asociados al voluntario']);
-      }
+      
+      // Other database errors - don't log to console
       return res.error('Error al asociar el contacto de emergencia al voluntario');
+    }
+  },
+
+  // Update relationship of emergency contact for volunteer
+  updateEmergencyContactRelationship: async (req, res) => {
+    const { id, contactId } = req.params;
+    let { relationship } = req.body;
+
+    const validId = parseIdParam(id);
+    if (!validId) {
+      return res.validationErrors(['idVolunteer debe ser un entero positivo']);
+    }
+
+    const validContactId = parseIdParam(contactId);
+    if (!validContactId) {
+      return res.validationErrors(['idEmergencyContact debe ser un entero positivo']);
+    }
+
+    if (!relationship) {
+      return res.validationErrors(['El campo relationship (parentesco) es requerido']);
+    }
+
+    // Trim and normalize the relationship field
+    const trimmedBody = ValidationRules.trimStringFields({ relationship });
+    relationship = trimmedBody.relationship;
+
+    if (typeof relationship !== 'string' || relationship === '') {
+      return res.validationErrors(['relationship debe ser un texto válido']);
+    }
+
+    if (relationship.length > 50) {
+      return res.validationErrors([`relationship no puede exceder 50 caracteres (actual: ${relationship.length})`]);
+    }
+
+    try {
+      const result = await VolunteerService.updateEmergencyContactRelationship(
+        validId, 
+        validContactId, 
+        relationship
+      );
+      return res.success(result, 'Parentesco actualizado exitosamente');
+    } catch (error) {
+      // Only log unexpected errors, not validation errors
+      const isValidationError = 
+        error.message === 'Voluntario no encontrado' || 
+        error.message === 'El contacto de emergencia no existe' ||
+        error.message === 'El voluntario no tiene asociado este contacto de emergencia';
+      
+      if (!isValidationError) {
+        console.error('[VOLUNTEERS] updateEmergencyContactRelationship error:', error);
+      }
+      
+      if (error.message === 'Voluntario no encontrado') {
+        return res.notFound('Voluntario');
+      }
+      if (error.message === 'El contacto de emergencia no existe') {
+        return res.notFound('Contacto de emergencia');
+      }
+      if (error.message === 'El voluntario no tiene asociado este contacto de emergencia') {
+        return res.validationErrors(['El voluntario no tiene asociado este contacto de emergencia']);
+      }
+      if (error.code === 'P2025') {
+        return res.notFound('Relación entre voluntario y contacto de emergencia');
+      }
+      return res.error('Error al actualizar el parentesco del contacto de emergencia');
     }
   },
 
@@ -613,8 +749,49 @@ const VolunteerController = {
     }
 
     try {
-      const result = await VolunteerService.removeEmergencyContacts(validId, validContactIds);
-      return res.success(null, 'contacto(s) de emergencia eliminada(s) al voluntario exitosamente');
+      const result = await VolunteerService.removeEmergencyContacts(
+        validId, 
+        validContactIds, 
+        req.user?.sub || req.user?.email
+      );
+      
+      // Build detailed response message
+      const messages = [];
+      
+      if (result.deleted.length > 0) {
+        const deletedList = result.deleted.map(c => 
+          `ID: ${c.idEmergencyContact} - ${c.nameEmergencyContact} (${c.relationship})`
+        ).join(', ');
+        messages.push(`✅ Eliminados: ${deletedList}`);
+      }
+      
+      if (result.notRelated.length > 0) {
+        const notRelatedList = result.notRelated.map(c => 
+          `ID: ${c.idEmergencyContact} - ${c.nameEmergencyContact}`
+        ).join(', ');
+        messages.push(`⚠️ Sin relación con el voluntario: ${notRelatedList}`);
+      }
+      
+      if (result.notFound.length > 0) {
+        const notFoundList = result.notFound.map(c => 
+          `ID: ${c.idEmergencyContact}`
+        ).join(', ');
+        messages.push(`❌ No existen: ${notFoundList}`);
+      }
+      
+      const finalMessage = messages.length > 0 
+        ? messages.join(' | ') 
+        : 'No se realizaron cambios';
+      
+      return res.success({
+        summary: {
+          deleted: result.deleted.length,
+          notRelated: result.notRelated.length,
+          notFound: result.notFound.length,
+          total: validContactIds.length
+        },
+        details: result
+      }, finalMessage);
     } catch (error) {
       console.error('[VOLUNTEERS] removeEmergencyContacts error:', error);
       if (error.code === 'P2025') {
