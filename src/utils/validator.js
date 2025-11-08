@@ -1289,24 +1289,7 @@ const EntityValidators = {
     if (shouldValidateField(data.date)) {
       const dateValidator = validator.field('date', data.date);
       if (!options.partial) dateValidator.required();
-      dateValidator.date().custom((value) => {
-        if (value === undefined || value === null) return true;
-        
-        // Parse the date using the existing parseDate function
-        const date = ValidationRules.parseDate(value);
-        if (!date) return 'Fecha inválida';
-        
-        const now = new Date();
-        // Add a small buffer (1 minute) to account for timezone differences and processing time
-        const bufferTime = new Date(now.getTime() + 60000); // 1 minute buffer
-        
-        // Check if the date is in the past (before now + buffer)
-        if (date < bufferTime) {
-          return 'La fecha de la actividad no puede ser en el pasado';
-        }
-        
-        return true;
-      });
+      dateValidator.date();
     }
 
     // Description validation

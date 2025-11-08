@@ -180,10 +180,11 @@ const ActivityRepository = {
     select: { idHeadquarter: true }
   }),
 
-  // check if headquarter exists (regardless of status)
+  // check if headquarter exists and is active
   checkHeadquarterExists: (idHeadquarter) => prisma.headquarter.findFirst({
     where: { 
-      idHeadquarter: parseInt(idHeadquarter)
+      idHeadquarter: parseInt(idHeadquarter),
+      status: 'active' // only headquarters with status active
     },
     select: { idHeadquarter: true, status: true }
   }),
@@ -216,8 +217,11 @@ const ActivityRepository = {
   // Get all lookup data needed for activity assignment
   getLookupData: async () => {
     const [headquarters, volunteers, survivors, godparents] = await Promise.all([
-      // Get all headquarters (active and inactive)
+      // Get only active headquarters
       prisma.headquarter.findMany({
+        where: {
+          status: 'active'
+        },
         select: {
           idHeadquarter: true,
           name: true,
@@ -226,8 +230,11 @@ const ActivityRepository = {
         orderBy: { name: 'asc' }
       }),
       
-      // Get all volunteers (active and inactive)
+      // Get only active volunteers
       prisma.volunteer.findMany({
+        where: {
+          status: 'active'
+        },
         select: {
           idVolunteer: true,
           name: true,
@@ -237,8 +244,11 @@ const ActivityRepository = {
         orderBy: { name: 'asc' }
   }),
 
-      // Get all survivors (active and inactive)
+      // Get only active survivors
       prisma.survivor.findMany({
+        where: {
+          status: 'active'
+        },
     select: {
           idSurvivor: true,
           survivorName: true,
@@ -248,8 +258,11 @@ const ActivityRepository = {
         orderBy: { survivorName: 'asc' }
       }),
       
-      // Get all godparents (active and inactive)
+      // Get only active godparents
       prisma.godparent.findMany({
+        where: {
+          status: 'active'
+        },
         select: {
           idGodparent: true,
           name: true,
@@ -521,9 +534,10 @@ const ActivityRepository = {
     
     const existingVolunteers = await prisma.volunteer.findMany({
       where: {
-        idVolunteer: { in: integerIds }
+        idVolunteer: { in: integerIds },
+        status: 'active' // Only active volunteers
       },
-      select: { idVolunteer: true }
+      select: { idVolunteer: true, status: true }
     });
     
     const existingIds = existingVolunteers.map(v => v.idVolunteer);
@@ -535,15 +549,51 @@ const ActivityRepository = {
     };
   },
 
+  // Get valid volunteers and filter out invalid ones
+  getValidVolunteers: async (volunteerIds) => {
+    // Convert all IDs to integers and filter out NaN values
+    const integerIds = volunteerIds
+      .map(id => parseInt(id))
+      .filter(id => !isNaN(id) && id > 0);
+    
+    // If no valid integer IDs, return empty arrays
+    if (integerIds.length === 0) {
+      return {
+        validIds: [],
+        invalidIds: volunteerIds
+      };
+    }
+    
+    const existingVolunteers = await prisma.volunteer.findMany({
+      where: {
+        idVolunteer: { in: integerIds },
+        status: 'active' // Only active volunteers
+      },
+      select: { idVolunteer: true, status: true }
+    });
+    
+    const validIds = existingVolunteers.map(v => v.idVolunteer);
+    const invalidIds = volunteerIds.filter(id => {
+      const parsedId = parseInt(id);
+      return isNaN(parsedId) || parsedId <= 0 || !validIds.includes(parsedId);
+    });
+    
+    return {
+      validIds,
+      invalidIds
+    };
+  },
+
   validateSurvivorsExist: async (survivorIds) => {
     // Convert all IDs to integers
     const integerIds = survivorIds.map(id => parseInt(id));
     
     const existingSurvivors = await prisma.survivor.findMany({
       where: {
-        idSurvivor: { in: integerIds }
+        idSurvivor: { in: integerIds },
+        status: 'active' // Only active survivors
       },
-      select: { idSurvivor: true }
+      select: { idSurvivor: true, status: true }
     });
     
     const existingIds = existingSurvivors.map(s => s.idSurvivor);
@@ -555,15 +605,51 @@ const ActivityRepository = {
     };
   },
 
+  // Get valid survivors and filter out invalid ones
+  getValidSurvivors: async (survivorIds) => {
+    // Convert all IDs to integers and filter out NaN values
+    const integerIds = survivorIds
+      .map(id => parseInt(id))
+      .filter(id => !isNaN(id) && id > 0);
+    
+    // If no valid integer IDs, return empty arrays
+    if (integerIds.length === 0) {
+      return {
+        validIds: [],
+        invalidIds: survivorIds
+      };
+    }
+    
+    const existingSurvivors = await prisma.survivor.findMany({
+      where: {
+        idSurvivor: { in: integerIds },
+        status: 'active' // Only active survivors
+      },
+      select: { idSurvivor: true, status: true }
+    });
+    
+    const validIds = existingSurvivors.map(s => s.idSurvivor);
+    const invalidIds = survivorIds.filter(id => {
+      const parsedId = parseInt(id);
+      return isNaN(parsedId) || parsedId <= 0 || !validIds.includes(parsedId);
+    });
+    
+    return {
+      validIds,
+      invalidIds
+    };
+  },
+
   validateGodparentsExist: async (godparentIds) => {
     // Convert all IDs to integers
     const integerIds = godparentIds.map(id => parseInt(id));
     
     const existingGodparents = await prisma.godparent.findMany({
       where: {
-        idGodparent: { in: integerIds }
+        idGodparent: { in: integerIds },
+        status: 'active' // Only active godparents
       },
-      select: { idGodparent: true }
+      select: { idGodparent: true, status: true }
     });
     
     const existingIds = existingGodparents.map(g => g.idGodparent);
@@ -572,6 +658,41 @@ const ActivityRepository = {
     return {
       allExist: missingIds.length === 0,
       missingIds
+    };
+  },
+
+  // Get valid godparents and filter out invalid ones
+  getValidGodparents: async (godparentIds) => {
+    // Convert all IDs to integers and filter out NaN values
+    const integerIds = godparentIds
+      .map(id => parseInt(id))
+      .filter(id => !isNaN(id) && id > 0);
+    
+    // If no valid integer IDs, return empty arrays
+    if (integerIds.length === 0) {
+      return {
+        validIds: [],
+        invalidIds: godparentIds
+      };
+    }
+    
+    const existingGodparents = await prisma.godparent.findMany({
+      where: {
+        idGodparent: { in: integerIds },
+        status: 'active' // Only active godparents
+      },
+      select: { idGodparent: true, status: true }
+    });
+    
+    const validIds = existingGodparents.map(g => g.idGodparent);
+    const invalidIds = godparentIds.filter(id => {
+      const parsedId = parseInt(id);
+      return isNaN(parsedId) || parsedId <= 0 || !validIds.includes(parsedId);
+    });
+    
+    return {
+      validIds,
+      invalidIds
     };
   }
 };

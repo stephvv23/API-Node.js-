@@ -28,6 +28,22 @@ class ResShim {
     this.res.end(body);
   }
 
+  // Allow setting headers (some controllers use res.set)
+  set(name, value) {
+    try {
+      // Node's native response uses setHeader
+      this.res.setHeader(name, value);
+    } catch (e) {
+      // ignore if not supported
+    }
+    return this;
+  }
+
+  // alias for set
+  header(name, value) {
+    return this.set(name, value);
+  }
+
   // Standard response methods using centralized utilities
   success(data, message) {
     const response = success(data, message);
