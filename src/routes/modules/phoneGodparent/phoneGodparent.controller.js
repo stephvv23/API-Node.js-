@@ -44,14 +44,32 @@ const PhoneGodparentController = {
     const errors = [];
     const idNum = ValidationRules.parseIdParam(String(id || ''));
     if (!idNum) errors.push('El parámetro id debe ser numérico');
-    if (!phone) errors.push('El campo phone es obligatorio');
-    if (errors.length) return res.validationErrors(errors);
+    
+    // Validate phone using validator
+    const phoneValidation = ValidationRules.parsePhoneNumber(phone);
+    if (!phoneValidation.valid) {
+      errors.push(...phoneValidation.errors);
+    }
+    
+    if (errors.length > 0) {
+      return res.validationErrors(errors);
+    }
+
+    const phoneStr = phoneValidation.value;
+
     try {
-  const godparent = await GodParentService.findById(Number(idNum));
+      const godparent = await GodParentService.findById(Number(idNum));
       if (!godparent) return res.notFound('Padrino');
+      
       const phoneGodparent = await PhoneGodparentService.getByGodparent(Number(idNum));
-      if (phoneGodparent) return res.validationErrors(['El padrino ya tiene un teléfono registrado']);
-      const phoneObj = await PhoneService.findOrCreate(phone);
+      if (phoneGodparent) {
+        return res.badRequest(
+          `El padrino ya tiene un teléfono registrado (${phoneGodparent.phone.phone}). ` +
+          `Use PUT para cambiarlo o DELETE para eliminarlo primero.`
+        );
+      }
+      
+      const phoneObj = await PhoneService.findOrCreate(phoneStr);
       const created = await PhoneGodparentService.create(Number(idNum), phoneObj.idPhone);
       // Security log
       const userEmail = req.user?.sub;
@@ -84,13 +102,25 @@ const PhoneGodparentController = {
     const errors = [];
     const idNum = ValidationRules.parseIdParam(String(id || ''));
     if (!idNum) errors.push('El parámetro id debe ser numérico');
-    if (!phone) errors.push('El campo phone es obligatorio');
-    if (errors.length) return res.validationErrors(errors);
+    
+    // Validate phone using validator
+    const phoneValidation = ValidationRules.parsePhoneNumber(phone);
+    if (!phoneValidation.valid) {
+      errors.push(...phoneValidation.errors);
+    }
+    
+    if (errors.length > 0) {
+      return res.validationErrors(errors);
+    }
+
+    const phoneStr = phoneValidation.value;
+
     try {
-  const godparent = await GodParentService.findById(Number(idNum));
+      const godparent = await GodParentService.findById(Number(idNum));
       if (!godparent) return res.notFound('Padrino');
+      
       await PhoneGodparentService.deleteAllByGodparent(Number(idNum));
-      const phoneObj = await PhoneService.findOrCreate(phone);
+      const phoneObj = await PhoneService.findOrCreate(phoneStr);
       const created = await PhoneGodparentService.create(Number(idNum), phoneObj.idPhone);
       const userEmailUpdate = req.user?.sub;
       if (userEmailUpdate) {
