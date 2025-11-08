@@ -100,7 +100,7 @@ FRONTEND_URL=http://localhost:5504
 PORT=3000
 ```
 
-### 2. Gmail Setup (Recommended)
+### 2. Gmail Setup (Optional, already configured)
 
 For Gmail accounts:
 
