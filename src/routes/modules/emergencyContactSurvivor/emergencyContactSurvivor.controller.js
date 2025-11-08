@@ -144,7 +144,7 @@ const EmergencyContactSurvivorController = {
         action: 'CREATE',
         description:
           `Se agregó el contacto de emergencia "${contact.nameEmergencyContact}" (ID: ${idEmergencyContact}) al superviviente "${survivor.survivorName}" (ID: ${id}). ` +
-          `Tipo de relación: "${relationshipType}", Relación del contacto: "${contact.relationship}", Email: "${contact.emailEmergencyContact}".`,
+          `Tipo de relación: "${relationshipType}", Email: "${contact.emailEmergencyContact}".`,
         affectedTable: 'EmergencyContactSurvivor'
       });
 
@@ -336,7 +336,7 @@ const EmergencyContactSurvivorController = {
         action: 'DELETE',
         description:
           `Se eliminó permanentemente el contacto de emergencia "${contactSurvivor.emergencyContact.nameEmergencyContact}" (ID: ${idEmergencyContact}) del superviviente "${survivor.survivorName}" (ID: ${id}). ` +
-          `Relación: "${contactSurvivor.emergencyContact.relationship}".`,
+          `Tipo de relación: "${contactSurvivor.relationshipType}".`,
         affectedTable: 'EmergencyContactSurvivor'
       });
 

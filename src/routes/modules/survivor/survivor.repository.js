@@ -65,7 +65,6 @@ const baseSelect = {
           idEmergencyContact: true,
           nameEmergencyContact: true,
           emailEmergencyContact: true,
-          relationship: true,
           status: true
         }
       }
@@ -81,6 +80,16 @@ const SurvivorRepository = {
     cancerId, 
     gender, 
     headquarterId,
+    emergencyContactId,
+    country,
+    physicalFileStatus,
+    workingCondition,
+    medicalRecord,
+    CONAPDIS,
+    IMAS,
+    foodBank,
+    socioEconomicStudy,
+    dateHomeSINRUBE,
     ageMin,
     ageMax,
     take = 100, 
@@ -121,6 +130,55 @@ const SurvivorRepository = {
     // Headquarter filter
     if (headquarterId) {
       where.idHeadquarter = Number(headquarterId);
+    }
+
+    // Emergency contact filter
+    if (emergencyContactId) {
+      where.emergencyContactSurvivor = {
+        some: {
+          idEmergencyContact: Number(emergencyContactId)
+        }
+      };
+    }
+
+    // Country filter
+    if (country) {
+      where.country = { contains: country };
+    }
+
+    // Physical file status filter
+    if (physicalFileStatus) {
+      where.physicalFileStatus = physicalFileStatus;
+    }
+
+    // Working condition filter
+    if (workingCondition) {
+      where.workingCondition = workingCondition;
+    }
+
+    // Boolean filters
+    if (medicalRecord !== undefined) {
+      where.medicalRecord = medicalRecord;
+    }
+
+    if (CONAPDIS !== undefined) {
+      where.CONAPDIS = CONAPDIS;
+    }
+
+    if (IMAS !== undefined) {
+      where.IMAS = IMAS;
+    }
+
+    if (foodBank !== undefined) {
+      where.foodBank = foodBank;
+    }
+
+    if (socioEconomicStudy !== undefined) {
+      where.socioEconomicStudy = socioEconomicStudy;
+    }
+
+    if (dateHomeSINRUBE !== undefined) {
+      where.dateHomeSINRUBE = dateHomeSINRUBE;
     }
 
     // Age filter (calculated from birthday)
@@ -282,7 +340,7 @@ const SurvivorRepository = {
                   idEmergencyContact: true,
                   nameEmergencyContact: true,
                   emailEmergencyContact: true,
-                  relationship: true
+                  status: true
                 }
               }
             }

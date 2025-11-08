@@ -21,7 +21,6 @@ const EmergencyContactSurvivorRepository = {
             idEmergencyContact: true,
             nameEmergencyContact: true,
             emailEmergencyContact: true,
-            relationship: true,
             status: true
           }
         }
@@ -52,7 +51,6 @@ const EmergencyContactSurvivorRepository = {
             idEmergencyContact: true,
             nameEmergencyContact: true,
             emailEmergencyContact: true,
-            relationship: true,
             status: true
           }
         }
@@ -82,7 +80,6 @@ const EmergencyContactSurvivorRepository = {
             idEmergencyContact: true,
             nameEmergencyContact: true,
             emailEmergencyContact: true,
-            relationship: true,
             status: true
           }
         }
@@ -116,7 +113,6 @@ const EmergencyContactSurvivorRepository = {
             idEmergencyContact: true,
             nameEmergencyContact: true,
             emailEmergencyContact: true,
-            relationship: true,
             status: true
           }
         }

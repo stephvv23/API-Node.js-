@@ -109,6 +109,131 @@ const SurvivorController = {
         }
       }
 
+      // Country filter
+      if (req.query.country) {
+        const country = String(req.query.country).trim();
+        if (country.length > 75) {
+          return res.validationErrors([
+            "El parámetro country no debe exceder 75 caracteres",
+          ]);
+        }
+        filters.country = country;
+      }
+
+      // Physical file status filter (Estado expediente físico)
+      if (req.query.physicalFileStatus) {
+        const physicalFileStatus = String(req.query.physicalFileStatus).trim();
+        if (physicalFileStatus.length > 50) {
+          return res.validationErrors([
+            "El parámetro physicalFileStatus no debe exceder 50 caracteres",
+          ]);
+        }
+        filters.physicalFileStatus = physicalFileStatus;
+      }
+
+      // Working condition filter (Condición laboral)
+      if (req.query.workingCondition) {
+        const workingCondition = String(req.query.workingCondition).trim();
+        if (workingCondition.length > 50) {
+          return res.validationErrors([
+            "El parámetro workingCondition no debe exceder 50 caracteres",
+          ]);
+        }
+        filters.workingCondition = workingCondition;
+      }
+
+      // Emergency contact filter
+      if (req.query.emergencyContactId) {
+        const emergencyContactId = ValidationRules.parseIdParam(
+          String(req.query.emergencyContactId)
+        );
+        if (!emergencyContactId) {
+          return res.validationErrors([
+            "El parámetro emergencyContactId debe ser numérico",
+          ]);
+        }
+        filters.emergencyContactId = Number(emergencyContactId);
+      }
+
+      // Boolean filters (Historial médico, CONAPDIS, IMAS, Banco alimentos, Est. socioeconómico)
+      if (req.query.medicalRecord !== undefined) {
+        const medicalRecord = String(req.query.medicalRecord).toLowerCase();
+        if (medicalRecord === "true" || medicalRecord === "1" || medicalRecord === "si") {
+          filters.medicalRecord = true;
+        } else if (medicalRecord === "false" || medicalRecord === "0" || medicalRecord === "no") {
+          filters.medicalRecord = false;
+        } else {
+          return res.validationErrors([
+            'El parámetro medicalRecord debe ser "true", "false", "si", "no", "1" o "0"',
+          ]);
+        }
+      }
+
+      if (req.query.CONAPDIS !== undefined) {
+        const CONAPDIS = String(req.query.CONAPDIS).toLowerCase();
+        if (CONAPDIS === "true" || CONAPDIS === "1" || CONAPDIS === "si") {
+          filters.CONAPDIS = true;
+        } else if (CONAPDIS === "false" || CONAPDIS === "0" || CONAPDIS === "no") {
+          filters.CONAPDIS = false;
+        } else {
+          return res.validationErrors([
+            'El parámetro CONAPDIS debe ser "true", "false", "si", "no", "1" o "0"',
+          ]);
+        }
+      }
+
+      if (req.query.IMAS !== undefined) {
+        const IMAS = String(req.query.IMAS).toLowerCase();
+        if (IMAS === "true" || IMAS === "1" || IMAS === "si") {
+          filters.IMAS = true;
+        } else if (IMAS === "false" || IMAS === "0" || IMAS === "no") {
+          filters.IMAS = false;
+        } else {
+          return res.validationErrors([
+            'El parámetro IMAS debe ser "true", "false", "si", "no", "1" o "0"',
+          ]);
+        }
+      }
+
+      if (req.query.foodBank !== undefined) {
+        const foodBank = String(req.query.foodBank).toLowerCase();
+        if (foodBank === "true" || foodBank === "1" || foodBank === "si") {
+          filters.foodBank = true;
+        } else if (foodBank === "false" || foodBank === "0" || foodBank === "no") {
+          filters.foodBank = false;
+        } else {
+          return res.validationErrors([
+            'El parámetro foodBank debe ser "true", "false", "si", "no", "1" o "0"',
+          ]);
+        }
+      }
+
+      if (req.query.socioEconomicStudy !== undefined) {
+        const socioEconomicStudy = String(req.query.socioEconomicStudy).toLowerCase();
+        if (socioEconomicStudy === "true" || socioEconomicStudy === "1" || socioEconomicStudy === "si") {
+          filters.socioEconomicStudy = true;
+        } else if (socioEconomicStudy === "false" || socioEconomicStudy === "0" || socioEconomicStudy === "no") {
+          filters.socioEconomicStudy = false;
+        } else {
+          return res.validationErrors([
+            'El parámetro socioEconomicStudy debe ser "true", "false", "si", "no", "1" o "0"',
+          ]);
+        }
+      }
+
+      if (req.query.dateHomeSINRUBE !== undefined) {
+        const dateHomeSINRUBE = String(req.query.dateHomeSINRUBE).toLowerCase();
+        if (dateHomeSINRUBE === "true" || dateHomeSINRUBE === "1" || dateHomeSINRUBE === "si") {
+          filters.dateHomeSINRUBE = true;
+        } else if (dateHomeSINRUBE === "false" || dateHomeSINRUBE === "0" || dateHomeSINRUBE === "no") {
+          filters.dateHomeSINRUBE = false;
+        } else {
+          return res.validationErrors([
+            'El parámetro dateHomeSINRUBE debe ser "true", "false", "si", "no", "1" o "0"',
+          ]);
+        }
+      }
+
       // Pagination
       const take = parseInt(req.query.take) || 100;
       const skip = parseInt(req.query.skip) || 0;
