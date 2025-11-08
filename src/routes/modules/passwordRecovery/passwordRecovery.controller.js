@@ -1,6 +1,6 @@
 /**
  * Password Recovery Controller
- * Controlador para endpoints de recuperación de contraseña
+ * Controller for password recovery endpoints
  */
 
 const passwordRecoveryService = require('../../../services/passwordRecovery.service');
@@ -8,7 +8,7 @@ const passwordRecoveryService = require('../../../services/passwordRecovery.serv
 class PasswordRecoveryController {
   /**
    * POST /password-recovery/request
-   * Solicitar recuperación de contraseña
+   * Request password recovery
    */
   async requestPasswordReset(req, res) {
     try {
