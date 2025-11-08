@@ -103,7 +103,7 @@ const StatsRepository = {
     const topUsersByAccessRaw = await prisma.loginAccess.groupBy({
       by: ['email'],
       _count: { loginIdAccess: true },
-      _max: { date: true }, // ✅ AGREGAR: obtener la fecha máxima
+      _max: { date: true }, 
       orderBy: { _count: { loginIdAccess: 'desc' } },
       take: 10
     });
@@ -120,7 +120,7 @@ const StatsRepository = {
         email: item.email,
         name: user ? user.name : 'Unknown',
         accessCount: item._count.loginIdAccess,
-        lastAccess: item._max.date // ✅ AGREGAR: incluir último acceso
+        lastAccess: item._max.date 
       };
     });
   },
