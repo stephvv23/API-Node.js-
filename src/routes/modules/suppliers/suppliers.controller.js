@@ -91,6 +91,15 @@ const SupplierController = {
   // Create new supplier
   create: async (req, res) => {
 
+    const data = req.body;
+
+    // Check for JSON parsing errors
+    if (data.__jsonError) {
+      return res.validationErrors([
+        data.__jsonErrorMessage || "Formato de JSON inválido",
+      ]);
+    }
+    
     // Trim all string fields to prevent leading/trailing spaces
     const trimmedBody = ValidationRules.trimStringFields(req.body);
     let { name, taxId, type, email, address, paymentTerms, description, status, categories, headquarters, phones } = trimmedBody;
@@ -186,6 +195,15 @@ const SupplierController = {
 
   // Update supplier information
   update: async (req, res) => {
+
+    const data = req.body;
+
+    // Check for JSON parsing errors
+    if (data.__jsonError) {
+      return res.validationErrors([
+        data.__jsonErrorMessage || "Formato de JSON inválido",
+      ]);
+    }
 
     // Trim all string fields to prevent leading/trailing spaces
     const updateData = ValidationRules.trimStringFields(req.body);
