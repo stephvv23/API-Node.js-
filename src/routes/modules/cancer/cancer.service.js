@@ -2,7 +2,7 @@ const { CancerRepository } = require('./cancer.repository');
 const prisma = require('../../../lib/prisma.js');
 //cancer service functions crud
 const CancerService = {
-  list: () => CancerRepository.list(),
+  list: (filters = {}) => CancerRepository.list(filters),
 
   get: (idCancer) => CancerRepository.findById(idCancer),
   //create with default status 'active'
