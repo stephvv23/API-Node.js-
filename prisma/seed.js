@@ -377,7 +377,7 @@ async function main() {
   await prisma.phoneVolunteer.create({
     data: { idPhone: phoneObjs[4].idPhone, idVolunteer: volunteer.idVolunteer }, // 7011-2233
   });
-  await prisma.godparentPhone.create({
+  await prisma.phoneGodparent.create({
     data: { idGodparent: godparent.idGodparent, idPhone: phoneObjs[5].idPhone }, // 8911-2233
   });
 

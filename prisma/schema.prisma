@@ -189,7 +189,7 @@ model Godparent {
   description      String @db.VarChar(250)
   status       String @default("active") @db.VarChar(25)
 
-  godParentsPhone GodparentPhone[] // relational table
+  phoneGodparent PhoneGodparent[] // relational table
   activityGodparent ActivityGodparent[] // relational table
 
   survivor Survivor? @relation(fields: [idSurvivor], references: [idSurvivor]) // Optional relation with Survivor
@@ -257,7 +257,7 @@ model Phone {
   phoneSurvivor   PhoneSurvivor[]   // relational table
   phoneEmergencyContact PhoneEmergencyContact[] // relational table
   headquarterPhone HeadquarterPhone[] // relational table
-  godparentPhone GodparentPhone[] // relational table
+  phoneGodparent PhoneGodparent[] // relational table
   phoneSupplier PhoneSupplier[] // relational table
 
 }
@@ -337,13 +337,13 @@ model PhoneVolunteer {
   @@id([idPhone, idVolunteer]) // Composite primary key
 } 
 
-model GodparentPhone {
+model PhoneGodparent {
   idGodparent Int // Foreign key: references Godparent.idGodparent
   idPhone     Int // Foreign key: references Phone.idPhone
 
   // Relations
-  godparent Godparent @relation(fields: [idGodparent], references: [idGodparent]) // Connects GodparentPhone to Godparent
-  phone     Phone     @relation(fields: [idPhone], references: [idPhone])         // Connects GodparentPhone to Phone
+  godparent Godparent @relation(fields: [idGodparent], references: [idGodparent]) // Connects PhoneGodparent to Godparent
+  phone     Phone     @relation(fields: [idPhone], references: [idPhone])         // Connects PhoneGodparent to Phone
 
   @@id([idGodparent, idPhone]) // Composite primary key
 }
