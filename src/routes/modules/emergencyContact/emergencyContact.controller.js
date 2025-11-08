@@ -44,8 +44,10 @@ const EmergencyContactController = {
   create: async (req, res) => {
 
     // Check for JSON parsing errors
-    if (req.body.__jsonError) {
-      return res.validationErrors([req.body.__jsonErrorMessage || 'Formato de JSON inválido']);
+   if (req.body.__jsonError) {
+      return res.validationErrors([
+        "JSON inválido: revisa la sintaxis" 
+      ]);
     }
 
     // Clean whitespace from request body strings
@@ -66,6 +68,7 @@ const EmergencyContactController = {
     }
 
     try {
+
       const allContacts = await EmergencyContactsService.list(); // Retrieve all existing contacts for duplication check
       const duplicateErrors = [];
 
@@ -77,7 +80,7 @@ const EmergencyContactController = {
         duplicateErrors.push('Ya existe un contacto con ese correo electrónico');
       }
       if (allContacts.some(c => c.identifier === identifier)) {
-        duplicateErrors.push('Ya existe un contacto con esa cédula');
+        duplicateErrors.push('Ya existe un contacto con ese identificador');
       }
 
 
@@ -101,7 +104,7 @@ const EmergencyContactController = {
           `ID: "${newContact.idEmergencyContact}", ` +
           `Nombre: "${newContact.nameEmergencyContact}", ` +
           `Correo: "${newContact.emailEmergencyContact}", ` +
-          `Cédula: "${newContact.identifier}", ` +
+          `Identificador: "${newContact.identifier}", ` +
           `Estado: "${newContact.status}".`,
         affectedTable: 'EmergencyContact',
       });
@@ -150,7 +153,7 @@ const EmergencyContactController = {
       if (updateData.identifier) {
         const existsIdentifier = await EmergencyContactsService.getByIdentifier(updateData.identifier);
         if (existsIdentifier && existsIdentifier.idEmergencyContact != idEmergencyContact) {
-          duplicateErrors.push('Ya existe un contacto de emergencia con esa cédula');
+          duplicateErrors.push('Ya existe un contacto de emergencia con ese identificador');
         }
       }
 
@@ -172,7 +175,7 @@ const EmergencyContactController = {
         // Prisma error handling for invalid update
         if (err.code === 'P2002') {
           // Unique constraint failed
-          return res.validationErrors(['Ya existe un contacto con ese correo electrónico o cédula']);
+          return res.validationErrors(['Ya existe un contacto con ese correo electrónico o identificador']);
         }
         if (err.code === 'P2025') {
           // Record not found
@@ -202,7 +205,7 @@ const EmergencyContactController = {
             `Se reactivó el contacto de emergencia con ID "${idEmergencyContact}". Datos completos:\n` +
             `Nombre: "${updatedContact.nameEmergencyContact}", ` +
             `Correo: "${updatedContact.emailEmergencyContact}", ` +
-            `Cédula: "${updatedContact.identifier}", ` +
+            `Identificador: "${updatedContact.identifier}", ` +
             `Estado: "${updatedContact.status}".`,
           affectedTable: 'EmergencyContact',
         });
@@ -216,12 +219,12 @@ const EmergencyContactController = {
             `Versión previa: ` +
             `Nombre: "${previousContact.nameEmergencyContact}", ` +
             `Correo: "${previousContact.emailEmergencyContact}", ` +
-            `Cédula: "${previousContact.identifier}", ` +
+            `Identificador: "${previousContact.identifier}", ` +
             `Estado: "${previousContact.status}".\n` +
             `Nueva versión: ` +
             `Nombre: "${updatedContact.nameEmergencyContact}", ` +
             `Correo: "${updatedContact.emailEmergencyContact}", ` +
-            `Cédula: "${updatedContact.identifier}", ` +
+            `Identificador: "${updatedContact.identifier}", ` +
             `Estado: "${updatedContact.status}".\n`,
           affectedTable: 'EmergencyContact',
         });
@@ -260,7 +263,7 @@ const EmergencyContactController = {
           `ID "${idEmergencyContact}", ` +
           `Nombre: "${deleted.nameEmergencyContact}", ` +
           `Correo: "${deleted.emailEmergencyContact}", ` +
-          `Cédula: "${deleted.identifier}", ` +
+          `Identificador: "${deleted.identifier}", ` +
           `Estado: "${deleted.status}".`,
         affectedTable: 'EmergencyContact',
       });
