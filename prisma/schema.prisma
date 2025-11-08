@@ -200,10 +200,11 @@ model EmergencyContact {
   idEmergencyContact Int    @id @default(autoincrement())
   nameEmergencyContact String @db.VarChar(150)
   emailEmergencyContact String @db.VarChar(150)
+  documentNumber String @db.VarChar(30)
   status             String @default("active") @db.VarChar(25)
 
   emergencyContactVolunteer EmergencyContactVolunteer[] // relational table
-  emergencyContactPhone EmergencyContactPhone[] // relational table
+  phoneEmergencyContact PhoneEmergencyContact[] // relational table
   emergencyContactSurvivor EmergencyContactSurvivor[] // relational table
 }
 
@@ -254,7 +255,7 @@ model Phone {
 
   phoneVolunteers PhoneVolunteer[] // relational table
   phoneSurvivor   PhoneSurvivor[]   // relational table
-  emergencyContactPhone EmergencyContactPhone[] // relational table
+  phoneEmergencyContact PhoneEmergencyContact[] // relational table
   headquarterPhone HeadquarterPhone[] // relational table
   godparentPhone GodparentPhone[] // relational table
   phoneSupplier PhoneSupplier[] // relational table
@@ -404,13 +405,13 @@ model EmergencyContactSurvivor {
   @@id([idEmergencyContact, idSurvivor]) // Composite primary key
 }
 
-model EmergencyContactPhone {
+model PhoneEmergencyContact {
   idEmergencyContact Int // Foreign key: references EmergencyContact.idEmergencyContact
   idPhone            Int // Foreign key: references Phone.idPhone
 
   // Relations
-  emergencyContact EmergencyContact @relation(fields: [idEmergencyContact], references: [idEmergencyContact]) // Connects EmergencyContactPhone to EmergencyContact
-  phone            Phone            @relation(fields: [idPhone], references: [idPhone])                         // Connects EmergencyContactPhone to Phone
+  emergencyContact EmergencyContact @relation(fields: [idEmergencyContact], references: [idEmergencyContact]) // Connects PhoneEmergencyContact to EmergencyContact
+  phone            Phone            @relation(fields: [idPhone], references: [idPhone])                         // Connects PhoneEmergencyContact to Phone
 
   @@id([idEmergencyContact, idPhone]) // Composite primary key
 }

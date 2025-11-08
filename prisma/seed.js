@@ -387,6 +387,7 @@ async function main() {
       data: {
         nameEmergencyContact: 'Carlos Fernández',
         emailEmergencyContact: 'carlos.fernandez@example.com',
+        documentNumber: '1-0234-0567',
         status: 'active',
       },
     }),
@@ -394,6 +395,7 @@ async function main() {
       data: {
         nameEmergencyContact: 'Laura Pérez',
         emailEmergencyContact: 'laura.perez@example.com',
+        documentNumber: '2-0345-0678',
         status: 'active',
       },
     }),
@@ -415,7 +417,7 @@ async function main() {
     },
   });
 
-  await prisma.emergencyContactPhone.createMany({
+  await prisma.phoneEmergencyContact.createMany({
     data: [
       { idEmergencyContact: ec1.idEmergencyContact, idPhone: phoneObjs[6].idPhone }, // 2456-7890
       { idEmergencyContact: ec2.idEmergencyContact, idPhone: phoneObjs[7].idPhone }, // 8888-5555

@@ -18,6 +18,7 @@ const categoriesRoutes = require('./modules/Category/category.routes');
 const roleRoutes = require('./modules/Role/role.routes');
 const roleWindowsRoutes = require('./modules/RoleWindows/roleWindows.routes');
 const emergencyContactRoutes = require('./modules/emergencyContact/emergencyContact.routes');
+const emergencyContactPhoneRoutes = require('./modules/emergencyContactPhone/emergencyContactPhone.routes');
 const permissionRoutes = require('./modules/auth/permission.routes');
 const survivorRoutes = require('./modules/survivor/survivor.routes');
 const cancerSurvivorRoutes = require('./modules/cancerSurvivor/cancerSurvivor.routes');
@@ -40,6 +41,7 @@ function buildRoutes() {
     ...roleRoutes,
     ...roleWindowsRoutes,
     ...emergencyContactRoutes,
+    ...emergencyContactPhoneRoutes,
     ...permissionRoutes,
     ...survivorRoutes,
     ...cancerSurvivorRoutes,

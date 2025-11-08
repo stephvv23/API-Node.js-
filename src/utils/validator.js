@@ -954,7 +954,7 @@ const EntityValidators = {
   /**
    * Emergency Contact entity validator
    * Schema: idEmergencyContact, nameEmergencyContact (VarChar 150), 
-   *         emailEmergencyContact (VarChar 150), relationship (VarChar 50), status (VarChar 25)
+   *         emailEmergencyContact (VarChar 150), documentNumber (VarChar 30), status (VarChar 25)
    * @param {Object} data - The emergency contact data to validate  
    * @param {Object} options - Validation options
    * @param {boolean} options.partial - If true, only validates provided fields (for updates)
@@ -982,11 +982,11 @@ const EntityValidators = {
       emailValidator.string().minLength(1).email().maxLength(150);
     }
 
-    // Relationship validation
-    if (shouldValidateField(data.relationship)) {
-      const relationshipValidator = validator.field('relationship', data.relationship);
-      if (!options.partial) relationshipValidator.required();
-      relationshipValidator.string().minLength(1).internationalText().maxLength(50);
+    // Document number validation
+    if (shouldValidateField(data.documentNumber)) {
+      const docValidator = validator.field('documentNumber', data.documentNumber);
+      if (!options.partial) docValidator.required();
+      docValidator.string().minLength(1).maxLength(30);
     }
     
     // Status validation
