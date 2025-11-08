@@ -9,5 +9,7 @@ module.exports = [
   { method: 'GET', path: '/api/stats/new-users-monthly', handler: authenticate(authorizeWindow('Reportes','read')(StatsController.getNewUsersMonthly)) },
   { method: 'GET', path: '/api/stats/top-actions', handler: authenticate(authorizeWindow('Reportes','read')(StatsController.getTopActions)) },
   { method: 'GET', path: '/api/stats/incidents-by-table', handler: authenticate(authorizeWindow('Reportes','read')(StatsController.getIncidentsByTable)) },
+  { method: 'GET', path: '/api/stats/active-volunteers', handler: authenticate(authorizeWindow('Reportes','read')(StatsController.getActiveVolunteers)) },
+  { method: 'GET', path: '/api/stats/volunteers-by-headquarter', handler: authenticate(authorizeWindow('Reportes','read')(StatsController.getVolunteersByHeadquarter)) },
   { method: 'GET', path: '/api/stats/test', handler: authenticate(authorizeWindow('Reportes','read')(StatsController.testConnection)) }
 ];

@@ -62,6 +62,16 @@ const StatsService = {
     return StatsRepository.getIncidentsByTable();
   },
 
+  // Obtain active volunteers with recent participation (last 30 days)
+  getActiveVolunteers: async () => {
+    return StatsRepository.getActiveVolunteers();
+  },
+
+  // Obtain volunteers by headquarter for the "Voluntariado por Sede" chart
+  getVolunteersByHeadquarter: async () => {
+    return StatsRepository.getVolunteersByHeadquarter();
+  },
+
   // Test endpoint to verify the database connection
   testConnection: async () => {
     return StatsRepository.testConnection();

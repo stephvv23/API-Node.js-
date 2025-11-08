@@ -81,6 +81,28 @@ const StatsController = {
     }
   },
 
+  // Obtain active volunteers with recent participation (last 30 days)
+  getActiveVolunteers: async (req, res) => {
+    try {
+      const count = await StatsService.getActiveVolunteers();
+      return res.success({ activeVolunteers: count });
+    } catch (error) {
+      console.error('[STATS] getActiveVolunteers error:', error);
+      return res.error('Error al obtener voluntarios activos');
+    }
+  },
+
+  // Obtain volunteers by headquarter for the "Voluntariado por Sede" chart
+  getVolunteersByHeadquarter: async (req, res) => {
+    try {
+      const chartData = await StatsService.getVolunteersByHeadquarter();
+      return res.success(chartData);
+    } catch (error) {
+      console.error('[STATS] getVolunteersByHeadquarter error:', error);
+      return res.error('Error al obtener voluntarios por sede');
+    }
+  },
+
   // Test endpoint to verify the database connection
   testConnection: async (req, res) => {
     try {

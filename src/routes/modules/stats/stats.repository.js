@@ -206,6 +206,167 @@ const StatsRepository = {
     };
   },
 
+  // Obtain active volunteers with recent participation (current month)
+  // This includes volunteers assigned to activities in the current month
+  getActiveVolunteers: async () => {
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth() + 1; // 1-12 (1 = January, 12 = December)
+    
+    // First day of current month at 00:00:00
+    const firstDayOfMonth = new Date(currentYear, currentMonth - 1, 1, 0, 0, 0, 0);
+    
+    // First day of next month at 00:00:00 (exclusive, so it's the end of current month)
+    const firstDayOfNextMonth = new Date(currentYear, currentMonth, 1, 0, 0, 0, 0);
+    
+    // Get all activities in the current month with active status
+    const activitiesThisMonth = await prisma.activity.findMany({
+      where: {
+        status: 'active',
+        date: {
+          gte: firstDayOfMonth,
+          lt: firstDayOfNextMonth
+        },
+        activityVolunteer: {
+          some: {
+            volunteer: {
+              status: 'active'
+            }
+          }
+        }
+      },
+      select: {
+        activityVolunteer: {
+          where: {
+            volunteer: {
+              status: 'active'
+            }
+          },
+          select: {
+            idVolunteer: true
+          }
+        }
+      }
+    });
+    
+    // Extract all unique volunteer IDs from activities this month
+    const volunteerIdsSet = new Set();
+    activitiesThisMonth.forEach(activity => {
+      activity.activityVolunteer.forEach(av => {
+        volunteerIdsSet.add(av.idVolunteer);
+      });
+    });
+    
+    return volunteerIdsSet.size;
+  },
+
+  // Obtain volunteers by headquarter for the "Voluntariado por Sede" chart
+  // Returns active volunteers count and estimated volunteer hours per headquarter
+  // Only includes activities from the current month
+  getVolunteersByHeadquarter: async () => {
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth() + 1; // 1-12 (1 = January, 12 = December)
+    
+    // First day of current month at 00:00:00
+    const firstDayOfMonth = new Date(currentYear, currentMonth - 1, 1, 0, 0, 0, 0);
+    
+    // First day of next month at 00:00:00 (exclusive, so it's the end of current month)
+    const firstDayOfNextMonth = new Date(currentYear, currentMonth, 1, 0, 0, 0, 0);
+    
+    // Get all headquarters
+    const headquarters = await prisma.headquarter.findMany({
+      where: { status: 'active' },
+      select: {
+        idHeadquarter: true,
+        name: true
+      }
+    });
+    
+    // Get activities with volunteers in the current month, grouped by headquarter
+    // Only include activities with active status and active volunteers
+    const activitiesWithVolunteers = await prisma.activity.findMany({
+      where: {
+        status: 'active',
+        date: {
+          gte: firstDayOfMonth,
+          lt: firstDayOfNextMonth
+        },
+        activityVolunteer: {
+          some: {
+            volunteer: {
+              status: 'active'
+            }
+          }
+        }
+      },
+      select: {
+        idHeadquarter: true,
+        activityVolunteer: {
+          where: {
+            volunteer: {
+              status: 'active'
+            }
+          },
+          select: {
+            volunteer: {
+              select: {
+                idVolunteer: true,
+                requiredHours: true,
+                status: true
+              }
+            }
+          }
+        },
+        headquarter: {
+          select: {
+            name: true
+          }
+        }
+      }
+    });
+    
+    // Group by headquarter
+    const headquarterStats = {};
+    
+    // Initialize all headquarters with 0
+    headquarters.forEach(hq => {
+      headquarterStats[hq.idHeadquarter] = {
+        headquarter: hq.name,
+        activeVolunteers: new Set(),
+        estimatedHours: 0
+      };
+    });
+    
+    // Process activities and count volunteers per headquarter
+    activitiesWithVolunteers.forEach(activity => {
+      const hqId = activity.idHeadquarter;
+      if (!headquarterStats[hqId]) {
+        headquarterStats[hqId] = {
+          headquarter: activity.headquarter.name,
+          activeVolunteers: new Set(),
+          estimatedHours: 0
+        };
+      }
+      
+      activity.activityVolunteer.forEach(av => {
+        const volunteer = av.volunteer;
+        if (volunteer.status === 'active') {
+          headquarterStats[hqId].activeVolunteers.add(volunteer.idVolunteer);
+          // Add estimated hours (use requiredHours if available, otherwise default to 0)
+          headquarterStats[hqId].estimatedHours += volunteer.requiredHours || 0;
+        }
+      });
+    });
+    
+    // Convert to array format
+    return Object.values(headquarterStats).map(stat => ({
+      headquarter: stat.headquarter,
+      activeVolunteers: stat.activeVolunteers.size,
+      estimatedHours: stat.estimatedHours
+    }));
+  },
+
   // Obtain users by role and headquarter for combined chart
   getUsersByRoleHeadquarter: async () => {
     const users = await prisma.user.findMany({
