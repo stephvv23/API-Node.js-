@@ -1,6 +1,6 @@
 
 const { EmergencyContactsService } = require('./emergencyContact.service');
-const { EntityValidators, ValidationRules } = require('../../../utils/validator');
+const { ValidationRules } = require('../../../utils/validator');
 const { SecurityLogService } = require('../../../services/securitylog.service');
 const { PhoneService } = require('../phone/phone.service');
 const { EmergencyContactPhoneService } = require('../emergencyContactPhone/emergencyContactPhone.service');
