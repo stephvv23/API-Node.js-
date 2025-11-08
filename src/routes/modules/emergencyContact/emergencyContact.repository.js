@@ -1,5 +1,4 @@
 
-
 // Import PrismaClient from Prisma ORM
 const { PrismaClient } = require('@prisma/client');
 
@@ -18,6 +17,19 @@ const baseSelect = {
 
 
 const EmergencyContactsRepository = {
+  // Finds a single emergency contact by email
+  findByEmail: (emailEmergencyContact) =>
+    prisma.emergencyContact.findFirst({
+      where: { emailEmergencyContact },
+      select: baseSelect,
+    }),
+
+  // Finds a single emergency contact by identifier
+  findByIdentifier: (identifier) =>
+    prisma.emergencyContact.findFirst({
+      where: { identifier },
+      select: baseSelect,
+    }),
   // Finds all emergency contacts
   findAll: async () => {
     return await prisma.emergencyContact.findMany({
