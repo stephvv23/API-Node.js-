@@ -256,7 +256,7 @@ model Phone {
   phoneVolunteers PhoneVolunteer[] // relational table
   phoneSurvivor   PhoneSurvivor[]   // relational table
   phoneEmergencyContact PhoneEmergencyContact[] // relational table
-  headquarterPhone HeadquarterPhone[] // relational table
+  phoneHeadquarter PhoneHeadquarter[] // relational table
   phoneGodparent PhoneGodparent[] // relational table
   phoneSupplier PhoneSupplier[] // relational table
 
@@ -274,7 +274,7 @@ model Headquarter {
   activities     Activity[] // NEW ADDITION: FK with activity
   headquarterUser HeadquarterUser[] // NEW ADDITION: relational table with users
   headquarterVolunteer HeadquarterVolunteer[] // relational table 
-  headquarterPhone HeadquarterPhone[] // relational table 
+  phoneHeadquarter PhoneHeadquarter[] // relational table 
   godparent Godparent[] // Relation with Godparent
   survivor Survivor[] // Relation with Survivor
   asset Asset[] // Relation with Asset
@@ -304,13 +304,13 @@ model HeadquarterVolunteer {
   @@id([idHeadquarter, idVolunteer]) // Composite primary key
 }
 
-model HeadquarterPhone {
+model PhoneHeadquarter {
   idHeadquarter Int // Foreign key: references Headquarter.idHeadquarter
   idPhone       Int // Foreign key: references Phone.idPhone
 
   // Relations
-  headquarter Headquarter @relation(fields: [idHeadquarter], references: [idHeadquarter]) // Connects HeadquarterPhone to Headquarter
-  phone       Phone       @relation(fields: [idPhone], references: [idPhone])             // Connects HeadquarterPhone to Phone
+  headquarter Headquarter @relation(fields: [idHeadquarter], references: [idHeadquarter]) // Connects PhoneHeadquarter to Headquarter
+  phone       Phone       @relation(fields: [idPhone], references: [idPhone])             // Connects PhoneHeadquarter to Phone
 
   @@id([idHeadquarter, idPhone]) // Composite primary key
 }

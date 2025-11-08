@@ -362,7 +362,7 @@ async function main() {
   });
 
   // Phones by headquarters
-  await prisma.headquarterPhone.createMany({
+  await prisma.phoneHeadquarter.createMany({
     data: [
       { idHeadquarter: hq1.idHeadquarter, idPhone: phoneObjs[0].idPhone }, // 8888-1234
       { idHeadquarter: hq1.idHeadquarter, idPhone: phoneObjs[1].idPhone }, // 2222-3333
