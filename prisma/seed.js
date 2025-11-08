@@ -405,7 +405,7 @@ async function main() {
     data: { 
       idEmergencyContact: ec1.idEmergencyContact, 
       idVolunteer: volunteer.idVolunteer,
-      relationship: 'Padre' // ✅ Ahora el relationship está aquí
+      relationship: 'Padre'
     },
   });
   await prisma.emergencyContactSurvivor.create({
