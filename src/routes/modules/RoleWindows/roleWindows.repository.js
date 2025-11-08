@@ -104,6 +104,11 @@ const roleWindowRepository = {
         const idRole = Number(data.idRole);
         const idWindow = Number(data.idWindow);
         
+        // Prevent modification of admin role (idRole: 1)
+        if (idRole === 1) {
+            throw new Error('no se pueden modificar los permisos del rol administrador');
+        }
+        
         // Try to find existing record
         const existing = await prisma.roleWindow.findUnique({
             where: {
@@ -148,6 +153,11 @@ const roleWindowRepository = {
 
     // Update a role-window permission (or create if not exists)
     update: async (idRole, idWindow, flags) => {
+        // Prevent modification of admin role (idRole: 1)
+        if (Number(idRole) === 1) {
+            throw new Error('no se pueden modificar los permisos del rol administrador');
+        }
+
         const existing = await prisma.roleWindow.findUnique({
             where: {
                 idRole_idWindow: { idRole, idWindow },
@@ -184,15 +194,21 @@ const roleWindowRepository = {
     },
 
     // Delete a role-window permission by composite IDs
-    delete: (idRole, idWindow) => 
-        prisma.roleWindow.delete({
+    delete: (idRole, idWindow) => {
+        // Prevent deletion of admin role permissions (idRole: 1)
+        if (Number(idRole) === 1) {
+            throw new Error('no se pueden eliminar los permisos del rol administrador');
+        }
+        
+        return prisma.roleWindow.delete({
             where: {
                 idRole_idWindow: {   
                     idRole: Number(idRole),
                     idWindow: Number(idWindow),
                 }
             }
-        }),
+        });
+    },
     
 }
 
