@@ -27,6 +27,7 @@ const phoneRoutes = require('./modules/phone/phone.routes');
 const phoneSurvivorRoutes = require('./modules/phoneSurvivor/phoneSurvivor.routes');
 const phoneGodparentRoutes = require('./modules/phoneGodparent/phoneGodparent.routes');
 const phoneHeadquarterRoutes = require('./modules/phoneHeadquarter/phoneHeadquarter.routes');
+const phoneVolunteerRoutes = require('./modules/phoneVolunteer/phoneVolunteer.routes');
 const godParentRoutes = require('./modules/GodParent/godParent.routes');
 const activityRoutes = require('./modules/activity/activity.routes');
 const volunteerRoutes = require('./modules/volunteer/volunteer.routes');
@@ -52,6 +53,7 @@ function buildRoutes() {
     ...phoneSurvivorRoutes,
     ...phoneGodparentRoutes,
     ...phoneHeadquarterRoutes,
+    ...phoneVolunteerRoutes,
     ...godParentRoutes,
     ...activityRoutes,
     ...volunteerRoutes,
