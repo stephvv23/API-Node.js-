@@ -1,7 +1,7 @@
 // Controller for Category entity. Handles HTTP requests and responses, input validation, and calls the service layer.
 const { categoryService } = require('./category.service');
 const ApiError = require('../../../utils/apiResponse').ApiError;
-const { EntityValidators } = require('../../../utils/validator');
+const { EntityValidators, ValidationRules } = require('../../../utils/validator');
 const { SecurityLogService } = require('../../../services/securitylog.service');
 
 const categoryController = {
@@ -39,17 +39,21 @@ const categoryController = {
 
     // Create a new category, with input validation.
     create: async (req, res) => {
-        const { EntityValidators } = require('../../../utils/validator');
-        const validation = EntityValidators.category(req.body, { partial: false });
+
+        // Trim string fields to avoid whitespace issues
+        const trimmedBody = ValidationRules.trimStringFields(req.body);
+        
+        const validation = EntityValidators.category(trimmedBody, { partial: false });
+        
         if (!validation.isValid) {
             return res.validationErrors(validation.errors);
         }
         const allCategories = await categoryService.list({ status: 'all' });
-        if (allCategories.some(c => c.name === req.body.name)) {
+        if (allCategories.some(c => c.name === trimmedBody.name)) {
             return res.validationErrors(['Ya existe una categoría con ese nombre']);
         }
         try {
-            const newCategory = await categoryService.create(req.body);
+            const newCategory = await categoryService.create(trimmedBody);
 
             const userEmail = req.user?.sub;
             await SecurityLogService.log({
@@ -78,13 +82,16 @@ const categoryController = {
         if (!exists) {
             return res.notFound('Categoría');
         }
-        const { EntityValidators } = require('../../../utils/validator');
-        const validation = EntityValidators.category(req.body, { partial: true });
+        // Trim string fields to avoid whitespace issues
+        const trimmedBody = ValidationRules.trimStringFields(req.body);
+        
+        const validation = EntityValidators.category(trimmedBody, { partial: true });
+        
         if (!validation.isValid) {
             return res.validationErrors(validation.errors);
         }
-        if (req.body.name) {
-            const existName = await categoryService.findByName(req.body.name.trim());
+        if (trimmedBody.name) {
+            const existName = await categoryService.findByName(trimmedBody.name);
             const existId =
                 existName?.id ?? 
                 existName?.idCategory ?? 
@@ -100,7 +107,7 @@ const categoryController = {
         
         const userEmail = req.user?.sub;
         try {
-            const updatedCategory = await categoryService.update(id, req.body);
+            const updatedCategory = await categoryService.update(id, trimmedBody);
             const nameUnchanged = previousCategory.name === updatedCategory.name;
             const movedInactiveToActive =
             previousCategory.status === 'inactive' && updatedCategory.status === 'active';

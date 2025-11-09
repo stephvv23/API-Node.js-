@@ -10,16 +10,12 @@ const baseSelect = {
 const categoryRepository = {
 
     // List categories, optionally filtered by status, with pagination.
-    list: ({ status = 'active', take = 100, skip = 0 } = {}) => {
-        const where = status === 'all' ? {} : { status }; // list all categories if 'all'
+    list: async () => {
         return prisma.category.findMany({
-            where,
-            select: baseSelect,
             orderBy: {
                 name: 'asc'
             },
-            take,
-            skip,
+            select: baseSelect,
         });
     },
     // Get a category by its ID.

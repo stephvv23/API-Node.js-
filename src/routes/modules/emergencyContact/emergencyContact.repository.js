@@ -11,12 +11,25 @@ const baseSelect = {
   idEmergencyContact: true,
   nameEmergencyContact: true,
   emailEmergencyContact: true,
-  relationship: true,
+  identifier: true,
   status: true,
 };
 
 
 const EmergencyContactsRepository = {
+  // Finds a single emergency contact by email
+  findByEmail: (emailEmergencyContact) =>
+    prisma.emergencyContact.findFirst({
+      where: { emailEmergencyContact },
+      select: baseSelect,
+    }),
+
+  // Finds a single emergency contact by identifier
+  findByIdentifier: (identifier) =>
+    prisma.emergencyContact.findFirst({
+      where: { identifier },
+      select: baseSelect,
+    }),
   // Finds all emergency contacts
   findAll: async () => {
     return await prisma.emergencyContact.findMany({

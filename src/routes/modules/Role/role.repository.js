@@ -10,16 +10,12 @@ const baseSelect = {
 const roleRepository = {
 
     // List roles, optionally filtered by status, with pagination.
-    list: ({ status = 'active', take = 100, skip = 0 } = {} ) => {
-        const where = status === 'all' ? {} : { status };
+    list: () => {
         return prisma.role.findMany({
-            where, 
-            select: baseSelect,
             orderBy: {
                 rolName: 'asc'
             },
-            take,
-            skip,
+            select: baseSelect,
         });
     },
 
@@ -48,22 +44,38 @@ const roleRepository = {
         }),
 
     // Update a role by ID.
-    update: (id, data) =>
-        prisma.role.update({
-            where: { idRole: Number(id) },
+    update: (id, data) => {
+        const roleId = Number(id);
+        
+        // Prevent modification of admin role (idRole: 1)
+        if (roleId === 1) {
+            throw new Error('no se puede modificar el role admin');
+        }
+        
+        return prisma.role.update({
+            where: { idRole: roleId },
             data: {
-            rolName: data.rolName,
-            status : data.status
+                rolName: data.rolName,
+                status: data.status
             },
             select: baseSelect,
-        }),
+        });
+    },
     // Soft-delete a role (set status to 'inactive').
-    delete: (id) => 
-        prisma.role.update({
-            where: {idRole: Number(id)},
-            data: { status: 'inactive'},
+    delete: (id) => {
+        const roleId = Number(id);
+        
+        // Prevent deletion of admin role (idRole: 1)
+        if (roleId === 1) {
+            throw new Error('Cannot delete admin role');
+        }
+        
+        return prisma.role.update({
+            where: { idRole: roleId },
+            data: { status: 'inactive' },
             select: baseSelect,
-        }),
+        });
+    },
 };
 
 module.exports = { roleRepository };

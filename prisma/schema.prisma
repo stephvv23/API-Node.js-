@@ -383,6 +383,7 @@ model ActivitySurvivor {
 model EmergencyContactVolunteer {
   idEmergencyContact Int // Foreign key: references EmergencyContact.idEmergencyContact
   idVolunteer        Int // Foreign key: references Volunteer.idVolunteer
+  relationship       String @default("No especificado") @db.VarChar(50) // Relationship between volunteer and emergency contact
 
   // Relations
   emergencyContact EmergencyContact @relation(fields: [idEmergencyContact], references: [idEmergencyContact]) // Connects EmergencyContactVolunteer to EmergencyContact
