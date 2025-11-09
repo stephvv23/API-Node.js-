@@ -342,7 +342,6 @@ const SupplierController = {
   if (duplicateErrors.length > 0) return res.validationErrors(duplicateErrors);
 
   // ===== FETCH EXISTING SUPPLIER =====
-  
   const previousSupplierRaw = await SupplierService.findById(validId, { includeRelations: true });
   if (!previousSupplierRaw) return res.notFound('Proveedor');
   // Deep clone to guarantee snapshot
@@ -352,7 +351,50 @@ const SupplierController = {
   if (previousSupplier.status !== 'active' && !isReactivation) {
     return res.validationErrors(['No se puede actualizar un proveedor inactivo']);
   }
-  
+
+  // ===== VALIDATION FOR HEADQUARTERS AND CATEGORIES =====
+  const validationErrors = [];
+  if (Array.isArray(updateData.headquarters) && updateData.headquarters.length > 0) {
+    const missingHq = [];
+    const inactiveHq = [];
+    for (const hqId of updateData.headquarters) {
+      const hq = await prisma.headquarter.findUnique({ where: { idHeadquarter: Number(hqId) } });
+      if (!hq) {
+        missingHq.push(hqId);
+      } else if (hq.status !== 'active') {
+        inactiveHq.push({ id: hqId, name: hq.name });
+      }
+    }
+    missingHq.forEach(() => {
+      validationErrors.push('La sede con el id indicado no existe');
+    });
+    if (inactiveHq.length > 0) {
+      const inactiveNames = inactiveHq.map(hq => hq.name ? `${hq.name} (#${hq.id})` : `#${hq.id}`);
+      validationErrors.push(`Las siguientes sedes están inactivas: ${inactiveNames.join(', ')}`);
+    }
+  }
+  if (Array.isArray(updateData.categories) && updateData.categories.length > 0) {
+    const missingCat = [];
+    const inactiveCat = [];
+    for (const catId of updateData.categories) {
+      const cat = await prisma.category.findUnique({ where: { idCategory: Number(catId) } });
+      if (!cat) {
+        missingCat.push(catId);
+      } else if (cat.status !== 'active') {
+        inactiveCat.push({ id: catId, name: cat.name });
+      }
+    }
+    missingCat.forEach(() => {
+      validationErrors.push('La categoría con el id indicado no existe');
+    });
+    if (inactiveCat.length > 0) {
+      const inactiveNames = inactiveCat.map(cat => cat.name ? `${cat.name} (#${cat.id})` : `#${cat.id}`);
+      validationErrors.push(`Las siguientes categorías están inactivas: ${inactiveNames.join(', ')}`);
+    }
+  }
+  if (validationErrors.length > 0) {
+    return res.validationErrors(validationErrors);
+  }
 
   // ===== UPDATE MAIN SUPPLIER DATA =====
   await SupplierService.update(validId, updateData);
