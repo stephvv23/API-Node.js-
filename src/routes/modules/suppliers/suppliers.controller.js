@@ -48,8 +48,10 @@ const SupplierController = {
   // List all suppliers
   getAll: async (req, res, next) => {
     try {
-      const suppliers = await SupplierService.list();
-      return res.success(suppliers);
+        const suppliers = await SupplierService.list();
+        // Transform suppliers to include relational data for frontend
+        const transformed = suppliers.map(transformSupplierData);
+        return res.success(transformed);
     } catch (error) {
       console.error('[SUPPLIERS] getAll error:', error);
       return res.error('Error al obtener los proveedores');
@@ -345,17 +347,12 @@ const SupplierController = {
   if (!previousSupplierRaw) return res.notFound('Proveedor');
   // Deep clone to guarantee snapshot
   const previousSupplier = JSON.parse(JSON.stringify(previousSupplierRaw));
-  if (previousSupplier.status !== 'active') {
+  // Allow reactivation: if the only change is status from 'inactive' to 'active', permit update
+  const isReactivation = previousSupplier.status === 'inactive' && updateData.status === 'active';
+  if (previousSupplier.status !== 'active' && !isReactivation) {
     return res.validationErrors(['No se puede actualizar un proveedor inactivo']);
   }
-  // Extract previous relational values from the clone
-  // Defensive extraction: always use snapshot, fallback to 'Ninguna'/'Ninguno' if empty
-  const prevCats = previousSupplier.categorySupplier && previousSupplier.categorySupplier.length > 0
-    ? previousSupplier.categorySupplier.map(cs => cs.category && cs.category.name ? cs.category.name : `#${cs.category?.idCategory}`).join(', ') : 'Ninguna';
-  const prevHqs = previousSupplier.headquarterSupplier && previousSupplier.headquarterSupplier.length > 0
-    ? previousSupplier.headquarterSupplier.map(hs => hs.headquarter && hs.headquarter.name ? hs.headquarter.name : `#${hs.headquarter?.idHeadquarter}`).join(', ') : 'Ninguna';
-  const prevPhones = previousSupplier.phoneSupplier && previousSupplier.phoneSupplier.length > 0
-    ? previousSupplier.phoneSupplier.map(ps => ps.phone && ps.phone.phone ? ps.phone.phone : `#${ps.phone?.idPhone}`).join(', ') : 'Ninguno';
+  
 
   // ===== UPDATE MAIN SUPPLIER DATA =====
   await SupplierService.update(validId, updateData);
@@ -399,10 +396,6 @@ const SupplierController = {
     previousSupplier.paymentTerms === supplierWithRelations.paymentTerms &&
     previousSupplier.description === supplierWithRelations.description;
 
-    const newCats = supplierWithRelations.categorySupplier?.map(cs => cs.category?.name).join(', ') || 'Ninguna';
-    const newHqs = supplierWithRelations.headquarterSupplier?.map(hs => hs.headquarter?.name).join(', ') || 'Ninguna';
-    const newPhones = supplierWithRelations.phoneSupplier?.map(ps => ps.phone?.phone).join(', ') || 'Ninguno';
-
       if (onlyStatusChange) {
   
         await SecurityLogService.log({
@@ -414,28 +407,32 @@ const SupplierController = {
             `Número de identificación fiscal: "${supplierWithRelations.taxId}", ` +
             `Tipo: "${supplierWithRelations.type}", Email: "${supplierWithRelations.email}", ` +
             `Dirección: "${supplierWithRelations.address}", Términos de pago: "${supplierWithRelations.paymentTerms}", ` +
-            `Descripción: "${supplierWithRelations.description}", Estado: "${supplierWithRelations.status}".\n` +
-            `Categorías: [${newCats}]\nSedes: [${newHqs}]\nTeléfonos: [${newPhones}]`,
-          affectedTable: 'Supplier',
-        });
-      } else {
-        await SecurityLogService.log({
-          email: userEmail,
-          action: 'UPDATE',
-          description:
-            `Se actualizó el proveedor: ID "${validId}".\n` +
-            `Versión anterior: Nombre: "${previousSupplier.name}", ` +
-            `Número de identificación fiscal: "${previousSupplier.taxId}", ` +
-            `Tipo: "${previousSupplier.type}", Email: "${previousSupplier.email}", ` +
-            `Dirección: "${previousSupplier.address}", Términos de pago: "${previousSupplier.paymentTerms}", ` +
-            `Descripción: "${previousSupplier.description}", Estado: "${previousSupplier.status}".\n` +
-            `Nueva versión: Nombre: "${supplierWithRelations.name}", ` +
-            `Número de identificación fiscal: "${supplierWithRelations.taxId}", ` +
-            `Tipo: "${supplierWithRelations.type}", Email: "${supplierWithRelations.email}", ` +
-            `Dirección: "${supplierWithRelations.address}", Términos de pago: "${supplierWithRelations.paymentTerms}", ` +
             `Descripción: "${supplierWithRelations.description}", Estado: "${supplierWithRelations.status}".`,
           affectedTable: 'Supplier',
         });
+      } else {
+          const prevPhones = previousSupplier.phoneSupplier && previousSupplier.phoneSupplier.length > 0
+            ? previousSupplier.phoneSupplier.map(ps => ps.phone && ps.phone.phone ? ps.phone.phone : `#${ps.phone?.idPhone}`).join(', ') : 'Ninguno';
+          const newPhones = supplierWithRelations.phoneSupplier?.map(ps => ps.phone?.phone).join(', ') || 'Ninguno';
+          await SecurityLogService.log({
+            email: userEmail,
+            action: 'UPDATE',
+            description:
+              `Se actualizó el proveedor: ID "${validId}".\n` +
+              `Versión anterior: Nombre: "${previousSupplier.name}", ` +
+              `Número de identificación fiscal: "${previousSupplier.taxId}", ` +
+              `Tipo: "${previousSupplier.type}", Email: "${previousSupplier.email}", ` +
+              `Dirección: "${previousSupplier.address}", Términos de pago: "${previousSupplier.paymentTerms}", ` +
+              `Descripción: "${previousSupplier.description}", Estado: "${previousSupplier.status}", ` +
+              `Teléfonos: [${prevPhones}].\n` +
+              `Nueva versión: Nombre: "${supplierWithRelations.name}", ` +
+              `Número de identificación fiscal: "${supplierWithRelations.taxId}", ` +
+              `Tipo: "${supplierWithRelations.type}", Email: "${supplierWithRelations.email}", ` +
+              `Dirección: "${supplierWithRelations.address}", Términos de pago: "${supplierWithRelations.paymentTerms}", ` +
+              `Descripción: "${supplierWithRelations.description}", Estado: "${supplierWithRelations.status}", ` +
+              `Teléfonos: [${newPhones}]`,
+            affectedTable: 'Supplier',
+          });
       }
 
       const transformed = transformSupplierData(supplierWithRelations);
