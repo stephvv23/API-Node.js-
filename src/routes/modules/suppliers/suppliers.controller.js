@@ -404,7 +404,7 @@ const SupplierController = {
     const newPhones = supplierWithRelations.phoneSupplier?.map(ps => ps.phone?.phone).join(', ') || 'Ninguno';
 
       if (onlyStatusChange) {
-  // ...existing code...
+  
         await SecurityLogService.log({
           email: userEmail,
           action: 'REACTIVATE',
@@ -419,7 +419,6 @@ const SupplierController = {
           affectedTable: 'Supplier',
         });
       } else {
-  // ...existing code...
         await SecurityLogService.log({
           email: userEmail,
           action: 'UPDATE',
@@ -430,13 +429,11 @@ const SupplierController = {
             `Tipo: "${previousSupplier.type}", Email: "${previousSupplier.email}", ` +
             `Dirección: "${previousSupplier.address}", Términos de pago: "${previousSupplier.paymentTerms}", ` +
             `Descripción: "${previousSupplier.description}", Estado: "${previousSupplier.status}".\n` +
-            `Categorías anteriores: [${prevCats}]\nSedes anteriores: [${prevHqs}]\nTeléfonos anteriores: [${prevPhones}]\n` +
             `Nueva versión: Nombre: "${supplierWithRelations.name}", ` +
             `Número de identificación fiscal: "${supplierWithRelations.taxId}", ` +
             `Tipo: "${supplierWithRelations.type}", Email: "${supplierWithRelations.email}", ` +
             `Dirección: "${supplierWithRelations.address}", Términos de pago: "${supplierWithRelations.paymentTerms}", ` +
-            `Descripción: "${supplierWithRelations.description}", Estado: "${supplierWithRelations.status}".\n` +
-            `Nuevas categorías: [${newCats}]\nNuevas sedes: [${newHqs}]\nNuevos teléfonos: [${newPhones}]`,
+            `Descripción: "${supplierWithRelations.description}", Estado: "${supplierWithRelations.status}".`,
           affectedTable: 'Supplier',
         });
       }
@@ -823,12 +820,18 @@ const SupplierController = {
   if (ignored.length) message += `. Ignorados (inactivos): ${ignored.join(',')}`;
         // Security log for phone association
         const userEmail = req.user?.sub;
+          // Fetch phone numbers for log
+          const phonesForLog = await prisma.phone.findMany({
+            where: { idPhone: { in: validPhoneIds } },
+            select: { idPhone: true, phone: true }
+          });
+          const phoneDetails = phonesForLog.map(p => `ID: ${p.idPhone}, Número: ${p.phone}`).join('; ');
         await SecurityLogService.log({
           email: userEmail,
           action: 'ADD_PHONE',
-          description:
-            `Se asociaron teléfonos al proveedor: ID proveedor: "${id}", Teléfonos asociados: [${validPhoneIds.join(', ')}]` +
-            (ignored.length ? `. Ignorados (inactivos): [${ignored.join(', ')}]` : ''),
+            description:
+              `Se asociaron teléfonos al proveedor: ID proveedor: "${id}", Teléfonos asociados: [${phoneDetails}]` +
+              (ignored.length ? `. Ignorados (inactivos): [${ignored.join(', ')}]` : ''),
           affectedTable: 'Supplier',
         });
       return res.status(201).success(null, message);
@@ -862,12 +865,18 @@ const SupplierController = {
       await SupplierService.removePhones(validId, validPhoneIds);
         // Security log for phone removal
         const userEmail = req.user?.sub;
+          // Fetch phone numbers for log
+          const phonesForLog = await prisma.phone.findMany({
+            where: { idPhone: { in: validPhoneIds } },
+            select: { idPhone: true, phone: true }
+          });
+          const phoneDetails = phonesForLog.map(p => `ID: ${p.idPhone}, Número: ${p.phone}`).join('; ');
         await SecurityLogService.log({
           email: userEmail,
-          action: 'REMOVE_PHONE',
-          description:
-            `Se eliminaron teléfonos del proveedor: ID proveedor: "${id}", Teléfonos eliminados: [${validPhoneIds.join(', ')}]`,
-          affectedTable: 'Supplier',
+            action: 'REMOVE_PHONE',
+            description:
+              `Se eliminaron teléfonos del proveedor: ID proveedor: "${id}", Teléfonos eliminados: [${phoneDetails}]`,
+            affectedTable: 'Supplier',
         });
       return res.success(null, 'Teléfono(s) eliminado(s) del proveedor correctamente');
     } catch (error) {

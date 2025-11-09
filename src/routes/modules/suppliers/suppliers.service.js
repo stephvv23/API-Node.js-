@@ -4,6 +4,69 @@ const { SupplierRepository } = require('./suppliers.repository');
 
 
 const SupplierService = {
+  // Add phone strings (creates Phone records and links them)
+  addPhoneStrings: async (idSupplier, phoneStrings) => {
+    // Ensure supplier exists
+    const supplier = await SupplierRepository.findById(idSupplier);
+    if (!supplier) throw new Error('Supplier not found');
+
+    // Normalize input to array
+    const phones = Array.isArray(phoneStrings) ? phoneStrings : [phoneStrings];
+
+    // Filter out empty strings
+    const validPhones = phones.filter(p => p && p.trim());
+    if (validPhones.length === 0) return { addedCount: 0 };
+
+    // Create or get phone IDs for each phone string
+    const phoneIds = [];
+    for (const phoneStr of validPhones) {
+      const phoneRecord = await SupplierRepository.createOrGetPhone(phoneStr.trim());
+      phoneIds.push(phoneRecord.idPhone);
+    }
+
+    // Link phones to supplier - always use batch method for consistency
+    if (phoneIds.length > 0) {
+      await SupplierRepository.addPhones(idSupplier, phoneIds);
+    }
+
+    return { addedCount: phoneIds.length };
+  },
+  // Remove all phone relationships for a supplier
+  removeAllPhones: async (idSupplier) => {
+    const currentPhones = await SupplierRepository.getPhones(idSupplier);
+    if (!currentPhones || currentPhones.length === 0) return;
+    const phoneIds = currentPhones.map(item => item.phone.idPhone);
+    if (phoneIds.length === 1) {
+      await SupplierRepository.removePhone(idSupplier, phoneIds[0]);
+    } else if (phoneIds.length > 1) {
+      await SupplierRepository.removePhones(idSupplier, phoneIds);
+    }
+  },
+
+  // Remove all category relationships for a supplier
+  removeAllCategories: async (idSupplier) => {
+    const currentCategories = await SupplierRepository.getCategories(idSupplier);   
+    if (!currentCategories || currentCategories.length === 0) return;
+    const categoryIds = currentCategories.map(item => item.category.idCategory);
+    if (categoryIds.length === 1) {
+      await SupplierRepository.removeCategory(idSupplier, categoryIds[0]);
+    } else if (categoryIds.length > 1) {
+      await SupplierRepository.removeCategories(idSupplier, categoryIds);
+    }
+  },
+
+  // Remove all headquarter relationships for a supplier
+  removeAllHeadquarters: async (idSupplier) => {
+    const currentHeadquarters = await SupplierRepository.getHeadquarters(idSupplier);                   
+    if (!currentHeadquarters || currentHeadquarters.length === 0) return;
+    const headquarterIds = currentHeadquarters.map(item => item.headquarter.idHeadquarter);
+    if (headquarterIds.length === 1) {
+      await SupplierRepository.removeHeadquarter(idSupplier, headquarterIds[0]);
+    } else if (headquarterIds.length > 1) {
+      await SupplierRepository.removeHeadquarters(idSupplier, headquarterIds);
+    }
+  },
+
   // List all suppliers (active and inactive)
   list: async () => {
     return SupplierRepository.list();
