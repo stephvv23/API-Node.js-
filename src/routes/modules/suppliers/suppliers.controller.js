@@ -1,5 +1,3 @@
-
-
 const { SupplierService } = require('./suppliers.service'); // Import the SupplierService
 const { SecurityLogService } = require('../../../services/securitylog.service'); // Import SecurityLogService
 const { EntityValidators, ValidationRules } = require('../../../utils/validator'); // Import EntityValidators and ValidationRules
@@ -47,19 +45,13 @@ const SupplierController = {
     }
   },
 
-  // List all suppliers with optional status filter
+  // List all suppliers
   getAll: async (req, res, next) => {
     try {
-      const { status = 'active' } = req.query;
-      const allowed = ['active', 'inactive', 'all'];
-      if (!allowed.includes(status)) {
-        return res.validationErrors(['El estado debe ser "activo", "inactivo" o "todos"']);
-      }
-
-      const suppliers = await SupplierService.list({ status });
-      const transformed = suppliers.map(transformSupplierData);
-      return res.success(transformed);
+      const suppliers = await SupplierService.list();
+      return res.success(suppliers);
     } catch (error) {
+      console.error('[SUPPLIERS] getAll error:', error);
       return res.error('Error al obtener los proveedores');
     }
   },
@@ -128,6 +120,15 @@ const SupplierController = {
     );
     if (!validation.isValid) return res.validationErrors(validation.errors);
 
+    // Require at least one headquarter
+    if (!Array.isArray(headquarters) || headquarters.length === 0) {
+      return res.validationErrors(['Debe asignar al menos una sede al proveedor.']);
+    }
+    // Require at least one phone
+    if (!Array.isArray(phones) || phones.length === 0) {
+      return res.validationErrors(['Debe ingresar al menos un número de teléfono para el proveedor.']);
+    }
+
     try {
       // Check duplicates against ALL suppliers (active and inactive), normalized
       const allSuppliers = await SupplierService.list({ status: 'all' });
@@ -149,6 +150,50 @@ const SupplierController = {
         }
       }
       if (duplicateErrors.length > 0) return res.validationErrors(duplicateErrors);
+
+      // Validate headquarters and categories existence and active status together
+      const validationErrors = [];
+      if (Array.isArray(headquarters) && headquarters.length > 0) {
+        const missingHq = [];
+        const inactiveHq = [];
+        for (const hqId of headquarters) {
+          const hq = await prisma.headquarter.findUnique({ where: { idHeadquarter: Number(hqId) } });
+          if (!hq) {
+            missingHq.push(hqId);
+          } else if (hq.status !== 'active') {
+            inactiveHq.push({ id: hqId, name: hq.name });
+          }
+        }
+        missingHq.forEach(() => {
+          validationErrors.push('La sede con el id indicado no existe');
+        });
+        if (inactiveHq.length > 0) {
+          const inactiveNames = inactiveHq.map(hq => hq.name ? `${hq.name} (#${hq.id})` : `#${hq.id}`);
+          validationErrors.push(`Las siguientes sedes están inactivas: ${inactiveNames.join(', ')}`);
+        }
+      }
+      if (Array.isArray(categories) && categories.length > 0) {
+        const missingCat = [];
+        const inactiveCat = [];
+        for (const catId of categories) {
+          const cat = await prisma.category.findUnique({ where: { idCategory: Number(catId) } });
+          if (!cat) {
+            missingCat.push(catId);
+          } else if (cat.status !== 'active') {
+            inactiveCat.push({ id: catId, name: cat.name });
+          }
+        }
+        missingCat.forEach(() => {
+          validationErrors.push('La categoría con el id indicado no existe');
+        });
+        if (inactiveCat.length > 0) {
+          const inactiveNames = inactiveCat.map(cat => cat.name ? `${cat.name} (#${cat.id})` : `#${cat.id}`);
+          validationErrors.push(`Las siguientes categorías están inactivas: ${inactiveNames.join(', ')}`);
+        }
+      }
+      if (validationErrors.length > 0) {
+        return res.validationErrors(validationErrors);
+      }
 
       // Create supplier when no duplicates
       const newSupplier = await SupplierService.create({ name, taxId, type, email, address, paymentTerms, description, status });
@@ -173,13 +218,22 @@ const SupplierController = {
 
       // Fetch the complete supplier with all relationships
       const completeSupplier = await SupplierService.findById(supplierId);
+      const relatedCats = completeSupplier.categorySupplier?.map(cs => cs.category?.name).join(', ') || 'Ninguna';
+      const relatedHqs = completeSupplier.headquarterSupplier?.map(hs => hs.headquarter?.name).join(', ') || 'Ninguna';
+      const relatedPhones = completeSupplier.phoneSupplier?.map(ps => ps.phone?.phone).join(', ') || 'Ninguno';
+
 
       // Log creation action
       const userEmail = req.user?.sub;
       await SecurityLogService.log({
         email: userEmail,
         action: 'CREATE',
-        description: `Se creó el proveedor: ID: "${completeSupplier.idSupplier}", Nombre: "${completeSupplier.name}", Número de identificación fiscal: "${completeSupplier.taxId}", Tipo: "${completeSupplier.type}", Email: "${completeSupplier.email}", Dirección: "${completeSupplier.address}", Términos de pago: "${completeSupplier.paymentTerms}", Descripción: "${completeSupplier.description}", Estado: "${completeSupplier.status}".`,
+        description: `Se creó el proveedor: ID: "${completeSupplier.idSupplier}", Nombre: "${completeSupplier.name}", 
+        Número de identificación fiscal: "${completeSupplier.taxId}", 
+        Tipo: "${completeSupplier.type}", Email: "${completeSupplier.email}", 
+        Dirección: "${completeSupplier.address}", Términos de pago: "${completeSupplier.paymentTerms}", 
+        Descripción: "${completeSupplier.description}", Estado: "${completeSupplier.status}, 
+        "Categorías: "[${relatedCats}]" "\nSedes: "[${relatedHqs}]" "\nTeléfonos: [${relatedPhones}]`,
         affectedTable: 'Supplier',
       });
 
@@ -244,113 +298,156 @@ const SupplierController = {
     const validation = EntityValidators.supplier(updateData, { partial: true });
   if (!validation.isValid) return res.validationErrors(validation.errors);
 
-    try {
-      // ===== DUPLICATE CHECKS (ALL SUPPLIERS, NORMALIZED, EXCLUDE SELF, IGNORE IF SAME AS CURRENT) =====
-      const allSuppliers = await SupplierService.list({ status: 'all' });
-      const duplicateErrors = [];
+  try {
+    // ===== DUPLICATE CHECKS =====
+    const allSuppliers = await SupplierService.list({ status: 'all' });
+    const duplicateErrors = [];
+    const norm = v => (typeof v === 'string' ? v.trim().toLowerCase() : '');
+    const selfId = validId;
+    const currentSupplier = allSuppliers.find(s => s.idSupplier === selfId);
 
-      // Normalize helper
-      const norm = v => (typeof v === 'string' ? v.trim().toLowerCase() : '');
-      const selfId = validId;
-      const currentSupplier = allSuppliers.find(s => s.idSupplier === selfId);
-
-
-      // Check for name duplicate (excluding self, normalized, ignore if same as current)
-      if (updateData.name) {
-        const normName = norm(updateData.name);
-        const currentNormName = currentSupplier ? norm(currentSupplier.name) : null;
-        if (normName !== currentNormName) {
-          if (allSuppliers.some(s => norm(s.name) === normName && s.idSupplier !== selfId)) {
-            duplicateErrors.push('Ya existe un proveedor con este nombre');
-          }
-        }
+  // ---- Duplicate validation ----
+  if (updateData.name) {
+    const normName = norm(updateData.name);
+    const currentNormName = currentSupplier ? norm(currentSupplier.name) : null;
+    if (normName !== currentNormName) {
+      if (allSuppliers.some(s => norm(s.name) === normName && s.idSupplier !== selfId)) {
+        duplicateErrors.push('Ya existe un proveedor con este nombre');
       }
+    }
+  }
 
-      // Check for email duplicate (excluding self, normalized, ignore if same as current)
-      if (updateData.email) {
-        const normEmail = norm(updateData.email);
-        const currentNormEmail = currentSupplier ? norm(currentSupplier.email) : null;
-        if (normEmail !== currentNormEmail) {
-          if (allSuppliers.some(s => norm(s.email) === normEmail && s.idSupplier !== selfId)) {
-            duplicateErrors.push('Ya existe un proveedor con este correo');
-          }
-        }
+  if (updateData.email) {
+    const normEmail = norm(updateData.email);
+    const currentNormEmail = currentSupplier ? norm(currentSupplier.email) : null;
+    if (normEmail !== currentNormEmail) {
+      if (allSuppliers.some(s => norm(s.email) === normEmail && s.idSupplier !== selfId)) {
+        duplicateErrors.push('Ya existe un proveedor con este correo');
       }
+    }
+  }
 
-      // Check for taxId duplicate (excluding self, normalized, and ignoring 'Indefinido', ignore if same as current)
-      if (updateData.taxId && norm(updateData.taxId) !== 'indefinido') {
-        const normTaxId = norm(updateData.taxId);
-        const currentNormTaxId = currentSupplier ? norm(currentSupplier.taxId) : null;
-        if (normTaxId !== currentNormTaxId) {
-          if (allSuppliers.some(s => norm(s.taxId) === normTaxId && s.idSupplier !== selfId)) {
-            duplicateErrors.push('Ya existe un proveedor con este número de identificación fiscal');
-          }
-        }
+  if (updateData.taxId && norm(updateData.taxId) !== 'indefinido') {
+    const normTaxId = norm(updateData.taxId);
+    const currentNormTaxId = currentSupplier ? norm(currentSupplier.taxId) : null;
+    if (normTaxId !== currentNormTaxId) {
+      if (allSuppliers.some(s => norm(s.taxId) === normTaxId && s.idSupplier !== selfId)) {
+        duplicateErrors.push('Ya existe un proveedor con este número de identificación fiscal');
       }
+    }
+  }
 
-      // If any duplicates found, return validation errors
-      if (duplicateErrors.length > 0) return res.validationErrors(duplicateErrors);
+  if (duplicateErrors.length > 0) return res.validationErrors(duplicateErrors);
 
-      // ===== FETCH EXISTING SUPPLIER =====
-      const previousSupplier = await SupplierService.findById(validId);
-  if (!previousSupplier) return res.notFound('Proveedor');
+  // ===== FETCH EXISTING SUPPLIER =====
+  
+  const previousSupplierRaw = await SupplierService.findById(validId, { includeRelations: true });
+  if (!previousSupplierRaw) return res.notFound('Proveedor');
+  // Deep clone to guarantee snapshot
+  const previousSupplier = JSON.parse(JSON.stringify(previousSupplierRaw));
+  if (previousSupplier.status !== 'active') {
+    return res.validationErrors(['No se puede actualizar un proveedor inactivo']);
+  }
+  // Extract previous relational values from the clone
+  // Defensive extraction: always use snapshot, fallback to 'Ninguna'/'Ninguno' if empty
+  const prevCats = previousSupplier.categorySupplier && previousSupplier.categorySupplier.length > 0
+    ? previousSupplier.categorySupplier.map(cs => cs.category && cs.category.name ? cs.category.name : `#${cs.category?.idCategory}`).join(', ') : 'Ninguna';
+  const prevHqs = previousSupplier.headquarterSupplier && previousSupplier.headquarterSupplier.length > 0
+    ? previousSupplier.headquarterSupplier.map(hs => hs.headquarter && hs.headquarter.name ? hs.headquarter.name : `#${hs.headquarter?.idHeadquarter}`).join(', ') : 'Ninguna';
+  const prevPhones = previousSupplier.phoneSupplier && previousSupplier.phoneSupplier.length > 0
+    ? previousSupplier.phoneSupplier.map(ps => ps.phone && ps.phone.phone ? ps.phone.phone : `#${ps.phone?.idPhone}`).join(', ') : 'Ninguno';
 
-      // ===== UPDATE SUPPLIER (main fields) =====
-      const updatedSupplier = await SupplierService.update(validId, updateData);
-      const userEmail = req.user?.sub; // Get current user email for logging
+  // ===== UPDATE MAIN SUPPLIER DATA =====
+  await SupplierService.update(validId, updateData);
 
-      // ===== PHONES UPDATE LOGIC =====
-      if (Array.isArray(updateData.phones)) {
-        // Remove all old phone relationships
-        await SupplierService.removeAllPhones(validId);
-        // Add new phones (if any)
-        if (updateData.phones.length > 0) {
-          await SupplierService.addPhoneStrings(validId, updateData.phones);
-        }
-      }
+  // ===== UPDATE RELATIONSHIPS =====
+  if (Array.isArray(updateData.phones)) {
+    await SupplierService.removeAllPhones(validId);
+    if (updateData.phones.length > 0) {
+      await SupplierService.addPhoneStrings(validId, updateData.phones);
+    }
+  }
 
-      // ===== LOGGING =====
-      // Detect if only status changed from inactive to active
-      const onlyStatusChange =
-        previousSupplier.status === 'inactive' &&
-        updatedSupplier.status === 'active' &&
-        previousSupplier.name === updatedSupplier.name &&
-        previousSupplier.email === updatedSupplier.email &&
-        previousSupplier.taxId === updatedSupplier.taxId &&
-        previousSupplier.type === updatedSupplier.type &&
-        previousSupplier.address === updatedSupplier.address &&
-        previousSupplier.paymentTerms === updatedSupplier.paymentTerms &&
-        previousSupplier.description === updatedSupplier.description;
+  if (Array.isArray(updateData.categories)) {
+    await SupplierService.removeAllCategories(validId);
+    if (updateData.categories.length > 0) {
+      await SupplierService.addCategories(validId, updateData.categories);
+    }
+  }
 
-      // If only status changed, log as REACTIVATE
+  if (Array.isArray(updateData.headquarters)) {
+    await SupplierService.removeAllHeadquarters(validId);
+    if (updateData.headquarters.length > 0) {
+      await SupplierService.addHeadquarters(validId, updateData.headquarters);
+    }
+  }
+
+    // ===== FETCH UPDATED SUPPLIER WITH RELATIONS =====
+    const supplierWithRelations = await SupplierService.findById(validId, { includeRelations: true });
+    const userEmail = req.user?.sub;
+
+  // ===== LOGGING =====
+    const onlyStatusChange =
+  // ...existing code...
+    previousSupplier.status === 'inactive' &&
+    supplierWithRelations.status === 'active' &&
+    previousSupplier.name === supplierWithRelations.name &&
+    previousSupplier.email === supplierWithRelations.email &&
+    previousSupplier.taxId === supplierWithRelations.taxId &&
+    previousSupplier.type === supplierWithRelations.type &&
+    previousSupplier.address === supplierWithRelations.address &&
+    previousSupplier.paymentTerms === supplierWithRelations.paymentTerms &&
+    previousSupplier.description === supplierWithRelations.description;
+
+    const newCats = supplierWithRelations.categorySupplier?.map(cs => cs.category?.name).join(', ') || 'Ninguna';
+    const newHqs = supplierWithRelations.headquarterSupplier?.map(hs => hs.headquarter?.name).join(', ') || 'Ninguna';
+    const newPhones = supplierWithRelations.phoneSupplier?.map(ps => ps.phone?.phone).join(', ') || 'Ninguno';
+
       if (onlyStatusChange) {
+  // ...existing code...
         await SecurityLogService.log({
           email: userEmail,
           action: 'REACTIVATE',
-          description: `Se reactivó el proveedor: ID "${updatedSupplier.idSupplier}", Nombre: "${updatedSupplier.name}", Número de identificación fiscal: "${updatedSupplier.taxId}", Tipo: "${updatedSupplier.type}", Email: "${updatedSupplier.email}", Dirección: "${updatedSupplier.address}", Términos de pago: "${updatedSupplier.paymentTerms}", Descripción: "${updatedSupplier.description}", Estado: "${updatedSupplier.status}".`,
+          description:
+            `Se reactivó el proveedor: ID "${supplierWithRelations.idSupplier}", ` +
+            `Nombre: "${supplierWithRelations.name}", ` +
+            `Número de identificación fiscal: "${supplierWithRelations.taxId}", ` +
+            `Tipo: "${supplierWithRelations.type}", Email: "${supplierWithRelations.email}", ` +
+            `Dirección: "${supplierWithRelations.address}", Términos de pago: "${supplierWithRelations.paymentTerms}", ` +
+            `Descripción: "${supplierWithRelations.description}", Estado: "${supplierWithRelations.status}".\n` +
+            `Categorías: [${newCats}]\nSedes: [${newHqs}]\nTeléfonos: [${newPhones}]`,
           affectedTable: 'Supplier',
         });
       } else {
-        // Otherwise, log as UPDATE with detailed before/after values
+  // ...existing code...
         await SecurityLogService.log({
           email: userEmail,
           action: 'UPDATE',
           description:
             `Se actualizó el proveedor: ID "${validId}".\n` +
-            `Versión anterior: Nombre: "${previousSupplier.name}", Número de identificación fiscal: "${previousSupplier.taxId}", Tipo: "${previousSupplier.type}", Email: "${previousSupplier.email}", Dirección: "${previousSupplier.address}", Términos de pago: "${previousSupplier.paymentTerms}", Descripción: "${previousSupplier.description}", Estado: "${previousSupplier.status}".\n` +
-            `Nueva versión: Nombre: "${updatedSupplier.name}", Número de identificación fiscal: "${updatedSupplier.taxId}", Tipo: "${updatedSupplier.type}", Email: "${updatedSupplier.email}", Dirección: "${updatedSupplier.address}", Términos de pago: "${updatedSupplier.paymentTerms}", Descripción: "${updatedSupplier.description}", Estado: "${updatedSupplier.status}".`,
+            `Versión anterior: Nombre: "${previousSupplier.name}", ` +
+            `Número de identificación fiscal: "${previousSupplier.taxId}", ` +
+            `Tipo: "${previousSupplier.type}", Email: "${previousSupplier.email}", ` +
+            `Dirección: "${previousSupplier.address}", Términos de pago: "${previousSupplier.paymentTerms}", ` +
+            `Descripción: "${previousSupplier.description}", Estado: "${previousSupplier.status}".\n` +
+            `Categorías anteriores: [${prevCats}]\nSedes anteriores: [${prevHqs}]\nTeléfonos anteriores: [${prevPhones}]\n` +
+            `Nueva versión: Nombre: "${supplierWithRelations.name}", ` +
+            `Número de identificación fiscal: "${supplierWithRelations.taxId}", ` +
+            `Tipo: "${supplierWithRelations.type}", Email: "${supplierWithRelations.email}", ` +
+            `Dirección: "${supplierWithRelations.address}", Términos de pago: "${supplierWithRelations.paymentTerms}", ` +
+            `Descripción: "${supplierWithRelations.description}", Estado: "${supplierWithRelations.status}".\n` +
+            `Nuevas categorías: [${newCats}]\nNuevas sedes: [${newHqs}]\nNuevos teléfonos: [${newPhones}]`,
           affectedTable: 'Supplier',
         });
       }
 
-      // Fetch the updated supplier with all relationships
-      const supplierWithRelations = await SupplierService.findById(validId);
-      // Transform and return success response
       const transformed = transformSupplierData(supplierWithRelations);
       return res.success(transformed, 'Proveedor actualizado exitosamente');
+
     } catch (error) {
-      return res.error('Error al actualizar el proveedor');
+      return res.error('Error al actualizar el proveedor', error);
     }
+
   },
 
   // Delete (inactivate) supplier
@@ -374,11 +471,28 @@ const SupplierController = {
       const deletedSupplier = await SupplierService.remove(validId); // Soft delete (inactivate) supplier
       const userEmail = req.user?.sub; // Get user email for logging
 
+      //Get supplier with relations for detailed logging
+      const cats = deletedSupplier.categorySupplier?.map(cs => cs.category?.name).join(', ') || 'Ninguna';
+      const hqs = deletedSupplier.headquarterSupplier?.map(hs => hs.headquarter?.name).join(', ') || 'Ninguna';
+      const phones = deletedSupplier.phoneSupplier?.map(ps => ps.phone?.phone).join(', ') || 'Ninguno';
+
       // Log inactivation action
       await SecurityLogService.log({
         email: userEmail,
         action: 'INACTIVE',
-        description: `Se inactivó el proveedor: ID "${validId}", Nombre: "${deletedSupplier.name}", Número de identificación fiscal: "${deletedSupplier.taxId}", Tipo: "${deletedSupplier.type}", Email: "${deletedSupplier.email}", Dirección: "${deletedSupplier.address}", Términos de pago: "${deletedSupplier.paymentTerms}", Descripción: "${deletedSupplier.description}", Estado: "${deletedSupplier.status}".`,
+        description: `Se inactivó el proveedor:
+        ID: "${deletedSupplier.idSupplier}"
+        Nombre: "${deletedSupplier.name}"
+        Número de identificación fiscal: "${deletedSupplier.taxId}"
+        Tipo: "${deletedSupplier.type}"
+        Email: "${deletedSupplier.email}"
+        Dirección: "${deletedSupplier.address}"
+        Términos de pago: "${deletedSupplier.paymentTerms}"
+        Descripción: "${deletedSupplier.description}"
+        Estado: "${deletedSupplier.status}"
+        Categorías: [${cats}]
+        Sedes: [${hqs}]
+        Teléfonos: [${phones}]`,
         affectedTable: 'Supplier',
       });
 
@@ -500,6 +614,16 @@ const SupplierController = {
       // Prepare a message explaining what happened
       let message = 'Sede(s) asociada(s) correctamente al proveedor';
       if (ignored.length) message += `. Ignoradas (inactivas): ${ignored.join(',')}`;
+        // Security log for headquarter association
+        const userEmail = req.user?.sub;
+        await SecurityLogService.log({
+          email: userEmail,
+          action: 'ADD_HEADQUARTER',
+          description:
+            `Se asociaron sedes al proveedor: ID proveedor: "${id}", Sedes asociadas: [${validHqIds.join(', ')}]` +
+            (ignored.length ? `. Ignoradas (inactivas): [${ignored.join(', ')}]` : ''),
+          affectedTable: 'Supplier',
+        });
       return res.status(201).success(null, message); // Send a success response with status 201
     } catch (error) {
       // Handle specific error cases with clear messages
@@ -533,6 +657,15 @@ const SupplierController = {
     try {
       // Remove the headquarters relationships using the service
       await SupplierService.removeHeadquarters(validId, validHqIds);
+        // Security log for headquarter removal
+        const userEmail = req.user?.sub;
+        await SecurityLogService.log({
+          email: userEmail,
+          action: 'REMOVE_HEADQUARTER',
+          description:
+            `Se eliminaron sedes del proveedor: ID proveedor: "${id}", Sedes eliminadas: [${validHqIds.join(', ')}]`,
+          affectedTable: 'Supplier',
+        });
       return res.success(null, 'Sede(s) eliminada(s) del proveedor con éxito');
     } catch (error) {
   if (error.code === 'P2025') return res.notFound('Relación proveedor-sede no encontrada'); // Specific error if relation not found
@@ -589,6 +722,16 @@ const SupplierController = {
 
   let message = 'Categoría(s) asociada(s) correctamente al proveedor';
   if (ignored.length) message += `. Ignoradas (inactivas): ${ignored.join(',')}`;
+        // Security log for category association
+        const userEmail = req.user?.sub;
+        await SecurityLogService.log({
+          email: userEmail,
+          action: 'ADD_CATEGORY',
+          description:
+            `Se asociaron categorías al proveedor: ID proveedor: "${id}", Categorías asociadas: [${validCatIds.join(', ')}]` +
+            (ignored.length ? `. Ignoradas (inactivas): [${ignored.join(', ')}]` : ''),
+          affectedTable: 'Supplier',
+        });
       return res.status(201).success(null, message);
     } catch (error) {
       if (error.message === 'Supplier not found') return res.notFound('Proveedor');
@@ -619,6 +762,15 @@ const SupplierController = {
     try {
       // Remove categories using the service
       await SupplierService.removeCategories(validId, validCatIds);
+        // Security log for category removal
+        const userEmail = req.user?.sub;
+        await SecurityLogService.log({
+          email: userEmail,
+          action: 'REMOVE_CATEGORY',
+          description:
+            `Se eliminaron categorías del proveedor: ID proveedor: "${id}", Categorías eliminadas: [${validCatIds.join(', ')}]`,
+          affectedTable: 'Supplier',
+        });
       return res.success(null, 'Categoría(s) eliminada(s) del proveedor exitosamente');
     } catch (error) {
   if (error.code === 'P2025') return res.notFound('Relación proveedor-categoría no encontrada');
@@ -669,6 +821,16 @@ const SupplierController = {
 
   let message = 'Teléfono(s) asociado(s) correctamente al proveedor';
   if (ignored.length) message += `. Ignorados (inactivos): ${ignored.join(',')}`;
+        // Security log for phone association
+        const userEmail = req.user?.sub;
+        await SecurityLogService.log({
+          email: userEmail,
+          action: 'ADD_PHONE',
+          description:
+            `Se asociaron teléfonos al proveedor: ID proveedor: "${id}", Teléfonos asociados: [${validPhoneIds.join(', ')}]` +
+            (ignored.length ? `. Ignorados (inactivos): [${ignored.join(', ')}]` : ''),
+          affectedTable: 'Supplier',
+        });
       return res.status(201).success(null, message);
     } catch (error) {
       if (error.message === 'Supplier not found') return res.notFound('Proveedor');
@@ -698,6 +860,15 @@ const SupplierController = {
     try {
       // Remove phones using the service
       await SupplierService.removePhones(validId, validPhoneIds);
+        // Security log for phone removal
+        const userEmail = req.user?.sub;
+        await SecurityLogService.log({
+          email: userEmail,
+          action: 'REMOVE_PHONE',
+          description:
+            `Se eliminaron teléfonos del proveedor: ID proveedor: "${id}", Teléfonos eliminados: [${validPhoneIds.join(', ')}]`,
+          affectedTable: 'Supplier',
+        });
       return res.success(null, 'Teléfono(s) eliminado(s) del proveedor correctamente');
     } catch (error) {
   if (error.code === 'P2025') return res.notFound('Relación proveedor-teléfono no encontrada');
@@ -705,7 +876,6 @@ const SupplierController = {
     }
   },
 
-    
 
     
   };//End of SupplierController

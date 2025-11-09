@@ -29,7 +29,7 @@ const baseSelect = {
     }
   },
 
-  // Nested relationship: Supplier → CategorySupplier → Category
+  // Nested relationship: Supplier → HeadquarterSupplier → Headquarter
   headquarterSupplier: {
     select: {
       idHeadquarter: true,
@@ -64,17 +64,13 @@ const baseSelect = {
 // SupplierRepository encapsulates all database operations related to suppliers
 const SupplierRepository = {
 
-  // Lists suppliers with optional status, pagination, and ordering
-  list: ({ status = 'active', take = 100, skip = 0 } = {}) => {
-    const where = status === 'all' ? {} : { status };
+  // Lists all suppliers (active and inactive)
+  list: () => {
     return prisma.supplier.findMany({
-      where,
       select: baseSelect,
       orderBy: {
         name: 'asc'
       },
-      take,
-      skip,
     });
   },
 
@@ -86,11 +82,22 @@ const SupplierRepository = {
     }),
 
   // Find supplier by ID
-  findById: (id) =>
-    prisma.supplier.findUnique({
-      where: { idSupplier: Number(id) },
-      select: baseSelect
-    }),
+   findById: async (id) => {
+    return prisma.supplier.findUnique({
+      where: { idSupplier: id },
+      include: {
+        categorySupplier: {
+          include: { category: true },
+        },
+        headquarterSupplier: {
+          include: { headquarter: true },
+        },
+        phoneSupplier: {
+          include: { phone: true },
+        },
+      },
+    });
+  },
 
   // Find supplier by name
   findByName: (name) =>
