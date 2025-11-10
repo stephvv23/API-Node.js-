@@ -32,17 +32,12 @@ class PasswordRecoveryController {
     } catch (error) {
       console.error('Error en requestPasswordReset:', error);
       
-      // Handle user not found as Bad Request
-      if (error.message.includes('no está registrado en el sistema')) {
-        return res.error(error.message, 400);
-      }
-      
-      // Handle inactive account as Bad Request
-      if (error.message.includes('No se puede recuperar la contraseña')) {
-        return res.error(error.message, 400);
-      }
-      
-      return res.error('Error al procesar la solicitud de recuperación', 500);
+      // Security: Always return generic message to prevent email enumeration
+      // Don't reveal if user exists or account status
+      return res.success(
+        { success: true },
+        'Si el correo electrónico está registrado, recibirás las instrucciones para restablecer tu contraseña'
+      );
     }
   }
 
