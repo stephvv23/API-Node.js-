@@ -658,7 +658,7 @@ const SupplierController = {
           description:
             `Se asociaron sedes al proveedor: ID proveedor: "${id}", Sedes asociadas: [${validHqIds.join(', ')}]` +
             (ignored.length ? `. Ignoradas (inactivas): [${ignored.join(', ')}]` : ''),
-          affectedTable: 'Supplier',
+          affectedTable: 'headquarterSupplier',
         });
       return res.status(201).success(null, message); // Send a success response with status 201
     } catch (error) {
@@ -700,7 +700,7 @@ const SupplierController = {
           action: 'REMOVE_HEADQUARTER',
           description:
             `Se eliminaron sedes del proveedor: ID proveedor: "${id}", Sedes eliminadas: [${validHqIds.join(', ')}]`,
-          affectedTable: 'Supplier',
+          affectedTable: 'headquarterSupplier',
         });
       return res.success(null, 'Sede(s) eliminada(s) del proveedor con éxito');
     } catch (error) {
@@ -766,7 +766,7 @@ const SupplierController = {
           description:
             `Se asociaron categorías al proveedor: ID proveedor: "${id}", Categorías asociadas: [${validCatIds.join(', ')}]` +
             (ignored.length ? `. Ignoradas (inactivas): [${ignored.join(', ')}]` : ''),
-          affectedTable: 'Supplier',
+          affectedTable: 'categorySupplier',
         });
       return res.status(201).success(null, message);
     } catch (error) {
@@ -805,7 +805,7 @@ const SupplierController = {
           action: 'REMOVE_CATEGORY',
           description:
             `Se eliminaron categorías del proveedor: ID proveedor: "${id}", Categorías eliminadas: [${validCatIds.join(', ')}]`,
-          affectedTable: 'Supplier',
+          affectedTable: 'categorySupplier',
         });
       return res.success(null, 'Categoría(s) eliminada(s) del proveedor exitosamente');
     } catch (error) {
@@ -871,7 +871,7 @@ const SupplierController = {
             description:
               `Se asociaron teléfonos al proveedor: ID proveedor: "${id}", Teléfonos asociados: [${phoneDetails}]` +
               (ignored.length ? `. Ignorados (inactivos): [${ignored.join(', ')}]` : ''),
-          affectedTable: 'Supplier',
+          affectedTable: 'phoneSupplier',
         });
       return res.status(201).success(null, message);
     } catch (error) {
@@ -915,7 +915,7 @@ const SupplierController = {
             action: 'REMOVE_PHONE',
             description:
               `Se eliminaron teléfonos del proveedor: ID proveedor: "${id}", Teléfonos eliminados: [${phoneDetails}]`,
-            affectedTable: 'Supplier',
+            affectedTable: 'phoneSupplier',
         });
       return res.success(null, 'Teléfono(s) eliminado(s) del proveedor correctamente');
     } catch (error) {
