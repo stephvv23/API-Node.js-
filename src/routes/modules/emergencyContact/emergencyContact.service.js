@@ -5,6 +5,11 @@ const { EmergencyContactsRepository } = require('./emergencyContact.repository')
 // EmergencyContactsService contains the business logic for emergency contacts.
 // It interacts with EmergencyContactsRepository for all database actions.
 const EmergencyContactsService = {
+  // Find emergency contact by email
+  getByEmail: (emailEmergencyContact) => EmergencyContactsRepository.findByEmail(emailEmergencyContact),
+
+  // Find emergency contact by identifier
+  getByIdentifier: (identifier) => EmergencyContactsRepository.findByIdentifier(identifier),
   // Returns a list of all emergency contacts
   list: () => EmergencyContactsRepository.findAll(),
 
