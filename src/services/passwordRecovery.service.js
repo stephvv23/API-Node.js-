@@ -29,7 +29,7 @@ class PasswordRecoveryService {
 
       // Verify that the user is active
       if (user.status !== 'active') {
-        throw new Error(`No se puede recuperar la contraseña. El estado de la cuenta es: ${user.status}`);
+        throw new Error('La cuenta no está activa');
       }
 
       // Generate unique and secure token
@@ -193,7 +193,6 @@ class PasswordRecoveryService {
         }
       });
 
-      console.log(`🧹 Cleaned tokens: ${result.count}`);
       return result;
     } catch (error) {
       console.error('Error en cleanExpiredTokens:', error);

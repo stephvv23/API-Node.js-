@@ -26,19 +26,6 @@ const emailConfig = {
 // Create transporter
 const transporter = nodemailer.createTransport(emailConfig);
 
-// Verify connection only if credentials are configured
-if (process.env.EMAIL_USER && process.env.EMAIL_USER !== 'tu-email@gmail.com') {
-  transporter.verify((error, success) => {
-    if (error) {
-      console.warn('⚠️  Warning: Email not configured correctly.');
-      console.warn('   Configure EMAIL_USER and EMAIL_PASSWORD in .env to send emails.');
-    } else {
-      console.log('✅ Email server ready to send messages');
-    }
-  });
-} else {
-  console.warn('⚠️  Email not configured. Emails will be simulated in console.');
-}
 
 module.exports = {
   transporter,
