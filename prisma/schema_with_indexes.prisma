@@ -1,5 +1,5 @@
 // This is your Prisma schema file with optimized indexes
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// Learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
   provider = "prisma-client-js"
@@ -23,7 +23,8 @@ model User {
   headquarterUser HeadquarterUser[]
   
   // Indexes
-  @@index([status]) // Filtrado frecuente por estado
+  @@index([status]) // Frequent filtering by status
+  @@index([status, email]) // Active users search (composite)
 }
 
 model LoginAccess {
@@ -34,8 +35,9 @@ model LoginAccess {
   user User @relation(fields: [email], references: [email])
   
   // Indexes
-  @@index([email]) // FK lookup
-  @@index([date]) // Búsquedas por rango de fechas
+  @@index([email]) // Foreign key lookup
+  @@index([date]) // Date range searches
+  @@index([email, date]) // User access history (composite)
 }
 
 model SecurityLog {
@@ -49,10 +51,13 @@ model SecurityLog {
   user User @relation(fields: [email], references: [email])
   
   // Indexes
-  @@index([email]) // FK lookup
-  @@index([date]) // Búsquedas por fecha
-  @@index([affectedTable]) // Filtrado por tabla afectada
-  @@index([email, date]) // Auditorías por usuario y fecha (compuesto)
+  @@index([email]) // Foreign key lookup
+  @@index([date]) // Date searches
+  @@index([affectedTable]) // Filter by affected table
+  @@index([action]) // Filter by action type
+  @@index([email, date]) // User and date audits (composite)
+  @@index([affectedTable, date]) // Table and date audits (composite)
+  @@index([affectedTable, action]) // Table and action audits (composite)
 }
 
 model Role {
@@ -64,7 +69,7 @@ model Role {
   windows RoleWindow[]
   
   // Indexes
-  @@index([status]) // Filtrado por estado
+  @@index([status]) // Filter by status
 }
 
 model Window {
@@ -75,7 +80,7 @@ model Window {
   roles RoleWindow[]
   
   // Indexes
-  @@index([status]) // Filtrado por estado
+  @@index([status]) // Filter by status
 }
 
 model UserRole {
@@ -86,7 +91,7 @@ model UserRole {
   user User @relation(fields: [email], references: [email])
 
   @@id([idRole, email])
-  @@index([email]) // Búsquedas inversas por usuario
+  @@index([email]) // Reverse lookup by user
 }
 
 model RoleWindow {
@@ -101,7 +106,7 @@ model RoleWindow {
   window Window @relation(fields: [idWindow], references: [idWindow])
 
   @@id([idRole, idWindow])
-  @@index([idWindow]) // Búsquedas inversas por ventana
+  @@index([idWindow]) // Reverse lookup by window
 }
 
 model Asset {
@@ -117,10 +122,13 @@ model Asset {
     headquarter  Headquarter  @relation(fields: [idHeadquarter], references: [idHeadquarter])
     
     // Indexes
-    @@index([idCategory]) // FK lookup frecuente
-    @@index([idHeadquarter]) // FK lookup frecuente
-    @@index([status]) // Filtrado por estado
-    @@index([idHeadquarter, status]) // Búsquedas de activos por sede (compuesto)
+    @@index([idCategory]) // Category foreign key lookup
+    @@index([idHeadquarter]) // Headquarter foreign key lookup
+    @@index([status]) // Filter by status
+    @@index([type]) // Filter by asset type
+    @@index([idHeadquarter, status]) // Assets by headquarter and status (composite)
+    @@index([idCategory, status]) // Assets by category and status (composite)
+    @@index([idHeadquarter, type]) // Assets by headquarter and type (composite)
 }
 
 model Category {
@@ -132,7 +140,7 @@ model Category {
   categorySupplier CategorySupplier[]
   
   // Indexes
-  @@index([status]) // Filtrado por estado
+  @@index([status]) // Filter by status
 }
 
 model Supplier {
@@ -151,8 +159,10 @@ model Supplier {
   phoneSupplier PhoneSupplier[]
   
   // Indexes
-  @@index([status]) // Filtrado por estado
-  @@index([email]) // Búsqueda por email
+  @@index([status]) // Filter by status
+  @@index([email]) // Search by email
+  @@index([type]) // Filter by supplier type
+  @@index([status, type]) // Active suppliers by type (composite)
 }
 
 model Activity {
@@ -172,13 +182,17 @@ model Activity {
   activitySurvivor ActivitySurvivor[]
   activityGodparent ActivityGodparent[]
   
-  // Indexes - PRIORIDAD ALTA
-  @@index([idHeadquarter]) // FK lookup muy frecuente
-  @@index([status]) // Filtrado por estado
-  @@index([date]) // Búsquedas por fecha
-  @@index([type]) // Filtrado por tipo
-  @@index([modality]) // Filtrado por modalidad
-  @@index([idHeadquarter, status, date]) // Búsquedas complejas (compuesto)
+  // Indexes - HIGH PRIORITY
+  @@index([idHeadquarter]) // Headquarter foreign key lookup (very frequent)
+  @@index([status]) // Filter by status
+  @@index([date]) // Search by date
+  @@index([type]) // Filter by type
+  @@index([modality]) // Filter by modality
+  @@index([idHeadquarter, status]) // Active activities by headquarter (composite)
+  @@index([idHeadquarter, date]) // Activities by headquarter and date (composite)
+  @@index([status, date]) // Active activities by date (composite)
+  @@index([type, status]) // Active activities by type (composite)
+  @@index([idHeadquarter, status, date]) // Complex searches by headquarter, status and date (composite)
 }
 
 model Volunteer {
@@ -204,10 +218,13 @@ model Volunteer {
   emergencyContactVolunteer EmergencyContactVolunteer []
   activityVolunteer ActivityVolunteer []
   
-  // Indexes - PRIORIDAD ALTA
-  // identifier ya tiene índice único automático
-  @@index([email]) // Búsqueda por email
-  @@index([status]) // Filtrado por estado
+  // Indexes - HIGH PRIORITY
+  // identifier already has automatic unique index
+  @@index([email]) // Search by email
+  @@index([status]) // Filter by status
+  @@index([modality]) // Filter by modality
+  @@index([status, modality]) // Active volunteers by modality (composite)
+  @@index([status, email]) // Active volunteers by email (composite)
 }
 
 model Godparent {
@@ -227,11 +244,13 @@ model Godparent {
   survivor Survivor? @relation(fields: [idSurvivor], references: [idSurvivor])
   headquarter Headquarter @relation(fields: [idHeadquarter], references: [idHeadquarter])
   
-  // Indexes - PRIORIDAD ALTA
-  @@index([idHeadquarter]) // FK lookup frecuente
-  @@index([status]) // Filtrado por estado
-  @@index([email]) // Búsqueda por email
-  @@index([idSurvivor]) // FK lookup
+  // Indexes - HIGH PRIORITY
+  @@index([idHeadquarter]) // Headquarter foreign key lookup
+  @@index([status]) // Filter by status
+  @@index([email]) // Search by email
+  @@index([idSurvivor]) // Survivor foreign key lookup
+  @@index([idHeadquarter, status]) // Active godparents by headquarter (composite)
+  @@index([status, paymentMethod]) // Active godparents by payment method (composite)
 }
 
 model EmergencyContact {
@@ -246,7 +265,8 @@ model EmergencyContact {
   emergencyContactSurvivor EmergencyContactSurvivor[]
   
   // Indexes
-  @@index([status]) // Filtrado por estado
+  @@index([status]) // Filter by status
+  @@index([emailEmergencyContact]) // Search by email
 }
 
 model Survivor {
@@ -277,11 +297,15 @@ model Survivor {
   godparent       Godparent[]
   headquarter Headquarter @relation(fields: [idHeadquarter], references: [idHeadquarter])
   
-  // Indexes - PRIORIDAD ALTA
-  // documentNumber ya tiene índice único automático
-  @@index([idHeadquarter]) // FK lookup frecuente
-  @@index([status]) // Filtrado por estado
-  @@index([email]) // Búsqueda por email
+  // Indexes - HIGH PRIORITY
+  // documentNumber already has automatic unique index
+  @@index([idHeadquarter]) // Headquarter foreign key lookup (very frequent)
+  @@index([status]) // Filter by status
+  @@index([email]) // Search by email
+  @@index([genre]) // Filter by genre
+  @@index([idHeadquarter, status]) // Active survivors by headquarter (composite)
+  @@index([status, genre]) // Active survivors by genre (composite)
+  @@index([idHeadquarter, genre]) // Survivors by headquarter and genre (composite)
 }
 
 model Cancer {
@@ -293,12 +317,12 @@ model Cancer {
   cancerSurvivor CancerSurvivor[]
   
   // Indexes
-  @@index([status]) // Filtrado por estado
+  @@index([status]) // Filter by status
 }
 
 model Phone {
   idPhone       Int @id @default(autoincrement())
-  phone         Int @unique // ÍNDICE ÚNICO para evitar duplicados
+  phone         Int @unique // UNIQUE INDEX to avoid duplicates
 
   phoneVolunteers PhoneVolunteer[]
   phoneSurvivor   PhoneSurvivor[]
@@ -327,11 +351,11 @@ model Headquarter {
   headquarterSupplier HeadquarterSupplier[]
   
   // Indexes
-  @@index([email]) // Búsqueda por email
-  @@index([status]) // Filtrado por estado
+  @@index([status]) // Filter by status
+  @@index([email]) // Search by email
 }
 
-//RELATIONAL TABLES
+// RELATIONAL TABLES
 model HeadquarterUser {
   idHeadquarter Int
   email          String @db.VarChar(150)
@@ -340,7 +364,7 @@ model HeadquarterUser {
   user         User         @relation(fields: [email], references: [email])
 
   @@id([idHeadquarter, email])
-  @@index([email]) // Búsquedas inversas
+  @@index([email]) // Reverse lookup by user
 }
 
 model HeadquarterVolunteer {
@@ -351,7 +375,7 @@ model HeadquarterVolunteer {
   volunteer   Volunteer   @relation(fields: [idVolunteer], references: [idVolunteer])
 
   @@id([idHeadquarter, idVolunteer])
-  @@index([idVolunteer]) // Búsquedas inversas
+  @@index([idVolunteer]) // Reverse lookup by volunteer
 }
 
 model HeadquarterPhone {
@@ -362,6 +386,7 @@ model HeadquarterPhone {
   phone       Phone       @relation(fields: [idPhone], references: [idPhone])
 
   @@id([idHeadquarter, idPhone])
+  @@index([idPhone]) // Reverse lookup by phone
 }
 
 model PhoneSurvivor {
@@ -372,7 +397,7 @@ model PhoneSurvivor {
   survivor Survivor @relation(fields: [idSurvivor], references: [idSurvivor])
 
   @@id([idPhone, idSurvivor])
-  @@index([idSurvivor]) // Búsquedas inversas
+  @@index([idSurvivor]) // Reverse lookup by survivor
 }
 
 model PhoneVolunteer {
@@ -383,7 +408,7 @@ model PhoneVolunteer {
   volunteer Volunteer @relation(fields: [idVolunteer], references: [idVolunteer])
 
   @@id([idPhone, idVolunteer])
-  @@index([idVolunteer]) // Búsquedas inversas
+  @@index([idVolunteer]) // Reverse lookup by volunteer
 } 
 
 model GodparentPhone {
@@ -394,6 +419,7 @@ model GodparentPhone {
   phone     Phone     @relation(fields: [idPhone], references: [idPhone])
 
   @@id([idGodparent, idPhone])
+  @@index([idPhone]) // Reverse lookup by phone
 }
 
 model ActivityVolunteer {
@@ -404,7 +430,7 @@ model ActivityVolunteer {
   volunteer Volunteer @relation(fields: [idVolunteer], references: [idVolunteer])
 
   @@id([idActivity, idVolunteer])
-  @@index([idVolunteer]) // Búsquedas inversas
+  @@index([idVolunteer]) // Reverse lookup by volunteer
 }
 
 model ActivityGodparent {
@@ -415,6 +441,7 @@ model ActivityGodparent {
   godparent Godparent @relation(fields: [idGodparent], references: [idGodparent])
 
   @@id([idActivity, idGodparent])
+  @@index([idGodparent]) // Reverse lookup by godparent
 }
 
 model ActivitySurvivor {
@@ -425,7 +452,7 @@ model ActivitySurvivor {
   survivor Survivor @relation(fields: [idSurvivor], references: [idSurvivor])
 
   @@id([idActivity, idSurvivor])
-  @@index([idSurvivor]) // Búsquedas inversas
+  @@index([idSurvivor]) // Reverse lookup by survivor
 }
 
 model EmergencyContactVolunteer {
@@ -436,7 +463,7 @@ model EmergencyContactVolunteer {
   volunteer        Volunteer        @relation(fields: [idVolunteer], references: [idVolunteer])
 
   @@id([idEmergencyContact, idVolunteer])
-  @@index([idVolunteer]) // Búsquedas inversas
+  @@index([idVolunteer]) // Reverse lookup by volunteer
 }
 
 model EmergencyContactSurvivor {
@@ -447,7 +474,7 @@ model EmergencyContactSurvivor {
   survivor         Survivor         @relation(fields: [idSurvivor], references: [idSurvivor])
 
   @@id([idEmergencyContact, idSurvivor])
-  @@index([idSurvivor]) // Búsquedas inversas
+  @@index([idSurvivor]) // Reverse lookup by survivor
 }
 
 model EmergencyContactPhone {
@@ -458,6 +485,7 @@ model EmergencyContactPhone {
   phone            Phone            @relation(fields: [idPhone], references: [idPhone])
 
   @@id([idEmergencyContact, idPhone])
+  @@index([idPhone]) // Reverse lookup by phone
 }
 
 model CancerSurvivor {
@@ -470,7 +498,8 @@ model CancerSurvivor {
   survivor Survivor @relation(fields: [idSurvivor], references: [idSurvivor])
 
   @@id([idCancer, idSurvivor])
-  @@index([idSurvivor]) // Búsquedas inversas
+  @@index([idSurvivor]) // Reverse lookup (get all cancers of a survivor)
+  @@index([idCancer, status]) // Filter survivors by cancer type and status (composite)
 }
 
 model CategorySupplier {
@@ -481,6 +510,7 @@ model CategorySupplier {
   supplier Supplier @relation(fields: [idSupplier], references: [idSupplier])
 
   @@id([idCategory, idSupplier])
+  @@index([idSupplier]) // Reverse lookup by supplier
 }
 
 model PhoneSupplier {
@@ -491,6 +521,7 @@ model PhoneSupplier {
   supplier Supplier @relation(fields: [idSupplier], references: [idSupplier])
 
   @@id([idPhone, idSupplier])
+  @@index([idSupplier]) // Reverse lookup by supplier
 }
 
 model HeadquarterSupplier {
@@ -501,6 +532,7 @@ model HeadquarterSupplier {
   supplier     Supplier     @relation(fields: [idSupplier], references: [idSupplier])
 
   @@id([idHeadquarter, idSupplier])
+  @@index([idSupplier]) // Reverse lookup by supplier
 }
 
 model TokenBlacklist {
@@ -509,6 +541,6 @@ model TokenBlacklist {
   createdAt DateTime @default(now())
   
   // Indexes
-  @@index([token(length: 255)]) // Índice en token (limitado a 255 caracteres para TEXT)
-  @@index([createdAt]) // Para limpieza periódica de tokens antiguos
+  @@index([token(length: 255)]) // Index on token (limited to 255 characters for TEXT)
+  @@index([createdAt]) // Periodic cleanup of old tokens
 }
