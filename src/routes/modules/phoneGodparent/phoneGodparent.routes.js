@@ -32,11 +32,12 @@ module.exports = [
   },
 
   // Delete phone from godparent
-  {
+  // COMMENTED OUT - We don't delete phone numbers, only update them
+  /* {
     method: 'DELETE',
     path: '/api/godparents/:id/phone',
     handler: authenticate(
       authorizeWindow('Padrinos', 'read', 'delete')(PhoneGodparentController.delete)
     )
-  }
+  } */
 ];

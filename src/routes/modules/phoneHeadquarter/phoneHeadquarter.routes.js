@@ -32,11 +32,12 @@ module.exports = [
   },
 
   // Delete phone from headquarter
-  {
+  // COMMENTED OUT - We don't delete phone numbers, only update them
+  /* {
     method: 'DELETE',
     path: '/api/headquarters/:id/phone',
     handler: authenticate(
       authorizeWindow('Sedes', 'read', 'delete')(PhoneHeadquarterController.delete)
     )
-  }
+  } */
 ];

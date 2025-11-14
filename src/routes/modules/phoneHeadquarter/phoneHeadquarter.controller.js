@@ -192,8 +192,9 @@ const PhoneHeadquarterController = {
   /**
    * DELETE /api/headquarters/:id/phone
    * Remove the phone from a headquarter
+   * COMMENTED OUT - We don't delete phone numbers, only update them
    */
-  delete: async (req, res) => {
+  /* delete: async (req, res) => {
     const { id } = req.params;
 
     try {
@@ -228,7 +229,7 @@ const PhoneHeadquarterController = {
       console.error('[PHONE-HEADQUARTER] delete error:', error);
       return res.error('Error al eliminar el teléfono de la sede');
     }
-  }
+  } */
 };
 
 module.exports = { PhoneHeadquarterController };

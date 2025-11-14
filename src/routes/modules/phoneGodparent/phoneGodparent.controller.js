@@ -141,8 +141,9 @@ const PhoneGodparentController = {
   /**
    * DELETE /api/godparents/:id/phone
    * Delete phone from godparent
+   * COMMENTED OUT - We don't delete phone numbers, only update them
    */
-  delete: async (req, res) => {
+  /* delete: async (req, res) => {
     const { id } = req.params;
     try {
       const idNum = ValidationRules.parseIdParam(String(id || ''));
@@ -164,7 +165,7 @@ const PhoneGodparentController = {
       console.error('[PHONE-GODPARENT] delete error:', error);
       return res.error('Error al eliminar el teléfono del padrino');
     }
-  }
+  } */
 };
 
 module.exports = { PhoneGodparentController };

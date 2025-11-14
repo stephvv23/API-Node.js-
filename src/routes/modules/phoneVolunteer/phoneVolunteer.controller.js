@@ -220,8 +220,9 @@ const PhoneVolunteerController = {
   /**
    * DELETE /api/volunteers/:id/phone
    * Remove the phone from a volunteer
+   * COMMENTED OUT - We don't delete phone numbers, only update them
    */
-  delete: async (req, res) => {
+  /* delete: async (req, res) => {
     const { id } = req.params;
 
     try {
@@ -262,7 +263,7 @@ const PhoneVolunteerController = {
       console.error('[PHONE-VOLUNTEER] delete error:', error);
       return res.error('Error al eliminar el teléfono del voluntario');
     }
-  }
+  } */
 };
 
 module.exports = { PhoneVolunteerController };

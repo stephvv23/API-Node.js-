@@ -32,11 +32,12 @@ module.exports = [
   },
 
   // Delete phone from volunteer
-  {
+  // COMMENTED OUT - We don't delete phone numbers, only update them
+  /* {
     method: 'DELETE',
     path: '/api/volunteers/:id/phone',
     handler: authenticate(
       authorizeWindow('Voluntarios', 'read', 'delete')(PhoneVolunteerController.delete)
     )
-  }
+  } */
 ];
