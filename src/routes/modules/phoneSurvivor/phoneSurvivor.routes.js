@@ -32,12 +32,12 @@ module.exports = [
   },
 
   // Delete phone from survivor
-  {
-    method: 'DELETE',
-    path: '/api/survivors/:id/phone',
-    handler: authenticate(
-      authorizeWindow('Supervivientes', 'read', 'delete')(PhoneSurvivorController.delete)
-    )
-  }
+  // {
+  //   method: 'DELETE',
+  //   path: '/api/survivors/:id/phone',
+  //   handler: authenticate(
+  //     authorizeWindow('Supervivientes', 'read', 'delete')(PhoneSurvivorController.delete)
+  //   )
+  // }
 ];
 

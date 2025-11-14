@@ -217,46 +217,46 @@ const PhoneSurvivorController = {
    * DELETE /api/survivors/:id/phone
    * Remove the phone from a survivor
    */
-  delete: async (req, res) => {
-    const { id } = req.params;
+  // delete: async (req, res) => {
+  //   const { id } = req.params;
 
-    try {
-      // Validate numeric id
-      const idNum = ValidationRules.parseIdParam(String(id || ''));
-      if (!idNum) return res.validationErrors(['El parámetro id debe ser numérico']);
+  //   try {
+  //     // Validate numeric id
+  //     const idNum = ValidationRules.parseIdParam(String(id || ''));
+  //     if (!idNum) return res.validationErrors(['El parámetro id debe ser numérico']);
 
-      // Validate survivor exists
-      const survivor = await SurvivorService.findById(Number(idNum));
-      if (!survivor) {
-        return res.notFound('Superviviente');
-      }
+  //     // Validate survivor exists
+  //     const survivor = await SurvivorService.findById(Number(idNum));
+  //     if (!survivor) {
+  //       return res.notFound('Superviviente');
+  //     }
 
-      // Check if survivor has a phone
-      const phoneSurvivor = await PhoneSurvivorService.getBySurvivor(Number(idNum));
+  //     // Check if survivor has a phone
+  //     const phoneSurvivor = await PhoneSurvivorService.getBySurvivor(Number(idNum));
       
-      if (!phoneSurvivor) {
-        return res.notFound('El superviviente no tiene un teléfono registrado');
-      }
+  //     if (!phoneSurvivor) {
+  //       return res.notFound('El superviviente no tiene un teléfono registrado');
+  //     }
 
-      // Delete relation
-      await PhoneSurvivorService.deleteAllBySurvivor(Number(idNum));
+  //     // Delete relation
+  //     await PhoneSurvivorService.deleteAllBySurvivor(Number(idNum));
 
-      // Security log
-      const userEmail = req.user?.sub;
-      await SecurityLogService.log({
-        email: userEmail,
-        action: 'DELETE',
-        description:
-          `Se eliminó el teléfono ${phoneSurvivor.phone.phone} (ID: ${phoneSurvivor.idPhone}) del superviviente "${survivor.survivorName}" (ID: ${id}).`,
-        affectedTable: 'PhoneSurvivor'
-      });
+  //     // Security log
+  //     const userEmail = req.user?.sub;
+  //     await SecurityLogService.log({
+  //       email: userEmail,
+  //       action: 'DELETE',
+  //       description:
+  //         `Se eliminó el teléfono ${phoneSurvivor.phone.phone} (ID: ${phoneSurvivor.idPhone}) del superviviente "${survivor.survivorName}" (ID: ${id}).`,
+  //       affectedTable: 'PhoneSurvivor'
+  //     });
 
-      return res.success(null, 'Teléfono eliminado exitosamente');
-    } catch (error) {
-      console.error('[PHONE-SURVIVOR] delete error:', error);
-      return res.error('Error al eliminar el teléfono del superviviente');
-    }
-  }
+  //     return res.success(null, 'Teléfono eliminado exitosamente');
+  //   } catch (error) {
+  //     console.error('[PHONE-SURVIVOR] delete error:', error);
+  //     return res.error('Error al eliminar el teléfono del superviviente');
+  //   }
+  // }
 };
 
 module.exports = { PhoneSurvivorController };
