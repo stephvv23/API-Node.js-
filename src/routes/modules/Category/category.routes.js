@@ -5,17 +5,17 @@ module.exports = [
     {
         method: 'GET',
         path: '/api/categories',
-        handler: authenticate(authorizeWindow('Categorías', 'read')(categoryController.list))
+    handler: authenticate(authorizeWindow('Categorías', 'read')(categoryController.list))
     },
     {
         method: 'GET',
         path: '/api/categories/:id',
-        handler: authenticate(authorizeWindow('Categorías', 'read')(categoryController.getById))
+    handler: authenticate(authorizeWindow('Categorías', 'read')(categoryController.getById))
     },
     {
         method: 'POST',
         path: '/api/categories',
-        handler: authenticate(authorizeWindow('Categorías', 'create')(categoryController.create))
+    handler: authenticate(authorizeWindow('Categorías', 'create')(categoryController.create))
     },
     {
         method: 'PUT',
