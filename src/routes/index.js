@@ -1,4 +1,4 @@
-// Will be used as Route Aggregator. Imports routes from each module, 
+// Route Aggregator: Imports routes from each module, 
 // compiles them to RegExp (with path.js), sorts by specificity 
 // (so that /login beats /:email) and does the matching for each request. 
 // Passes to handlers params, query and body already parsed.
@@ -22,10 +22,10 @@ const permissionRoutes = require('./modules/auth/permission.routes');
 const godParentRoutes = require('./modules/GodParent/godParent.routes');
 const activityRoutes = require('./modules/activity/activity.routes');
 const volunteerRoutes = require('./modules/volunteer/volunteer.routes');
+const passwordRecoveryRoutes = require('./modules/passwordRecovery/passwordRecovery.routes');
 const suppliersRoutes = require('./modules/suppliers/suppliers.routes');
 const statsRoutes = require('./modules/stats/stats.routes');
 
-// const patientsRoutes = require('./modules/patients.routes');
 // 2) Concatenate and compile paths → { method, pattern, paramNames, handler }
 function buildRoutes() {
   const raw = [
@@ -41,6 +41,7 @@ function buildRoutes() {
     ...godParentRoutes,
     ...activityRoutes,
     ...volunteerRoutes,
+    ...passwordRecoveryRoutes,
     ...suppliersRoutes,
     ...statsRoutes,
   ];
