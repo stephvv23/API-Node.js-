@@ -140,8 +140,8 @@ class PasswordRecoveryService {
       const tokenData = await this.verifyResetToken(token);
 
       // Validate password
-      if (!newPassword || newPassword.length < 8) {
-        throw new Error('La contraseña debe tener al menos 8 caracteres');
+      if (!newPassword || newPassword.length < 6) {
+        throw new Error('La contraseña debe tener al menos 6 caracteres');
       }
 
       // Hash the new password

@@ -86,8 +86,8 @@ class PasswordRecoveryController {
         return res.error('Las contraseñas no coinciden', 400);
       }
 
-      if (newPassword.length < 8) {
-        return res.error('La contraseña debe tener al menos 8 caracteres', 400);
+      if (newPassword.length < 6) {
+        return res.error('La contraseña debe tener al menos 6 caracteres', 400);
       }
 
       // Validate password complexity (optional)
