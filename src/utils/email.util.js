@@ -114,9 +114,12 @@ const sendPasswordResetEmail = async (to, resetToken, userName = 'Usuario') => {
   // Build complete URL for password reset
   const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5504';
   // Ensure URL doesn't end with '/' to avoid '//' in path
-  const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+  let cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
   
-  const resetUrl = `${cleanBaseUrl}/view/password/reset-password.html?token=${resetToken}`;
+  // Remove trailing '/View' or '/view' if it exists (case insensitive)
+  cleanBaseUrl = cleanBaseUrl.replace(/\/[Vv]iew\/?$/, '');
+  
+  const resetUrl = `${cleanBaseUrl}/View/password/reset-password.html?token=${resetToken}`;
   const subject = 'Recuperación de contraseña - Funcavida';
   
   const html = `
