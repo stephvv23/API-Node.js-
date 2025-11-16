@@ -29,6 +29,7 @@ async function main() {
     { id: 11, name: 'Voluntarios' },
     { id: 12, name: 'Padrinos' },
     { id: 13, name: 'Roles' },
+    { id: 14, name: 'Reportes' },
   ];
 
   const windows = await Promise.all(
@@ -74,64 +75,35 @@ async function main() {
   });
 
   // Permissions RoleWindow
-  await Promise.all(
-    windows.map((win) =>
-      prisma.roleWindow.create({
-        data: {
-          idRole: adminRole.idRole,
-          idWindow: win.idWindow,
-          create: true,
-          read: true,
-          update: true,
-          delete: true,
-        },
-      })
-    )
-  );
+  await prisma.roleWindow.createMany({
+    data: windows.map((win) => ({
+      idRole: adminRole.idRole,
+      idWindow: win.idWindow,
+      create: true,
+      read: true,
+      update: true,
+      delete: true,
+    })),
+  });
+
+  // Permissions for Coordinator role
+  const coordinatorPermissions = [
+    { windowIndex: 0, create: false, read: true, update: true, delete: false }, // Assets
+    { windowIndex: 1, create: false, read: true, update: true, delete: false }, // Suppliers
+    { windowIndex: 2, create: false, read: true, update: true, delete: false }, // Survivors
+    { windowIndex: 3, create: true, read: true, update: true, delete: false },  // Activities
+    { windowIndex: 4, create: false, read: true, update: false, delete: false }, // Security
+  ];
 
   await prisma.roleWindow.createMany({
-    data: [
-      {
-        idRole: coordinatorRole.idRole,
-        idWindow: windows[0].idWindow, // Assets
-        create: false,
-        read: true,
-        update: true,
-        delete: false,
-      },
-      {
-        idRole: coordinatorRole.idRole,
-        idWindow: windows[1].idWindow, // Suppliers
-        create: false,
-        read: true,
-        update: true,
-        delete: false,
-      },
-      {
-        idRole: coordinatorRole.idRole,
-        idWindow: windows[2].idWindow, // Survivors
-        create: false,
-        read: true,
-        update: true,
-        delete: false,
-      },
-      {
-        idRole: coordinatorRole.idRole,
-        idWindow: windows[3].idWindow, // Activities
-        create: true,
-        read: true,
-        update: true,
-        delete: false,
-      },
-      {
-        idRole: coordinatorRole.idRole,
-        idWindow: windows[4].idWindow, // Security
-        create: false,
-        read: true,
-        update: false,
-        delete: false,
-      },
-    ],
+    data: coordinatorPermissions.map((perm) => ({
+      idRole: coordinatorRole.idRole,
+      idWindow: windows[perm.windowIndex].idWindow,
+      create: perm.create,
+      read: perm.read,
+      update: perm.update,
+      delete: perm.delete,
+    })),
   });
 
   await prisma.loginAccess.createMany({
@@ -387,6 +359,7 @@ async function main() {
       data: {
         nameEmergencyContact: 'Carlos Fernández',
         emailEmergencyContact: 'carlos.fernandez@example.com',
+        identifier: '0-000-0000',
         status: 'active',
       },
     }),
@@ -394,6 +367,7 @@ async function main() {
       data: {
         nameEmergencyContact: 'Laura Pérez',
         emailEmergencyContact: 'laura.perez@example.com',
+        identifier: '0-000-0000',
         status: 'active',
       },
     }),
