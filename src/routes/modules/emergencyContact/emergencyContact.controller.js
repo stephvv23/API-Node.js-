@@ -4,324 +4,240 @@ const { ValidationRules } = require('../../../utils/validator');
 const { SecurityLogService } = require('../../../services/securitylog.service');
 const { PhoneService } = require('../phone/phone.service');
 const { EmergencyContactPhoneService } = require('../emergencyContactPhone/emergencyContactPhone.service');
+const { EntityValidators, ValidationRules } = require('../../../utils/validator');
 
-/**
- * EmergencyContactController handles HTTP requests for emergency contacts.
- * All responses use standardized helpers (res.success, res.error, etc.)
- * Validation is performed using EntityValidators.emergencyContact.
- */
+
+// Controller that handles all operations related to emergency contacts
 const EmergencyContactController = {
-  /**
-   * List all emergency contacts
-   * GET /emergency-contacts
-   */
+
+  // List all emergency contacts
   list: async (_req, res) => {
     try {
-      const emergencyContacts = await EmergencyContactsService.list();
-      return res.success(emergencyContacts);
+
+      const contacts = await EmergencyContactsService.list(); // Retrieve all contacts from the service
+      return res.success(contacts); // Return the list of contacts
     } catch (error) {
-      console.error('[EMERGENCY CONTACT] list error:', error);
-      return res.error('Error al obtener contactos de emergencia');
+      
+      return res.error('Error al obtener los contactos de emergencia');
     }
   },
 
-  /**
-   * Get a single emergency contact by ID
-   * GET /emergency-contacts/:idEmergencyContact
-   */
+  // Get emergency contact by its unique ID
   get: async (req, res) => {
     const { idEmergencyContact } = req.params;
-    
-    try {
-      const idNum = ValidationRules.parseIdParam(String(idEmergencyContact || ''));
-      if (!idNum) {
-        return res.validationErrors(['El parámetro idEmergencyContact debe ser numérico']);
-      }
 
-      const contact = await EmergencyContactsService.get(Number(idNum));
+    // Validate idEmergencyContact is a positive integer
+    const id = Number(idEmergencyContact);
+    if (!idEmergencyContact || isNaN(id) || !Number.isInteger(id) || id <= 0) {
+      return res.status(400).error('ID de contacto de emergencia inválido. Debe ser un número entero positivo.');
+    }
+    try {
+      const contact = await EmergencyContactsService.get(id); // Retrieve the contact by ID
       if (!contact) {
-        return res.notFound('Contacto de emergencia');
+        return res.notFound('Contacto de emergencia'); // Return 404 not found if contact doesn't exist
       }
-      
-      return res.success(contact);
+      return res.success(contact); // Return the found contact
     } catch (error) {
-      console.error('[EMERGENCY CONTACT] get error:', error);
+      
       return res.error('Error al obtener el contacto de emergencia');
     }
   },
 
-  /**
-   * Create a new emergency contact
-   * POST /emergency-contacts
-   */
+  // Create new emergency contact
   create: async (req, res) => {
+
+
     // Check for JSON parsing errors
-    if (req.body.__jsonError) {
-      return res.validationErrors([req.body.__jsonErrorMessage || 'Formato de JSON inválido']);
+   if (req.body.__jsonError) {
+      return res.validationErrors([
+        "JSON inválido: revisa la sintaxis" 
+      ]);
     }
 
-    let { nameEmergencyContact, emailEmergencyContact, status, phone } = req.body;
+    // Clean whitespace from request body strings
+    const trimmedBody = ValidationRules.trimStringFields(req.body);
+    const { nameEmergencyContact, emailEmergencyContact, identifier, status } = trimmedBody;
 
-    // Trim string fields
-    if (nameEmergencyContact) nameEmergencyContact = nameEmergencyContact.trim();
-    if (emailEmergencyContact) emailEmergencyContact = emailEmergencyContact.trim();
+    // Validate required fields and data structure
+    const validation = EntityValidators.emergencyContact(
+      { nameEmergencyContact, emailEmergencyContact, identifier, status },
+      { partial: false }
+    );
 
-    // Validations
-    const errors = [];
+    const errors = [...validation.errors];
 
-    if (!nameEmergencyContact || typeof nameEmergencyContact !== 'string' || nameEmergencyContact.trim() === '') {
-      errors.push('nameEmergencyContact es requerido y debe ser un texto no vacío');
-    }
-
-    if (!emailEmergencyContact || typeof emailEmergencyContact !== 'string' || emailEmergencyContact.trim() === '') {
-      errors.push('emailEmergencyContact es requerido y debe ser un texto no vacío');
-    }
-
-
-    // Validate field lengths
-    if (nameEmergencyContact && nameEmergencyContact.length > 150) {
-      errors.push('nameEmergencyContact no debe exceder 150 caracteres');
-    }
-
-    if (emailEmergencyContact && emailEmergencyContact.length > 150) {
-      errors.push('emailEmergencyContact no debe exceder 150 caracteres');
-    }
-
-
+     // Return validation errors if found
     if (errors.length > 0) {
       return res.validationErrors(errors);
     }
 
     try {
-      // Check for duplicate email
-      const allContacts = await EmergencyContactsService.list();
-      const duplicateEmail = allContacts.find(c => c.emailEmergencyContact === emailEmergencyContact);
-      if (duplicateEmail) {
-        return res.validationErrors(['Ya existe un contacto de emergencia con ese correo electrónico']);
+
+
+      const allContacts = await EmergencyContactsService.list(); // Retrieve all existing contacts for duplication check
+      const duplicateErrors = [];
+
+      // Check for duplicate name or email
+      if (allContacts.some(c => c.nameEmergencyContact === nameEmergencyContact)) {
+        duplicateErrors.push('Ya existe un contacto con ese nombre');
+      }
+      if (allContacts.some(c => c.emailEmergencyContact === emailEmergencyContact)) {
+        duplicateErrors.push('Ya existe un contacto con ese correo electrónico');
+      }
+      if (allContacts.some(c => c.identifier === identifier)) {
+        duplicateErrors.push('Ya existe un contacto con ese identificador');
       }
 
-      // Validate phone if provided (optional)
-      let phoneValidation = null;
-      if (phone) {
-        phoneValidation = ValidationRules.parsePhoneNumber(phone);
-        if (!phoneValidation.valid) {
-          return res.validationErrors(phoneValidation.errors);
-        }
+
+      // Return duplicate errors if found
+      if (duplicateErrors.length > 0) {
+        return res.validationErrors(duplicateErrors);
       }
 
-      // Create the new emergency contact
-      const newContact = await EmergencyContactsService.create({ 
-        nameEmergencyContact, 
-        emailEmergencyContact, 
-        status: status || 'active'
+      // Create new emergency contact
+      const newContact = await EmergencyContactsService.create({
+        nameEmergencyContact, emailEmergencyContact, identifier, status
       });
 
-      // If phone was provided, create phone relation
-      let phoneRecord = null;
-      if (phone && phoneValidation) {
-        const phoneStr = phoneValidation.value;
-        // Find or create phone (immutable phone record)
-        phoneRecord = await PhoneService.findOrCreate(phoneStr);
-        // Create relation
-        await EmergencyContactPhoneService.create(newContact.idEmergencyContact, phoneRecord.idPhone);
-      }
-
-      // Security log
+      // Log creation action in the security log
       const userEmail = req.user?.sub;
-      const phoneDescription = phoneRecord ? ` Teléfono: "${phoneRecord.phone}".` : '';
       await SecurityLogService.log({
         email: userEmail,
         action: 'CREATE',
         description:
-          `Se creó un nuevo contacto de emergencia: ` +
+
+          `Se creó el contacto de emergencia con los siguientes datos: ` +
           `ID: "${newContact.idEmergencyContact}", ` +
           `Nombre: "${newContact.nameEmergencyContact}", ` +
-          `Email: "${newContact.emailEmergencyContact}", ` +
-          `Estado: "${newContact.status}".${phoneDescription}`,
-        affectedTable: 'EmergencyContact'
+          `Correo: "${newContact.emailEmergencyContact}", ` +
+          `Identificador: "${newContact.identifier}", ` +
+          `Estado: "${newContact.status}".`,
+        affectedTable: 'EmergencyContact',
       });
 
-      // Return the created contact with a 201 status
       return res.status(201).success(newContact, 'Contacto de emergencia creado exitosamente');
     } catch (error) {
-      // Handle Prisma P2000 error (value too long for column)
-      if (error.code === 'P2000') {
-        const columnName = error.meta?.column_name || 'campo';
-        return res.validationErrors([`El valor proporcionado para ${columnName} es demasiado largo`]);
-      }
-      
-      // Log and return a standardized error response
-      console.error('[EMERGENCY CONTACT] create error:', error);
       return res.error('Error al crear el contacto de emergencia');
     }
   },
 
-  /**
-   * Update an existing emergency contact by ID
-   * PUT /emergency-contacts/:idEmergencyContact
-   */
+    // Updates an existing emergency contact
   update: async (req, res) => {
-    const { idEmergencyContact } = req.params;
+
+    const idEmergencyContact = parseInt(req.params.idEmergencyContact, 10);
+
+    // Trim all string fields to prevent leading/trailing spaces and normalize multiple spaces
+    const updateData = ValidationRules.trimStringFields(req.body);
+
+    // Validation for UPDATE - only validate provided fields
+    const validation = EntityValidators.emergencyContact(updateData, { partial: true });
+
     
     // Check for JSON parsing errors
     if (req.body.__jsonError) {
       return res.validationErrors([req.body.__jsonErrorMessage || 'Formato de JSON inválido']);
+
+    }
+
+    if (!validation.isValid) {
+      return res.validationErrors(validation.errors);
     }
 
     try {
-      const idNum = ValidationRules.parseIdParam(String(idEmergencyContact || ''));
-      if (!idNum) {
-        return res.validationErrors(['El parámetro idEmergencyContact debe ser numérico']);
+      if (!idEmergencyContact || idEmergencyContact <= 0) {
+        return res.validationErrors(['idEmergencyContact debe ser un entero positivo']);
       }
 
-      // Check if the contact exists before updating
-      const previousContact = await EmergencyContactsService.get(Number(idNum));
+      // Check duplicates (excluding current record)
+      const duplicateErrors = [];
+
+      if (updateData.emailEmergencyContact) {
+        const existsEmail = await EmergencyContactsService.getByEmail(updateData.emailEmergencyContact);
+        if (existsEmail && existsEmail.idEmergencyContact != idEmergencyContact) {
+          duplicateErrors.push('Ya existe un contacto de emergencia con ese correo electrónico');
+        }
+      }
+
+      if (updateData.identifier) {
+        const existsIdentifier = await EmergencyContactsService.getByIdentifier(updateData.identifier);
+        if (existsIdentifier && existsIdentifier.idEmergencyContact != idEmergencyContact) {
+          duplicateErrors.push('Ya existe un contacto de emergencia con ese identificador');
+        }
+      }
+
+      if (duplicateErrors.length > 0) {
+        return res.validationErrors(duplicateErrors);
+      }
+
+      // Gets the previous emergency contact data
+      const previousContact = await EmergencyContactsService.get(idEmergencyContact);
       if (!previousContact) {
         return res.notFound('Contacto de emergencia');
       }
 
-      // Trim string fields in update data
-      const trimmed = ValidationRules.trimStringFields(req.body || {});
-
-      // Validate field lengths
-      const lengthErrors = ValidationRules.validateFieldLengths(trimmed, {
-        nameEmergencyContact: 150,
-        emailEmergencyContact: 150
-      });
-
-      if (lengthErrors.length > 0) {
-        return res.validationErrors(lengthErrors);
-      }
-
-
-      // Check for duplicate email if being updated
-      if (trimmed.emailEmergencyContact) {
-        const allContacts = await EmergencyContactsService.list();
-        const duplicateEmail = allContacts.find(
-          c => c.idEmergencyContact !== Number(idNum) && c.emailEmergencyContact === trimmed.emailEmergencyContact
-        );
-        if (duplicateEmail) {
-          return res.validationErrors(['Ya existe otro contacto de emergencia con ese correo electrónico']);
+      // Performs the update
+      let updatedContact;
+      try {
+        updatedContact = await EmergencyContactsService.update(idEmergencyContact, updateData);
+      } catch (err) {
+        // Prisma error handling for invalid update
+        if (err.code === 'P2002') {
+          // Unique constraint failed
+          return res.validationErrors(['Ya existe un contacto con ese correo electrónico o identificador']);
         }
-      }
-
-      // Handle phone update if provided
-      let phoneUpdateDescription = '';
-      let phoneLogType = 'EmergencyContact';
-      let previousPhone = null;
-      let updatedPhone = null;
-      let phoneChanged = false;
-      if (req.body.phone !== undefined) {
-        if (req.body.phone === null || req.body.phone === '') {
-          // Delete phone if exists
-          const existingPhone = await EmergencyContactPhoneService.getByEmergencyContact(Number(idNum));
-          if (existingPhone) {
-            previousPhone = existingPhone.phone ? { ...existingPhone.phone } : null;
-            await EmergencyContactPhoneService.deleteAllByEmergencyContact(Number(idNum));
-            phoneUpdateDescription = ` Se eliminó el teléfono "${existingPhone.phone.phone}".`;
-            phoneChanged = true;
-            phoneLogType = 'PhoneEmergencyContact';
-          }
-        } else {
-          // Validate and update/create phone
-          const phoneValidation = ValidationRules.parsePhoneNumber(req.body.phone);
-          if (!phoneValidation.valid) {
-            return res.validationErrors(phoneValidation.errors);
-          }
-          const phoneStr = phoneValidation.value;
-          const existingPhone = await EmergencyContactPhoneService.getByEmergencyContact(Number(idNum));
-          const newPhoneRecord = await PhoneService.findOrCreate(phoneStr);
-          if (existingPhone) {
-            previousPhone = existingPhone.phone ? { ...existingPhone.phone } : null;
-            // Update: delete old and create new
-            if (existingPhone.idPhone !== newPhoneRecord.idPhone) {
-              await EmergencyContactPhoneService.deleteAllByEmergencyContact(Number(idNum));
-              await EmergencyContactPhoneService.create(Number(idNum), newPhoneRecord.idPhone);
-              phoneUpdateDescription = ` Teléfono cambiado de "${existingPhone.phone.phone}" a "${phoneStr}".`;
-              phoneChanged = true;
-              phoneLogType = 'PhoneEmergencyContact';
-              updatedPhone = { ...newPhoneRecord };
-            } else {
-              updatedPhone = { ...newPhoneRecord };
-            }
-          } else {
-            // Create new phone relation
-            await EmergencyContactPhoneService.create(Number(idNum), newPhoneRecord.idPhone);
-            phoneUpdateDescription = ` Se agregó el teléfono "${phoneStr}".`;
-            phoneChanged = true;
-            phoneLogType = 'PhoneEmergencyContact';
-            updatedPhone = { ...newPhoneRecord };
-          }
+        if (err.code === 'P2025') {
+          // Record not found
+          return res.notFound('Contacto de emergencia');
         }
+        // Other errors
+        return res.error('Error inesperado al actualizar el contacto de emergencia');
       }
 
-      // Remove phone from trimmed data (it's not a field in EmergencyContact table)
-      const { phone: _, ...contactData } = trimmed;
-
-      // Update the emergency contact
-      const updatedContact = await EmergencyContactsService.update(Number(idNum), contactData);
-
-      // Security log
+      // Register in the log the changes (previous and new)
       const userEmail = req.user?.sub;
-      
-      // Verify if only the status changed from inactive to active (REACTIVATION)
+
+      // Verify if only the status changed from inactive to active
       const onlyStatusChange =
         previousContact.status === 'inactive' &&
         updatedContact.status === 'active' &&
         previousContact.nameEmergencyContact === updatedContact.nameEmergencyContact &&
-        previousContact.emailEmergencyContact === updatedContact.emailEmergencyContact;
+
+        previousContact.emailEmergencyContact === updatedContact.emailEmergencyContact &&
+        previousContact.identifier === updatedContact.identifier;
 
       if (onlyStatusChange) {
-        // Log as REACTIVATE
+        // Log reactivation action
         await SecurityLogService.log({
           email: userEmail,
           action: 'REACTIVATE',
           description:
-            `Se reactivó el contacto de emergencia con ID "${idEmergencyContact}". ` +
-            `Datos completos: Nombre: "${updatedContact.nameEmergencyContact}", ` +
-            `Email: "${updatedContact.emailEmergencyContact}", ` +
+
+            `Se reactivó el contacto de emergencia con ID "${idEmergencyContact}". Datos completos:\n` +
+            `Nombre: "${updatedContact.nameEmergencyContact}", ` +
+            `Correo: "${updatedContact.emailEmergencyContact}", ` +
+            `Identificador: "${updatedContact.identifier}", ` +
             `Estado: "${updatedContact.status}".`,
-          affectedTable: 'EmergencyContact'
+          affectedTable: 'EmergencyContact',
         });
       } else {
-        // Log as UPDATE
-        if (phoneChanged) {
-          // Log full previous and current state if phone changed
-          await SecurityLogService.log({
-            email: userEmail,
-            action: 'UPDATE',
-            description:
-              `Actualización de teléfono para contacto de emergencia (ID: ${idEmergencyContact}):\n` +
-              `Estado previo: \n` +
-              `Teléfono: ${previousPhone ? JSON.stringify(previousPhone) : 'Sin teléfono'}\n` +
-              `Estado actual: \n` +
-              `Teléfono: ${updatedPhone ? JSON.stringify(updatedPhone) : (req.body.phone ? req.body.phone : 'Sin teléfono')}\n`,
-            affectedTable: phoneLogType
-          });
-        } else {
-          // Log solo cambios de contacto
-          const changes = [];
-          if (previousContact.nameEmergencyContact !== updatedContact.nameEmergencyContact) {
-            changes.push(`Nombre: "${previousContact.nameEmergencyContact}" → "${updatedContact.nameEmergencyContact}"`);
-          }
-          if (previousContact.emailEmergencyContact !== updatedContact.emailEmergencyContact) {
-            changes.push(`Email: "${previousContact.emailEmergencyContact}" → "${updatedContact.emailEmergencyContact}"`);
-          }
-          if (previousContact.status !== updatedContact.status) {
-            changes.push(`Estado: "${previousContact.status}" → "${updatedContact.status}"`);
-          }
-          const changeDescription = changes.length > 0 
-            ? `Cambios: ${changes.join(', ')}` 
-            : 'Sin cambios detectados';
-          await SecurityLogService.log({
-            email: userEmail,
-            action: 'UPDATE',
-            description:
-              `Se actualizó el contacto de emergencia "${updatedContact.nameEmergencyContact}" (ID: ${idEmergencyContact}). ` +
-              changeDescription + phoneUpdateDescription,
-            affectedTable: 'EmergencyContact'
-          });
-        }
+        // Log general update action with previous and new values
+        await SecurityLogService.log({
+          email: userEmail,
+          action: 'UPDATE',
+          description:
+            `Se actualizó el contacto de emergencia con ID "${idEmergencyContact}".\n` +
+            `Versión previa: ` +
+            `Nombre: "${previousContact.nameEmergencyContact}", ` +
+            `Correo: "${previousContact.emailEmergencyContact}", ` +
+            `Identificador: "${previousContact.identifier}", ` +
+            `Estado: "${previousContact.status}".\n` +
+            `Nueva versión: ` +
+            `Nombre: "${updatedContact.nameEmergencyContact}", ` +
+            `Correo: "${updatedContact.emailEmergencyContact}", ` +
+            `Identificador: "${updatedContact.identifier}", ` +
+            `Estado: "${updatedContact.status}".\n`,
+          affectedTable: 'EmergencyContact',
+        });
       }
 
       return res.success(updatedContact, 'Contacto de emergencia actualizado exitosamente');
@@ -336,56 +252,49 @@ const EmergencyContactController = {
         return res.validationErrors([`El valor proporcionado para ${columnName} es demasiado largo`]);
       }
 
-      console.error('[EMERGENCY CONTACT] update error:', error);
       return res.error('Error al actualizar el contacto de emergencia');
     }
   },
 
-  /**
-   * Soft delete an emergency contact by ID
-   * DELETE /emergency-contacts/:idEmergencyContact
-   */
+
+  // Soft delete emergency contact
   delete: async (req, res) => {
     const { idEmergencyContact } = req.params;
-    
-    try {
-      const idNum = ValidationRules.parseIdParam(String(idEmergencyContact || ''));
-      if (!idNum) {
-        return res.validationErrors(['El parámetro idEmergencyContact debe ser numérico']);
-      }
 
-      // Check if the contact exists before deleting
-      const contact = await EmergencyContactsService.get(Number(idNum));
-      if (!contact) {
+
+    try {
+
+      // Check if the contact exists
+      const exists = await EmergencyContactsService.get(idEmergencyContact);
+      if (!exists) {
         return res.notFound('Contacto de emergencia');
       }
 
       // Perform soft delete
-      await EmergencyContactsService.softDelete(Number(idNum));
-
-      // Security log
+      const deleted = await EmergencyContactsService.softDelete(idEmergencyContact);
       const userEmail = req.user?.sub;
+
+
+      // Log inactivation action
       await SecurityLogService.log({
         email: userEmail,
-        action: 'DELETE',
+        action: 'INACTIVE',
         description:
-          `Se eliminó (inactivó) el contacto de emergencia con ID "${idEmergencyContact}". ` +
-          `Nombre: "${contact.nameEmergencyContact}", ` +
-          `Email: "${contact.emailEmergencyContact}".`,
-        affectedTable: 'EmergencyContact'
+          `Se inactivó el contacto de emergencia: ` +
+          `ID "${idEmergencyContact}", ` +
+          `Nombre: "${deleted.nameEmergencyContact}", ` +
+          `Correo: "${deleted.emailEmergencyContact}", ` +
+          `Identificador: "${deleted.identifier}", ` +
+          `Estado: "${deleted.status}".`,
+        affectedTable: 'EmergencyContact',
       });
 
-      return res.success(null, 'Contacto de emergencia eliminado exitosamente');
+      return res.success(deleted, 'Contacto de emergencia inactivado exitosamente');
     } catch (error) {
-      if (error.code === 'P2025') {
-        return res.notFound('Contacto de emergencia');
-      }
-
-      console.error('[EMERGENCY CONTACT] delete error:', error);
-      return res.error('Error al eliminar el contacto de emergencia');
+      return res.error('Error al inactivar el contacto de emergencia');
     }
-  },
+  }
 };
 
-// Export the controller for use in routes
+// Export the EmergencyContactController for use in routing
 module.exports = { EmergencyContactController };
