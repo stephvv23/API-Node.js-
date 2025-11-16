@@ -11,7 +11,6 @@ const baseSelect = {
   idEmergencyContact: true,
   nameEmergencyContact: true,
   emailEmergencyContact: true,
-  documentNumber: true,
   status: true,
 };
 

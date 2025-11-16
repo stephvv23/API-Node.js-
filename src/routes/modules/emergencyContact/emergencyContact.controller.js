@@ -60,12 +60,11 @@ const EmergencyContactController = {
       return res.validationErrors([req.body.__jsonErrorMessage || 'Formato de JSON inválido']);
     }
 
-    let { nameEmergencyContact, emailEmergencyContact, documentNumber, status, phone } = req.body;
+    let { nameEmergencyContact, emailEmergencyContact, status, phone } = req.body;
 
     // Trim string fields
     if (nameEmergencyContact) nameEmergencyContact = nameEmergencyContact.trim();
     if (emailEmergencyContact) emailEmergencyContact = emailEmergencyContact.trim();
-    if (documentNumber) documentNumber = documentNumber.trim();
 
     // Validations
     const errors = [];
@@ -78,9 +77,6 @@ const EmergencyContactController = {
       errors.push('emailEmergencyContact es requerido y debe ser un texto no vacío');
     }
 
-    if (!documentNumber || typeof documentNumber !== 'string' || documentNumber.trim() === '') {
-      errors.push('documentNumber es requerido y debe ser un texto no vacío');
-    }
 
     // Validate field lengths
     if (nameEmergencyContact && nameEmergencyContact.length > 150) {
@@ -91,23 +87,14 @@ const EmergencyContactController = {
       errors.push('emailEmergencyContact no debe exceder 150 caracteres');
     }
 
-    if (documentNumber && documentNumber.length > 30) {
-      errors.push('documentNumber no debe exceder 30 caracteres');
-    }
 
     if (errors.length > 0) {
       return res.validationErrors(errors);
     }
 
     try {
-      // Check for duplicate document number or email
+      // Check for duplicate email
       const allContacts = await EmergencyContactsService.list();
-      
-      const duplicateDoc = allContacts.find(c => c.documentNumber === documentNumber);
-      if (duplicateDoc) {
-        return res.validationErrors(['Ya existe un contacto de emergencia con ese número de documento']);
-      }
-
       const duplicateEmail = allContacts.find(c => c.emailEmergencyContact === emailEmergencyContact);
       if (duplicateEmail) {
         return res.validationErrors(['Ya existe un contacto de emergencia con ese correo electrónico']);
@@ -126,7 +113,6 @@ const EmergencyContactController = {
       const newContact = await EmergencyContactsService.create({ 
         nameEmergencyContact, 
         emailEmergencyContact, 
-        documentNumber,
         status: status || 'active'
       });
 
@@ -151,7 +137,6 @@ const EmergencyContactController = {
           `ID: "${newContact.idEmergencyContact}", ` +
           `Nombre: "${newContact.nameEmergencyContact}", ` +
           `Email: "${newContact.emailEmergencyContact}", ` +
-          `Documento: "${newContact.documentNumber}", ` +
           `Estado: "${newContact.status}".${phoneDescription}`,
         affectedTable: 'EmergencyContact'
       });
@@ -201,24 +186,13 @@ const EmergencyContactController = {
       // Validate field lengths
       const lengthErrors = ValidationRules.validateFieldLengths(trimmed, {
         nameEmergencyContact: 150,
-        emailEmergencyContact: 150,
-        documentNumber: 30
+        emailEmergencyContact: 150
       });
 
       if (lengthErrors.length > 0) {
         return res.validationErrors(lengthErrors);
       }
 
-      // Check for duplicate document number if being updated
-      if (trimmed.documentNumber) {
-        const allContacts = await EmergencyContactsService.list();
-        const duplicateDoc = allContacts.find(
-          c => c.idEmergencyContact !== Number(idNum) && c.documentNumber === trimmed.documentNumber
-        );
-        if (duplicateDoc) {
-          return res.validationErrors(['Ya existe otro contacto de emergencia con ese número de documento']);
-        }
-      }
 
       // Check for duplicate email if being updated
       if (trimmed.emailEmergencyContact) {
@@ -295,8 +269,7 @@ const EmergencyContactController = {
         previousContact.status === 'inactive' &&
         updatedContact.status === 'active' &&
         previousContact.nameEmergencyContact === updatedContact.nameEmergencyContact &&
-        previousContact.emailEmergencyContact === updatedContact.emailEmergencyContact &&
-        previousContact.documentNumber === updatedContact.documentNumber;
+        previousContact.emailEmergencyContact === updatedContact.emailEmergencyContact;
 
       if (onlyStatusChange) {
         // Log as REACTIVATE
@@ -307,7 +280,6 @@ const EmergencyContactController = {
             `Se reactivó el contacto de emergencia con ID "${idEmergencyContact}". ` +
             `Datos completos: Nombre: "${updatedContact.nameEmergencyContact}", ` +
             `Email: "${updatedContact.emailEmergencyContact}", ` +
-            `Documento: "${updatedContact.documentNumber}", ` +
             `Estado: "${updatedContact.status}".`,
           affectedTable: 'EmergencyContact'
         });
@@ -334,9 +306,6 @@ const EmergencyContactController = {
           }
           if (previousContact.emailEmergencyContact !== updatedContact.emailEmergencyContact) {
             changes.push(`Email: "${previousContact.emailEmergencyContact}" → "${updatedContact.emailEmergencyContact}"`);
-          }
-          if (previousContact.documentNumber !== updatedContact.documentNumber) {
-            changes.push(`Documento: "${previousContact.documentNumber}" → "${updatedContact.documentNumber}"`);
           }
           if (previousContact.status !== updatedContact.status) {
             changes.push(`Estado: "${previousContact.status}" → "${updatedContact.status}"`);
@@ -402,8 +371,7 @@ const EmergencyContactController = {
         description:
           `Se eliminó (inactivó) el contacto de emergencia con ID "${idEmergencyContact}". ` +
           `Nombre: "${contact.nameEmergencyContact}", ` +
-          `Email: "${contact.emailEmergencyContact}", ` +
-          `Documento: "${contact.documentNumber}".`,
+          `Email: "${contact.emailEmergencyContact}".`,
         affectedTable: 'EmergencyContact'
       });
 
