@@ -340,15 +340,15 @@ const UsersController = {
   /**
    * Login a user into page
    * POST /users/login
-   * Required fields: email, name, windowName
+   * Required fields: email, password, windowName
    */
   login: async (req, res, next) => {
     try {
-      const { email, password, windowName, clientDate } = req.body || {};
+      const { email, password, windowName } = req.body || {};
       if (!email || !password || !windowName) 
         return next(ApiError.badRequest('email, password y windowName requeridos'));
 
-      const user = await UsersService.login(email, password, windowName, clientDate);
+      const user = await UsersService.login(email, password, windowName);
 
       if (!process.env.JWT_SECRET) return next(ApiError.internal('Falta JWT_SECRET'));
     // data of token - subject,name,roles. Email its sub because a standard of jwt
@@ -365,7 +365,8 @@ const UsersController = {
           email: email,
         });
 
-      res.json({ message: 'Login exitoso', token, user });
+      const { roles: _, ...userWithoutRoles } = user;
+      res.json({ message: 'Login exitoso', token, user: userWithoutRoles });
     } catch (e) {
       next(e);
     }
@@ -381,7 +382,6 @@ const UsersController = {
     try {
       const authHeader = req.headers['authorization'];
       const token = authHeader && authHeader.split(' ')[1];
-      const { clientDate } = req.body || {};
 
       if (!token) return next(ApiError.unauthorized('Token requerido para cerrar sesión.'));
 
@@ -392,7 +392,6 @@ const UsersController = {
         email: userEmail || 'unknown',
         action: 'LOGOUT',
         description: `El usuario "${userName || userEmail}" cerró sesión.`,
-        clientDate: clientDate || new Date().toISOString(),
         affectedTable: 'User',
       });
 

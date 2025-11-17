@@ -264,7 +264,7 @@ const UsersService = {
     return UsersRepository.update(email, { status: 'inactive' });
   },
 
-  login: async (email, password, windowName, clientDate) => {
+  login: async (email, password, windowName) => {
     if (!email || !password) throw ApiError.badRequest('email y password requeridos');
     // Find user by email
     const user = await UsersRepository.findAuthWithRoles(email);
@@ -307,11 +307,8 @@ const UsersService = {
     if (!hasAccess) {
       throw ApiError.forbidden('El usuario no tiene permisos de lectura');
     }
-    //return data
-    const { name, status, roles } = user;
+   const { name, status, roles } = user;
     return { email: user.email, name, status, roles };
-
-    
   },
 
   invalidateToken: async (token) => {
