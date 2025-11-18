@@ -77,7 +77,7 @@ const SurvivorRepository = {
   list: ({ 
     status = 'active', 
     search, 
-    cancerId, 
+    cancerIds, 
     gender, 
     headquarterId,
     emergencyContactId,
@@ -112,11 +112,11 @@ const SurvivorRepository = {
       ];
     }
 
-    // Cancer filter
-    if (cancerId) {
+    // Cancer filter (supports multiple cancer IDs)
+    if (cancerIds && cancerIds.length > 0) {
       where.cancerSurvivor = {
         some: {
-          idCancer: Number(cancerId),
+          idCancer: { in: cancerIds.map(id => Number(id)) },
           status: 'active' // Only active cancer relations
         }
       };

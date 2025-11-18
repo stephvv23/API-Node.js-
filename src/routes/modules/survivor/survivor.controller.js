@@ -44,17 +44,23 @@ const SurvivorController = {
         filters.search = String(req.query.search).trim();
       }
 
-      // Cancer ID filter
+      // Cancer ID filter (supports multiple IDs: ?cancerId=1,2,3)
       if (req.query.cancerId) {
-        const cancerId = ValidationRules.parseIdParam(
-          String(req.query.cancerId)
-        );
-        if (!cancerId) {
-          return res.validationErrors([
-            "El parámetro cancerId debe ser numérico",
-          ]);
+        const cancerIdStr = String(req.query.cancerId).trim();
+        const cancerIds = cancerIdStr.split(',').map(id => id.trim());
+        const validIds = [];
+        
+        for (const id of cancerIds) {
+          const parsed = ValidationRules.parseIdParam(id);
+          if (!parsed) {
+            return res.validationErrors([
+              `El parámetro cancerId contiene un valor inválido: "${id}". Debe ser numérico.`,
+            ]);
+          }
+          validIds.push(Number(parsed));
         }
-        filters.cancerId = Number(cancerId);
+        
+        filters.cancerIds = validIds;
       }
 
       // Gender filter
