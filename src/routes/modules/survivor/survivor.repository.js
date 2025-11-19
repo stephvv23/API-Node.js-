@@ -112,14 +112,18 @@ const SurvivorRepository = {
       ];
     }
 
-    // Cancer filter (supports multiple cancer IDs)
+    // Cancer filter (supports multiple cancer IDs - survivor must have ALL of them)
     if (cancerIds && cancerIds.length > 0) {
-      where.cancerSurvivor = {
-        some: {
-          idCancer: { in: cancerIds.map(id => Number(id)) },
-          status: 'active' // Only active cancer relations
+      // For multiple cancers, we need the survivor to have ALL of them
+      // We use AND with multiple 'some' conditions
+      where.AND = cancerIds.map(id => ({
+        cancerSurvivor: {
+          some: {
+            idCancer: Number(id),
+            status: 'active'
+          }
         }
-      };
+      }));
     }
 
     // Gender filter

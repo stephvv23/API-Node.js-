@@ -9,13 +9,25 @@ const { EntityValidators, ValidationRules } = require('../../../utils/validator'
 // Controller that handles all operations related to emergency contacts
 const EmergencyContactController = {
 
-  // List all emergency contacts
-  list: async (_req, res) => {
+  // List all emergency contacts with optional status filter
+  list: async (req, res) => {
     try {
-      const contacts = await EmergencyContactsService.list(); // Retrieve all contacts from the service
+      // Extract and validate status filter from query params
+      const filters = {};
+      
+      // Status filter: ?status=active|inactive|all (default: all)
+      const status = (req.query.status || 'all').toLowerCase();
+      const allowedStatus = ['active', 'inactive', 'all'];
+      if (!allowedStatus.includes(status)) {
+        return res.validationErrors([
+          'El parámetro status debe ser "active", "inactive" o "all"',
+        ]);
+      }
+      filters.status = status;
+      
+      const contacts = await EmergencyContactsService.list(filters); // Retrieve contacts with filters
       return res.success(contacts); // Return the list of contacts
     } catch (error) {
-      
       return res.error('Error al obtener los contactos de emergencia');
     }
   },
