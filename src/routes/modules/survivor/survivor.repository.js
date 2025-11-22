@@ -216,15 +216,34 @@ const SurvivorRepository = {
       orderBy: { idSurvivor: 'asc' },
       take: Number(take),
       skip: Number(skip),
+    }).then(async (survivors) => {
+      // Get total count without pagination
+      const total = await prisma.survivor.count({ where });
+      return {
+        data: survivors,
+        total: total,
+        take: Number(take),
+        skip: Number(skip)
+      };
     });
   },
 
-  // List only active survivors
-  listActive: () =>
+  // List only active survivors with pagination and total
+  listActive: ({ take = 100, skip = 0 } = {}) =>
     prisma.survivor.findMany({
       where: { status: 'active' },
       select: baseSelect,
-      orderBy: { idSurvivor: 'asc' } // Order by ID ascending
+      orderBy: { idSurvivor: 'asc' },
+      take: Number(take),
+      skip: Number(skip)
+    }).then(async (survivors) => {
+      const total = await prisma.survivor.count({ where: { status: 'active' } });
+      return {
+        data: survivors,
+        total: total,
+        take: Number(take),
+        skip: Number(skip)
+      };
     }),
 
   // Find by ID

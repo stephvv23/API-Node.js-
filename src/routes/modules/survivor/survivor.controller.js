@@ -13,10 +13,12 @@ const {
 const SurvivorController = {
   // helper functions removed in favor of centralized ValidationRules
   // List all active survivors
-  getAllActive: async (_req, res) => {
+  getAllActive: async (req, res) => {
     try {
-      const survivors = await SurvivorService.listActive();
-      return res.success(survivors);
+      const take = parseInt(req.query.take) || 100;
+      const skip = parseInt(req.query.skip) || 0;
+      const result = await SurvivorService.listActive({ take, skip });
+      return res.success(result);
     } catch (error) {
       console.error("[SURVIVORS] getAllActive error:", error);
       return res.error("Error retrieving active survivors");
@@ -244,8 +246,8 @@ const SurvivorController = {
       const take = parseInt(req.query.take) || 100;
       const skip = parseInt(req.query.skip) || 0;
 
-      const survivors = await SurvivorService.list({ ...filters, take, skip });
-      return res.success(survivors);
+      const result = await SurvivorService.list({ ...filters, take, skip });
+      return res.success(result);
     } catch (error) {
       console.error("[SURVIVORS] getAll error:", error);
       return res.error("Error al obtener supervivientes");
