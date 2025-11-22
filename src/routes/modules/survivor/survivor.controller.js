@@ -526,7 +526,8 @@ const SurvivorController = {
       }
 
       // Check for duplicates
-      const allSurvivors = await SurvivorService.list({ status: "all" });
+      const allSurvivorsResponse = await SurvivorService.list({ status: "all" });
+      const allSurvivors = allSurvivorsResponse.data;
       const duplicateErrors = [];
       // Compare normalized values to avoid duplicates with spacing differences
       const normalizeForCompare = (v) =>
@@ -763,7 +764,8 @@ const SurvivorController = {
       };
 
       // Check uniqueness for documentNumber and email if being updated
-      const allSurvivors = await SurvivorService.list({ status: "all" });
+      const allSurvivorsResponse = await SurvivorService.list({ status: "all" });
+      const allSurvivors = allSurvivorsResponse.data;
       const normalizeForCompare = (v) =>
         v ? String(v).trim().replace(/\s+/g, " ").toLowerCase() : "";
       if (payload.documentNumber) {
