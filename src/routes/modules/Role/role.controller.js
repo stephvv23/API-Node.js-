@@ -11,7 +11,13 @@ const roleController = {
             if (!allowed.includes(status)) {
                 return res.validationErrors(['Status debe ser "active", "inactive" o "all"']);
             }
-            const data = await roleService.list({ status });
+            let data = await roleService.list({ status });
+            // Hide roles that the requesting user already has
+            const userRoles = req.user?.roles || [];
+            if (Array.isArray(userRoles) && userRoles.length) {
+                const userRolesLower = userRoles.map(r => String(r).toLowerCase());
+                data = data.filter(r => !userRolesLower.includes(String(r.rolName).toLowerCase()));
+            }
             return res.success(data);
         } catch (error) {
             console.error('[ROLE] list error:', error);
@@ -95,6 +101,15 @@ const roleController = {
             const exists = await roleService.getById(id);
             if (!exists) {
                 return res.notFound('Rol');
+            }
+            // Prevent a user from modifying a role they themselves have
+            const userRoles = req.user?.roles || [];
+            const userRolesLower = userRoles.map(r => String(r).toLowerCase());
+            if (userRolesLower.includes(String(exists.rolName).toLowerCase())) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'No puedes modificar un rol que posees'
+                });
             }
             // Validate using centralized validator (partial mode)
             const validation = EntityValidators.role({ rolName, status }, { partial: true });
@@ -183,6 +198,15 @@ const roleController = {
             const exists = await roleService.getById(id);
             if (!exists) {
                 return res.notFound('Rol');
+            }
+            // Prevent a user from deleting a role they themselves have
+            const userRoles = req.user?.roles || [];
+            const userRolesLower = userRoles.map(r => String(r).toLowerCase());
+            if (userRolesLower.includes(String(exists.rolName).toLowerCase())) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'No puedes eliminar un rol que posees'
+                });
             }
             try {
                 const deleted = await roleService.delete(id);
