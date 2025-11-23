@@ -119,6 +119,20 @@ const UsersService = {
     const headquarterIds = Array.isArray(data.idHeadquarter) ? data.idHeadquarter : [data.idHeadquarter];
     const roleIds = Array.isArray(data.idRole) ? data.idRole : [data.idRole];
 
+    // validate that at least one admin role is provided
+    const hasAdminRole = roleIds.some(roleId => {
+      const id = typeof roleId === 'number' ? roleId : parseInt(roleId);
+      return id === 1;
+    });
+    if (!hasAdminRole) {
+      const activeAdminsCount = await UsersRepository.countActiveAdmins();
+      if (activeAdminsCount === 0) {
+        const error = ApiError.badRequest('No se puede crear un usuario sin rol de administrador. Actualmente no existe ningún usuario activo con rol de administrador en el sistema. Debe asignar el rol de administrador a este usuario o reactivar un administrador existente.');
+        error.errorCode = 'MUST_HAVE_ADMIN';
+        throw error;
+      }
+    }
+
     // verify that all headquarters exist (regardless of status)
     for (const headquarterId of headquarterIds) {
       const headquarterCheck = await UsersRepository.checkHeadquarterExists(headquarterId);
@@ -165,6 +179,8 @@ const UsersService = {
 
   // Updates user data by email; hashes password if provided
   update: async (email, data) => {
+    // Normalize email to lowercase for consistency
+    const normalizedEmail = email.toLowerCase();
     const updateData = {};
 
     // validate email length if provided (though email is primary key, good practice)
@@ -201,28 +217,75 @@ const UsersService = {
       updateData.password = hashed;
     }
 
-    if (Object.keys(updateData).length > 0) {
-      await UsersRepository.update(email, updateData);
+    // Get current user once to verify existing relations and admin role
+    const currentUser = await UsersRepository.findByEmailWithHeadquarters(normalizedEmail);
+    if (!currentUser) {
+      throw ApiError.notFound('Usuario');
     }
 
-    // validate the headquarters if they are provided
-    if (Array.isArray(data.sedes)) {
+    // Validate admin role protection if roles are being updated
+    if (Array.isArray(data.roles)) {
+      const currentRoles = (currentUser.roles || []).map(r => {
+        const roleId = r.role?.idRole || r.idRole || r.id;
+        return typeof roleId === 'number' ? roleId : parseInt(roleId);
+      });
+      const hasAdminRole = currentRoles.includes(1); // Verificar si tiene rol admin (ID: 1)
+      const willHaveAdminRole = data.roles.some(roleId => {
+        const id = typeof roleId === 'number' ? roleId : parseInt(roleId);
+        return id === 1;
+      }); // verify if the user will have admin role after the update
+
+      // if the user has admin role and is being removed
+      if (hasAdminRole && !willHaveAdminRole) {
+        // verify if it is the last active admin
+        const activeAdminsCount = await UsersRepository.countActiveAdmins(normalizedEmail);
+        if (activeAdminsCount === 0) {
+          const error = ApiError.badRequest('No se puede quitar el rol de administrador a este usuario porque es el último usuario activo con este rol. Debe haber al menos un usuario con rol de administrador activo en el sistema.');
+          error.errorCode = 'CANNOT_REMOVE_LAST_ADMIN';
+          throw error;
+        }
+      }
+    }
+
+    // Update user basic fields if needed
+    if (Object.keys(updateData).length > 0) {
+      await UsersRepository.update(normalizedEmail, updateData);
+    }
+
+    // Validate and update headquarters if provided
+    if (Array.isArray(data.headquarters)) {
       // prevent removing all headquarters
-      if (data.sedes.length === 0) {
+      if (data.headquarters.length === 0) {
         throw ApiError.badRequest('El usuario debe tener al menos una sede asignada');
       }
       // verify that all the headquarters exist (regardless of status)
-      for (const sedeId of data.sedes) {
-        const headquarterCheck = await UsersRepository.checkHeadquarterExists(sedeId);
+      for (const headquarterId of data.headquarters) {
+        const headquarterCheck = await UsersRepository.checkHeadquarterExists(headquarterId);
         if (!headquarterCheck) {
-          throw ApiError.notFound(`La sede con ID ${sedeId} no existe`);
+          throw ApiError.notFound(`La sede con ID ${headquarterId} no existe`);
         }
       }
-      await UsersRepository.clearHeadquarters(email);
-      await UsersRepository.assignHeadquarters(email, data.sedes);
+      // Normalize headquarter IDs to integers and filter out invalid values
+      const normalizedHeadquarters = data.headquarters
+        .map(id => typeof id === 'number' ? id : parseInt(id))
+        .filter(id => !isNaN(id) && id > 0);
+      
+      if (normalizedHeadquarters.length === 0) {
+        throw ApiError.badRequest('El usuario debe tener al menos una sede asignada válida');
+      }
+      
+      // Clear and assign headquarters
+      await UsersRepository.clearHeadquarters(normalizedEmail);
+      await UsersRepository.assignHeadquarters(normalizedEmail, normalizedHeadquarters);
+    } else {
+      // If headquarters not provided, verify user still has at least one
+      const currentHeadquarters = currentUser.headquarterUser || [];
+      if (currentHeadquarters.length === 0) {
+        throw ApiError.badRequest('El usuario debe tener al menos una sede asignada');
+      }
     }
 
-    // validate the roles if they are provided
+    // Validate and update roles if provided
     if (Array.isArray(data.roles)) {
       // prevent removing all roles
       if (data.roles.length === 0) {
@@ -235,16 +298,57 @@ const UsersService = {
           throw ApiError.notFound(`El rol con ID ${roleId} no existe`);
         }
       }
-      await UsersRepository.clearRoles(email);
-      await UsersRepository.assignRoles(email, data.roles);
+      // Normalize role IDs to integers and filter out invalid values
+      const normalizedRoles = data.roles
+        .map(id => typeof id === 'number' ? id : parseInt(id))
+        .filter(id => !isNaN(id) && id > 0);
+      
+      if (normalizedRoles.length === 0) {
+        throw ApiError.badRequest('El usuario debe tener al menos un rol asignado válido');
+      }
+      
+      // Clear and assign roles
+      await UsersRepository.clearRoles(normalizedEmail);
+      await UsersRepository.assignRoles(normalizedEmail, normalizedRoles);
+    } else {
+      // If roles not provided, verify user still has at least one
+      const currentRoles = currentUser.roles || [];
+      if (currentRoles.length === 0) {
+        throw ApiError.badRequest('El usuario debe tener al menos un rol asignado');
+      }
     }
 
-    return UsersRepository.findByEmailWithHeadquarters(email);
+    // Return the updated user with all relations
+    // Using a fresh query to ensure relations are loaded correctly
+    const updatedUser = await UsersRepository.findByEmailWithHeadquarters(normalizedEmail);
+    return updatedUser;
   },
 
 
   // Updates only the user's status
   updateStatus: async (email, status) => {
+    // validate that at least one admin role is provided
+    if (status && status.toLowerCase() === 'inactive') {
+      const user = await UsersRepository.findByEmailWithHeadquarters(email);
+      if (!user) {
+        throw ApiError.notFound('Usuario');
+      }
+
+      // verify if the user has admin role and is active
+      const hasAdminRole = await UsersRepository.userHasAdminRole(email);
+      const isActive = user.status?.toLowerCase() === 'active';
+
+      if (hasAdminRole && isActive) {
+        // verify if it is the last active admin
+        const activeAdminsCount = await UsersRepository.countActiveAdmins(email);
+        if (activeAdminsCount === 0) {
+          const error = ApiError.badRequest('No se puede desactivar este usuario porque es el último usuario activo con rol de administrador. Debe haber al menos un usuario con rol de administrador activo en el sistema.');
+          error.errorCode = 'CANNOT_DEACTIVATE_LAST_ADMIN';
+          throw error;
+        }
+      }
+    }
+
     await UsersRepository.update(email, { status });
     // Return the updated user with relations
     return UsersRepository.findByEmailWithHeadquarters(email);
@@ -261,6 +365,26 @@ const UsersService = {
 
   // Soft delete a user by email (change status to inactive)
   delete: async (email) => {
+    // validate that at least one admin role is provided
+    const user = await UsersRepository.findByEmailWithHeadquarters(email);
+    if (!user) {
+      throw ApiError.notFound('Usuario');
+    }
+
+    // verify if the user has admin role and is active
+    const hasAdminRole = await UsersRepository.userHasAdminRole(email);
+    const isActive = user.status?.toLowerCase() === 'active';
+
+    if (hasAdminRole && isActive) {
+      // verify if it is the last active admin
+      const activeAdminsCount = await UsersRepository.countActiveAdmins(email);
+      if (activeAdminsCount === 0) {
+        const error = new ApiError(400, 'No se puede desactivar este usuario porque es el último usuario activo con rol de administrador. Debe haber al menos un usuario con rol de administrador activo en el sistema.');
+        error.code = 'CANNOT_DEACTIVATE_LAST_ADMIN';
+        throw error;
+      }
+    }
+
     return UsersRepository.update(email, { status: 'inactive' });
   },
 

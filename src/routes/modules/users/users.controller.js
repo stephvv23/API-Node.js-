@@ -10,9 +10,9 @@ const { SecurityLogService } = require('../../../services/securitylog.service');
  * @returns {string} - Formatted string with headquarters and roles info
  */
 const formatUserRelations = (user) => {
-  const sedes = user.headquarterUser?.map(h => `${h.headquarter.name} (ID: ${h.headquarter.idHeadquarter})`).join(', ') || 'Sin sedes';
-  const roles = user.roles?.map(r => `${r.role.rolName} (ID: ${r.role.idRole})`).join(', ') || 'Sin roles';
-  return `Sedes: [${sedes}], Roles: [${roles}]`;
+  const headquarters = user.headquarterUser?.map(h => `${h.headquarter.name} (ID: ${h.headquarter.idHeadquarter})`).join(', ') || 'No headquarters';
+  const roles = user.roles?.map(r => `${r.role.rolName} (ID: ${r.role.idRole})`).join(', ') || 'No roles';
+  return `Headquarters: [${headquarters}], Roles: [${roles}]`;
 };
 
 /**
@@ -54,7 +54,7 @@ const UsersController = {
           idRole: r.role.idRole,
           rolName: r.role.rolName
         })),
-        sedes: u.headquarterUser.map(h => ({
+        headquarters: u.headquarterUser.map(h => ({
           idHeadquarter: h.headquarter.idHeadquarter,
           name: h.headquarter.name
         }))
@@ -80,7 +80,7 @@ const UsersController = {
         email: user.email,
         name: user.name,
         status: user.status,
-        sedes: user.headquarterUser.map(h => ({
+        headquarters: user.headquarterUser.map(h => ({
           idHeadquarter: h.idHeadquarter,
           name: h.headquarter.name
         })),
@@ -141,6 +141,17 @@ const UsersController = {
       if (typeof e?.message === 'string' && e.message.includes('no existe')) {
         return res.notFound(e.message);
       }
+      // handle specific admin protection errors
+      if (e && e.errorCode) {
+        return res.status(400).json({
+          ok: false,
+          error: {
+            code: e.errorCode,
+            message: e.message,
+            status: 400
+          }
+        });
+      }
       console.error('[USERS] create error:', e);
       return res.error('Error creating user');
     }
@@ -153,24 +164,43 @@ const UsersController = {
    */
   update: async (req, res) => {
     const { email } = req.params;
+    // Normalize email to lowercase for consistency
+    const normalizedEmail = email.toLowerCase();
     const body = req.body || {};
     if (body.__jsonError) {
       return res.validationErrors(['Invalid JSON. Check request body syntax.']);
     }
     // Check existence before update
-    const previousUser = await UsersService.get(email);
+    const previousUser = await UsersService.get(normalizedEmail);
     if (!previousUser) {
       return res.notFound('User');
     }
-    const { name, status, password, sedes, roles } = body;
+    const { name, status, password, sedes, headquarters, roles } = body;
+    // Support both 'sedes' (legacy) and 'headquarters' (new) for backward compatibility
+    const headquartersData = headquarters !== undefined ? headquarters : sedes;
+    
     // Centralized validation (partial)
     const validation = EntityValidators.user({ email, name, password, status }, { partial: true });
     const errors = [...validation.errors];
+    
+    // Validate that if headquarters or roles are provided, they are not empty
+    if (headquartersData !== undefined) {
+      if (!Array.isArray(headquartersData) || headquartersData.length === 0) {
+        errors.push('El usuario debe tener al menos una sede asignada');
+      }
+    }
+    
+    if (roles !== undefined) {
+      if (!Array.isArray(roles) || roles.length === 0) {
+        errors.push('El usuario debe tener al menos un rol asignado');
+      }
+    }
+    
     if (errors.length > 0) {
       return res.validationErrors(errors);
     }
     try {
-      const updated = await UsersService.update(email, { name, status, password, sedes, roles });
+      const updated = await UsersService.update(normalizedEmail, { name, status, password, headquarters: headquartersData, roles });
       // Log the user update
       const userEmail = req.user?.sub;
       // Check if only status changed from inactive to active (reactivation)
@@ -219,6 +249,17 @@ const UsersController = {
       }
       if (typeof e?.message === 'string' && e.message.includes('no existe')) {
         return res.notFound(e.message);
+      }
+      // handle specific admin protection errors
+      if (e && e.errorCode) {
+        return res.status(400).json({
+          ok: false,
+          error: {
+            code: e.errorCode,
+            message: e.message,
+            status: 400
+          }
+        });
       }
       console.error('[USERS] update error:', e);
       return res.error('Error updating user');
@@ -271,6 +312,17 @@ const UsersController = {
     } catch (e) {
       if (e && e.code === 'P2025')
         return res.notFound('User');
+      // handle specific admin protection errors
+      if (e && e.errorCode) {
+        return res.status(400).json({
+          ok: false,
+          error: {
+            code: e.errorCode,
+            message: e.message,
+            status: 400
+          }
+        });
+      }
       console.error('[USERS] updateStatus error:', e);
       return res.error('Error updating user status');
     }
@@ -332,6 +384,17 @@ const UsersController = {
     } catch (e) {
       if (e && e.code === 'P2025')
         return res.notFound('User');
+      // handle specific admin protection errors
+      if (e && e.errorCode) {
+        return res.status(400).json({
+          ok: false,
+          error: {
+            code: e.errorCode,
+            message: e.message,
+            status: 400
+          }
+        });
+      }
       console.error('[USERS] remove error:', e);
       return res.error('Error deactivating user');
     }
