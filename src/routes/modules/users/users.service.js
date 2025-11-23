@@ -229,7 +229,7 @@ const UsersService = {
         const roleId = r.role?.idRole || r.idRole || r.id;
         return typeof roleId === 'number' ? roleId : parseInt(roleId);
       });
-      const hasAdminRole = currentRoles.includes(1); // Verificar si tiene rol admin (ID: 1)
+      const hasAdminRole = currentRoles.includes(1); 
       const willHaveAdminRole = data.roles.some(roleId => {
         const id = typeof roleId === 'number' ? roleId : parseInt(roleId);
         return id === 1;
