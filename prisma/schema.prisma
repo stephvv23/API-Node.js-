@@ -327,6 +327,8 @@ model Survivor {
   @@index([idHeadquarter, status]) // Active survivors by headquarter (composite)
   @@index([status, genre]) // Active survivors by genre (composite)
   @@index([idHeadquarter, genre]) // Survivors by headquarter and genre (composite)
+  @@index([email, status]) // Active survivors by email (composite)
+  @@index(email)
 }
 
 model Cancer {
