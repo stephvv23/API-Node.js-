@@ -93,7 +93,7 @@ model RoleWindow {
 }
 
 
-//NUEVAS TABLAS Y RELACIONES
+// NEW TABLES AND RELATIONS
 
 model Asset {
     idAsset Int @id @default(autoincrement())
@@ -103,7 +103,7 @@ model Asset {
     type String @db.VarChar(50)
     description String @db.VarChar(750)
     status String @db.VarChar(25)
-    //Relations
+    // Relations
     category     Category     @relation(fields: [idCategory], references: [idCategory])
     headquarter  Headquarter  @relation(fields: [idHeadquarter], references: [idHeadquarter])
 
@@ -136,7 +136,7 @@ model Supplier {
 
 model Activity {
   idActivity     Int @id @default(autoincrement())
-  idHeadquarter  Int //FK for headquarter
+  idHeadquarter  Int // FK for headquarter
   title          String @db.VarChar(150)
   description    String @db.VarChar(750)
   type           String @db.VarChar(50)
@@ -189,7 +189,7 @@ model Godparent {
   description      String @db.VarChar(250)
   status       String @default("active") @db.VarChar(25)
 
-  godParentsPhone GodparentPhone[] // relational table
+  phoneGodparent PhoneGodparent[] // relational table
   activityGodparent ActivityGodparent[] // relational table
 
   survivor Survivor? @relation(fields: [idSurvivor], references: [idSurvivor]) // Optional relation with Survivor
@@ -200,11 +200,11 @@ model EmergencyContact {
   idEmergencyContact Int    @id @default(autoincrement())
   nameEmergencyContact String @db.VarChar(150)
   emailEmergencyContact String @db.VarChar(150)
-  relationship       String @db.VarChar(50)
+  identifier       String @db.VarChar(50)
   status             String @default("active") @db.VarChar(25)
 
   emergencyContactVolunteer EmergencyContactVolunteer[] // relational table
-  emergencyContactPhone EmergencyContactPhone[] // relational table
+  phoneEmergencyContact PhoneEmergencyContact[] // relational table
   emergencyContactSurvivor EmergencyContactSurvivor[] // relational table
 }
 
@@ -214,20 +214,22 @@ model Survivor {
   survivorName  String @db.VarChar(200)
   documentNumber String @db.VarChar(30)
   country       String @db.VarChar(75)
-  birthday      DateTime
+  birthday      DateTime @db.Date
   email         String @db.VarChar(150)
   residence     String @db.VarChar(300)
   genre         String @db.VarChar(25)
   workingCondition String @db.VarChar(50)
   CONAPDIS      Boolean
   IMAS          Boolean
-  physicalFileStatus String @db.VarChar(25)
-  medicalRecord  String @db.VarChar(25)
-  dateHomeSINRUBE String @db.VarChar(25)
-  foodBank       String @db.VarChar(25)
-  socioEconomicStudy String @db.VarChar(25)
+  physicalFileStatus String @db.VarChar(50)
+  medicalRecord  Boolean 
+  dateHomeSINRUBE Boolean 
+  foodBank       Boolean 
+  socioEconomicStudy Boolean 
   notes          String? @db.VarChar(250)
-  status       String @default("active") @db.VarChar(25)
+  status         String @default("active") @db.VarChar(25)
+  createdAt      DateTime @default(now()) // Creation date and time
+  updatedAt      DateTime? // Last update date and time
 
   emergencyContactSurvivor EmergencyContactSurvivor[] // relational table
   phoneSurvivor PhoneSurvivor[] // relational table
@@ -249,16 +251,17 @@ model Cancer {
 
 model Phone {
   idPhone       Int @id @default(autoincrement())
-  phone         Int
+  phone         String @db.VarChar(12) @unique
 
   phoneVolunteers PhoneVolunteer[] // relational table
   phoneSurvivor   PhoneSurvivor[]   // relational table
-  emergencyContactPhone EmergencyContactPhone[] // relational table
-  headquarterPhone HeadquarterPhone[] // relational table
-  godparentPhone GodparentPhone[] // relational table
+  phoneEmergencyContact PhoneEmergencyContact[] // relational table
+  phoneHeadquarter PhoneHeadquarter[] // relational table
+  phoneGodparent PhoneGodparent[] // relational table
   phoneSupplier PhoneSupplier[] // relational table
 
 }
+
 
 model Headquarter {
   idHeadquarter Int    @id @default(autoincrement())
@@ -272,14 +275,14 @@ model Headquarter {
   activities     Activity[] // NEW ADDITION: FK with activity
   headquarterUser HeadquarterUser[] // NEW ADDITION: relational table with users
   headquarterVolunteer HeadquarterVolunteer[] // relational table 
-  headquarterPhone HeadquarterPhone[] // relational table 
+  phoneHeadquarter PhoneHeadquarter[] // relational table 
   godparent Godparent[] // Relation with Godparent
   survivor Survivor[] // Relation with Survivor
   asset Asset[] // Relation with Asset
   headquarterSupplier HeadquarterSupplier[] // relational table
 }
 
-//RELATIONAL TABLES
+// RELATIONAL TABLES
 model HeadquarterUser {
   idHeadquarter Int    // Foreign key: references Headquarters.idHeadquarters
   email          String @db.VarChar(150) // Foreign key: references User.email
@@ -302,13 +305,13 @@ model HeadquarterVolunteer {
   @@id([idHeadquarter, idVolunteer]) // Composite primary key
 }
 
-model HeadquarterPhone {
+model PhoneHeadquarter {
   idHeadquarter Int // Foreign key: references Headquarter.idHeadquarter
   idPhone       Int // Foreign key: references Phone.idPhone
 
   // Relations
-  headquarter Headquarter @relation(fields: [idHeadquarter], references: [idHeadquarter]) // Connects HeadquarterPhone to Headquarter
-  phone       Phone       @relation(fields: [idPhone], references: [idPhone])             // Connects HeadquarterPhone to Phone
+  headquarter Headquarter @relation(fields: [idHeadquarter], references: [idHeadquarter]) // Connects PhoneHeadquarter to Headquarter
+  phone       Phone       @relation(fields: [idPhone], references: [idPhone])             // Connects PhoneHeadquarter to Phone
 
   @@id([idHeadquarter, idPhone]) // Composite primary key
 }
@@ -335,13 +338,13 @@ model PhoneVolunteer {
   @@id([idPhone, idVolunteer]) // Composite primary key
 } 
 
-model GodparentPhone {
+model PhoneGodparent {
   idGodparent Int // Foreign key: references Godparent.idGodparent
   idPhone     Int // Foreign key: references Phone.idPhone
 
   // Relations
-  godparent Godparent @relation(fields: [idGodparent], references: [idGodparent]) // Connects GodparentPhone to Godparent
-  phone     Phone     @relation(fields: [idPhone], references: [idPhone])         // Connects GodparentPhone to Phone
+  godparent Godparent @relation(fields: [idGodparent], references: [idGodparent]) // Connects PhoneGodparent to Godparent
+  phone     Phone     @relation(fields: [idPhone], references: [idPhone])         // Connects PhoneGodparent to Phone
 
   @@id([idGodparent, idPhone]) // Composite primary key
 }
@@ -382,6 +385,7 @@ model ActivitySurvivor {
 model EmergencyContactVolunteer {
   idEmergencyContact Int // Foreign key: references EmergencyContact.idEmergencyContact
   idVolunteer        Int // Foreign key: references Volunteer.idVolunteer
+  relationship       String @default("No especificado") @db.VarChar(50) // Relationship between volunteer and emergency contact
 
   // Relations
   emergencyContact EmergencyContact @relation(fields: [idEmergencyContact], references: [idEmergencyContact]) // Connects EmergencyContactVolunteer to EmergencyContact
@@ -393,6 +397,7 @@ model EmergencyContactVolunteer {
 model EmergencyContactSurvivor {
   idEmergencyContact Int // Foreign key: references EmergencyContact.idEmergencyContact
   idSurvivor         Int // Foreign key: references Survivor.idSurvivor
+  relationshipType   String @db.VarChar(50) // Relationship type between emergency contact and survivor (e.g., "Madre", "Padre", "Hermano", "Tío")
 
   // Relations
   emergencyContact EmergencyContact @relation(fields: [idEmergencyContact], references: [idEmergencyContact]) // Connects EmergencyContactSurvivor to EmergencyContact
@@ -401,13 +406,13 @@ model EmergencyContactSurvivor {
   @@id([idEmergencyContact, idSurvivor]) // Composite primary key
 }
 
-model EmergencyContactPhone {
+model PhoneEmergencyContact {
   idEmergencyContact Int // Foreign key: references EmergencyContact.idEmergencyContact
   idPhone            Int // Foreign key: references Phone.idPhone
 
   // Relations
-  emergencyContact EmergencyContact @relation(fields: [idEmergencyContact], references: [idEmergencyContact]) // Connects EmergencyContactPhone to EmergencyContact
-  phone            Phone            @relation(fields: [idPhone], references: [idPhone])                         // Connects EmergencyContactPhone to Phone
+  emergencyContact EmergencyContact @relation(fields: [idEmergencyContact], references: [idEmergencyContact]) // Connects PhoneEmergencyContact to EmergencyContact
+  phone            Phone            @relation(fields: [idPhone], references: [idPhone])                         // Connects PhoneEmergencyContact to Phone
 
   @@id([idEmergencyContact, idPhone]) // Composite primary key
 }
@@ -415,8 +420,8 @@ model EmergencyContactPhone {
 model CancerSurvivor {
   idCancer   Int // Foreign key: references Cancer.idCancer
   idSurvivor Int // Foreign key: references Survivor.idSurvivor
-  status     String
-  aftermath  String
+  stage      String @db.VarChar(255) // e.g., "I", "II", "III", "IV", "Remisión", "Curado"
+  status     String @default("active") @db.VarChar(25) // Soft delete: "active" or "inactive"
   // Relations
   cancer   Cancer   @relation(fields: [idCancer], references: [idCancer])     // Connects cancerSurvivor to Cancer
   survivor Survivor @relation(fields: [idSurvivor], references: [idSurvivor]) // Connects cancerSurvivor to Survivor
@@ -431,7 +436,7 @@ model CategorySupplier {
   category Category @relation(fields: [idCategory], references: [idCategory])
   supplier Supplier @relation(fields: [idSupplier], references: [idSupplier])
 
-  @@id([idCategory, idSupplier]) // PK compuesta
+  @@id([idCategory, idSupplier]) // Composite primary key
 }
 
 
@@ -442,7 +447,7 @@ model PhoneSupplier {
   phone    Phone    @relation(fields: [idPhone], references: [idPhone])
   supplier Supplier @relation(fields: [idSupplier], references: [idSupplier])
 
-  @@id([idPhone, idSupplier]) // PK compuesta
+  @@id([idPhone, idSupplier]) // Composite primary key
 }
 
 model HeadquarterSupplier {
@@ -452,15 +457,28 @@ model HeadquarterSupplier {
   headquarter Headquarter @relation(fields: [idHeadquarter], references: [idHeadquarter])
   supplier     Supplier     @relation(fields: [idSupplier], references: [idSupplier])
 
-  @@id([idHeadquarter, idSupplier]) // PK compuesta
+  @@id([idHeadquarter, idSupplier]) // Composite primary key
 }
 
-// -------------  BlackList -------------
+// ------------- BlackList -------------
 model TokenBlacklist {
   id        Int      @id @default(autoincrement())
   token     String   @db.Text
   createdAt DateTime @default(now())
 }
 
+// ------------- Password Reset Token -------------
+model PasswordResetToken {
+  id        Int      @id @default(autoincrement())
+  email     String   @db.VarChar(150)
+  token     String   @db.VarChar(255) @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
 
-// -------------  FIN NUEVAS TABLAS Y RELACIONES -------------
+  @@index([email])
+  @@index([token])
+}
+
+
+// ------------- END NEW TABLES AND RELATIONS -------------

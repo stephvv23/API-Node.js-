@@ -79,6 +79,15 @@ const ValidationRules = {
     return regex.test(value) || 'Solo se permiten letras, números, espacios y signos de puntuación';
   },
 
+  // Name validation (only letters, spaces, hyphens, and apostrophes)
+  personName: (value) => {
+    if (value === undefined || value === null) return true; // Skip if value is not provided
+    // Allows letters (including accented), spaces, single hyphens, and apostrophes
+    // Does not allow consecutive special characters or names made only of symbols
+    const regex = /^[\p{L}]+([\p{L}\s'-]*[\p{L}]+)*$/u;
+    return regex.test(value) || 'El nombre solo puede contener letras, espacios, guiones y apóstrofes. Debe comenzar y terminar con una letra';
+  },
+
   // Phone number validation (international format support)
   phoneNumber: (value) => {
     if (value === undefined || value === null) return true; // Skip if value is not provided
@@ -374,6 +383,80 @@ const ValidationRules = {
     return (n > 0) ? n : null; // Only positive IDs
   },
 
+  /**
+   * Parse and validate a phone number
+   * @param {any} phone - The phone value to parse (can be string or number)
+   * @returns {Object} - { valid: boolean, value: string|null, errors: string[] }
+   */
+  parsePhoneNumber: (phone) => {
+    const errors = [];
+    
+    // Check if phone is provided
+    if (phone === undefined || phone === null || phone === '') {
+      errors.push('phone es requerido');
+      return { valid: false, value: null, errors };
+    }
+    
+    // Normalize to string and trim
+    const phoneStr = String(phone).trim();
+    
+    if (!phoneStr) {
+      errors.push('phone es requerido');
+      return { valid: false, value: null, errors };
+    }
+    
+    // Validate it contains only digits
+    if (!/^\d+$/.test(phoneStr)) {
+      errors.push('phone debe contener solo dígitos');
+      return { valid: false, value: phoneStr, errors };
+    }
+    
+    // Validate length (max 12 digits)
+    if (phoneStr.length > 12) {
+      errors.push('phone no puede tener más de 12 dígitos');
+      return { valid: false, value: phoneStr, errors };
+    }
+    
+    return { valid: true, value: phoneStr, errors: [] };
+  },
+
+  /**
+   * Validate field lengths against maximum allowed values
+   * @param {Object} data - Object containing the fields to validate
+   * @param {Object} limits - Object mapping field names to their max lengths
+   * @returns {string[]} - Array of error messages (empty if all valid)
+   * 
+   * @example
+   * const errors = ValidationRules.validateFieldLengths(
+   *   { name: 'John Doe', email: 'john@example.com' },
+   *   { name: 50, email: 150 }
+   * );
+   * // Returns: [] if valid, or ['name no puede exceder 50 caracteres'] if invalid
+   */
+  validateFieldLengths: (data, limits) => {
+    const errors = [];
+    
+    if (!data || typeof data !== 'object') return errors;
+    if (!limits || typeof limits !== 'object') return errors;
+    
+    for (const [fieldName, maxLength] of Object.entries(limits)) {
+      const value = data[fieldName];
+      
+      // Skip if field is not present or is null/undefined
+      if (value === undefined || value === null) continue;
+      
+      // Only validate strings
+      if (typeof value !== 'string') continue;
+      
+      // Check length
+      if (value.length > maxLength) {
+        errors.push(`${fieldName} no puede exceder ${maxLength} caracteres`);
+      }
+    }
+    
+    return errors;
+  },
+
   
   isValidStatusFilter: (status, allowAll = true) => {
     if (status === 'all' && allowAll) return true;
@@ -492,6 +575,11 @@ class FieldValidator {
   // New international text validations
   internationalText() {
     this.rules.push(ValidationRules.internationalText);
+    return this;
+  }
+
+  personName() {
+    this.rules.push(ValidationRules.personName);
     return this;
   }
 
@@ -866,7 +954,8 @@ const EntityValidators = {
   /**
    * Emergency Contact entity validator
    * Schema: idEmergencyContact, nameEmergencyContact (VarChar 150), 
-   *         emailEmergencyContact (VarChar 150), relationship (VarChar 50), status (VarChar 25)
+
+   *         emailEmergencyContact (VarChar 150), identifier (VarChar 50), status (VarChar 25)
    * @param {Object} data - The emergency contact data to validate  
    * @param {Object} options - Validation options
    * @param {boolean} options.partial - If true, only validates provided fields (for updates)
@@ -894,11 +983,12 @@ const EntityValidators = {
       emailValidator.string().minLength(1).email().maxLength(150);
     }
 
-    // Relationship validation
-    if (shouldValidateField(data.relationship)) {
-      const relationshipValidator = validator.field('relationship', data.relationship);
-      if (!options.partial) relationshipValidator.required();
-      relationshipValidator.string().minLength(1).internationalText().maxLength(50);
+
+    // Identifier validation
+    if (shouldValidateField(data.identifier)) {
+      const identifierValidator = validator.field('identifier', data.identifier);
+      if (!options.partial) identifierValidator.required();
+      identifierValidator.string().minLength(1).internationalText().maxLength(50);
     }
     
     // Status validation
@@ -1124,7 +1214,7 @@ const EntityValidators = {
    */
   phone: (data, options = { partial: false }) => {
     const validator = Validator.create();
-    
+
     const shouldValidateField = (fieldValue) => {
       return !options.partial || (fieldValue !== undefined && fieldValue !== null);
     };
@@ -1133,9 +1223,13 @@ const EntityValidators = {
     if (shouldValidateField(data.phone)) {
       const phoneValidator = validator.field('phone', data.phone);
       if (!options.partial) phoneValidator.required();
-      phoneValidator.integer();
+      if (typeof data.phone !== 'string' || !/^\d+$/.test(data.phone)) {
+        phoneValidator.errors.push('El número de teléfono solo puede contener dígitos (sin espacios, guiones ni otros caracteres).');
+      } else if (data.phone.length > 12) {
+        phoneValidator.errors.push('El número de teléfono no puede contener más de 12 dígitos.');
+      }
     }
-    
+
     return validator.validate();
   },
 
@@ -1201,24 +1295,7 @@ const EntityValidators = {
     if (shouldValidateField(data.date)) {
       const dateValidator = validator.field('date', data.date);
       if (!options.partial) dateValidator.required();
-      dateValidator.date().custom((value) => {
-        if (value === undefined || value === null) return true;
-        
-        // Parse the date using the existing parseDate function
-        const date = ValidationRules.parseDate(value);
-        if (!date) return 'Fecha inválida';
-        
-        const now = new Date();
-        // Add a small buffer (1 minute) to account for timezone differences and processing time
-        const bufferTime = new Date(now.getTime() + 60000); // 1 minute buffer
-        
-        // Check if the date is in the past (before now + buffer)
-        if (date < bufferTime) {
-          return 'La fecha de la actividad no puede ser en el pasado';
-        }
-        
-        return true;
-      });
+      dateValidator.date();
     }
 
     // Description validation
@@ -1347,6 +1424,11 @@ const EntityValidators = {
       return !options.partial || (fieldValue !== undefined && fieldValue !== null);
     };
 
+    // Normalize top-level string fields to avoid duplicates due to spacing
+    if (data && typeof data === 'object') {
+      data = ValidationRules.trimStringFields(data);
+    }
+
     // Headquarter ID validation
     if (shouldValidateField(data.idHeadquarter)) {
       const headquarterValidator = validator.field('idHeadquarter', data.idHeadquarter);
@@ -1358,7 +1440,7 @@ const EntityValidators = {
     if (shouldValidateField(data.survivorName)) {
       const nameValidator = validator.field('survivorName', data.survivorName);
       if (!options.partial) nameValidator.required();
-      nameValidator.string().minLength(1).internationalText().maxLength(200);
+      nameValidator.string().minLength(1).personName().maxLength(200);
     }
 
     // Document number validation
@@ -1375,11 +1457,11 @@ const EntityValidators = {
       countryValidator.string().minLength(1).internationalText().maxLength(75);
     }
 
-    // Birthday validation
+    // Birthday validation (must be valid date and not in future)
     if (shouldValidateField(data.birthday)) {
       const birthdayValidator = validator.field('birthday', data.birthday);
       if (!options.partial) birthdayValidator.required();
-      birthdayValidator.date();
+      birthdayValidator.date().dateNotInFuture();
     }
 
     // Email validation
@@ -1424,44 +1506,81 @@ const EntityValidators = {
       imasValidator.boolean();
     }
 
-    // Physical file status validation
+    // Physical file status validation (string: "Completo", "Incompleto", "En proceso", etc.)
     if (shouldValidateField(data.physicalFileStatus)) {
       const physicalValidator = validator.field('physicalFileStatus', data.physicalFileStatus);
       if (!options.partial) physicalValidator.required();
-      physicalValidator.string().minLength(1).internationalText().maxLength(25);
+      physicalValidator.string().minLength(1).internationalText().maxLength(50);
     }
 
     // Medical record validation
     if (shouldValidateField(data.medicalRecord)) {
       const medicalValidator = validator.field('medicalRecord', data.medicalRecord);
       if (!options.partial) medicalValidator.required();
-      medicalValidator.string().minLength(1).internationalText().maxLength(25);
+      medicalValidator.boolean();
     }
 
     // Date home SINRUBE validation
     if (shouldValidateField(data.dateHomeSINRUBE)) {
       const sinrubeValidator = validator.field('dateHomeSINRUBE', data.dateHomeSINRUBE);
       if (!options.partial) sinrubeValidator.required();
-      sinrubeValidator.string().minLength(1).internationalText().maxLength(25);
+      sinrubeValidator.boolean();
     }
 
     // Food bank validation
     if (shouldValidateField(data.foodBank)) {
       const foodBankValidator = validator.field('foodBank', data.foodBank);
       if (!options.partial) foodBankValidator.required();
-      foodBankValidator.string().minLength(1).internationalText().maxLength(25);
+      foodBankValidator.boolean();
     }
 
     // Socio economic study validation
     if (shouldValidateField(data.socioEconomicStudy)) {
       const socioValidator = validator.field('socioEconomicStudy', data.socioEconomicStudy);
       if (!options.partial) socioValidator.required();
-      socioValidator.string().minLength(1).internationalText().maxLength(25);
+      socioValidator.boolean();
     }
 
     // Notes validation (optional field)
     if (shouldValidateField(data.notes)) {
       validator.field('notes', data.notes).string().internationalText().maxLength(250);
+    }
+
+    // Cancers array validation (each item should include idCancer and stage)
+    if (shouldValidateField(data.cancers)) {
+      if (!Array.isArray(data.cancers) || data.cancers.length === 0) {
+        if (!options.partial) {
+          const cancersValidator = validator.field('cancers', data.cancers);
+          cancersValidator.custom(() => 'Debe proporcionar al menos un tipo de cáncer');
+        }
+      } else {
+        for (let i = 0; i < data.cancers.length; i++) {
+          const item = data.cancers[i] || {};
+          // Normalize stage spacing for validation clarity
+          if (item.stage && typeof item.stage === 'string') {
+            item.stage = item.stage.trim().replace(/\s+/g, ' ');
+          }
+
+          // Create a readable field name for error messages
+          const cancerFieldName = item.idCancer 
+            ? `Cáncer ID ${item.idCancer}` 
+            : `Cáncer en posición ${i + 1}`;
+
+          // idCancer must be an integer
+          if (item.idCancer !== undefined && item.idCancer !== null) {
+            const idValidator = validator.field(`${cancerFieldName}.idCancer`, item.idCancer);
+            if (!options.partial) idValidator.required();
+            idValidator.integer();
+          }
+
+          // stage must be a non-empty string (max 255 chars)
+          if (item.stage !== undefined && item.stage !== null) {
+            const stageValidator = validator.field(`${cancerFieldName}.stage`, item.stage);
+            if (!options.partial) stageValidator.required();
+            stageValidator.string().minLength(1).internationalText().maxLength(255);
+          }
+        }
+      }
     }
 
     // Status validation

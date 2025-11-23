@@ -32,8 +32,20 @@ const CancerController = {
     }
   },
 
-  list: async (_req, res) => {
-    const cancers = await CancerService.list();
+  list: async (req, res) => {
+    const filters = {};
+    
+    // Status filter from query parameter
+    if (req.query.status !== undefined) {
+      const status = String(req.query.status).toLowerCase();
+      if (status === 'active' || status === 'inactive' || status === 'all') {
+        filters.status = status;
+      } else {
+        return res.validationErrors(['El parámetro status debe ser "active", "inactive" o "all"']);
+      }
+    }
+    
+    const cancers = await CancerService.list(filters);
     res.json(cancers);
   },
   // get by id

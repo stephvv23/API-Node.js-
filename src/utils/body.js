@@ -15,11 +15,11 @@ function readJsonBody(req) {
         resolve(parsed);
       }
       catch (error) { 
-        // if there is a JSON error, we return an object that indicates the error
+        // Security: Do not expose raw JSON data or detailed error messages
+        // Only indicate that the JSON format is invalid
         resolve({ 
           __jsonError: true, 
-          __jsonErrorMessage: 'JSON inválido: ' + error.message,
-          __rawData: data
+          __jsonErrorMessage: 'Formato de JSON inválido. Verifique la sintaxis del cuerpo de la solicitud.'
         }); 
       }
     });

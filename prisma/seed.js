@@ -1,3 +1,4 @@
+
 // prisma/seed.js
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcrypt');
@@ -28,6 +29,7 @@ async function main() {
     { id: 11, name: 'Voluntarios' },
     { id: 12, name: 'Padrinos' },
     { id: 13, name: 'Roles' },
+    { id: 14, name: 'Reportes' },
   ];
 
   const windows = await Promise.all(
@@ -73,64 +75,35 @@ async function main() {
   });
 
   // Permissions RoleWindow
-  await Promise.all(
-    windows.map((win) =>
-      prisma.roleWindow.create({
-        data: {
-          idRole: adminRole.idRole,
-          idWindow: win.idWindow,
-          create: true,
-          read: true,
-          update: true,
-          delete: true,
-        },
-      })
-    )
-  );
+  await prisma.roleWindow.createMany({
+    data: windows.map((win) => ({
+      idRole: adminRole.idRole,
+      idWindow: win.idWindow,
+      create: true,
+      read: true,
+      update: true,
+      delete: true,
+    })),
+  });
+
+  // Permissions for Coordinator role
+  const coordinatorPermissions = [
+    { windowIndex: 0, create: false, read: true, update: true, delete: false }, // Assets
+    { windowIndex: 1, create: false, read: true, update: true, delete: false }, // Suppliers
+    { windowIndex: 2, create: false, read: true, update: true, delete: false }, // Survivors
+    { windowIndex: 3, create: true, read: true, update: true, delete: false },  // Activities
+    { windowIndex: 4, create: false, read: true, update: false, delete: false }, // Security
+  ];
 
   await prisma.roleWindow.createMany({
-    data: [
-      {
-        idRole: coordinatorRole.idRole,
-        idWindow: windows[0].idWindow, // Assets
-        create: false,
-        read: true,
-        update: true,
-        delete: false,
-      },
-      {
-        idRole: coordinatorRole.idRole,
-        idWindow: windows[1].idWindow, // Suppliers
-        create: false,
-        read: true,
-        update: true,
-        delete: false,
-      },
-      {
-        idRole: coordinatorRole.idRole,
-        idWindow: windows[2].idWindow, // Survivors
-        create: false,
-        read: true,
-        update: true,
-        delete: false,
-      },
-      {
-        idRole: coordinatorRole.idRole,
-        idWindow: windows[3].idWindow, // Activities
-        create: true,
-        read: true,
-        update: true,
-        delete: false,
-      },
-      {
-        idRole: coordinatorRole.idRole,
-        idWindow: windows[4].idWindow, // Security
-        create: false,
-        read: true,
-        update: false,
-        delete: false,
-      },
-    ],
+    data: coordinatorPermissions.map((perm) => ({
+      idRole: coordinatorRole.idRole,
+      idWindow: windows[perm.windowIndex].idWindow,
+      create: perm.create,
+      read: perm.read,
+      update: perm.update,
+      delete: perm.delete,
+    })),
   });
 
   await prisma.loginAccess.createMany({
@@ -211,7 +184,7 @@ async function main() {
 
   /* ===================== PHONES ===================== */
   const phoneObjs = await Promise.all(
-    [88881234, 22223333, 70707070, 60501234, 70112233, 89112233, 24567890, 88885555, 40001234, 24501234].map(
+    ["88881234", "22223333", "70707070", "60501234", "70112233", "89112233", "24567890", "88885555", "40001234", "24501234"].map(
       (p) => prisma.phone.create({ data: { phone: p } })
     )
   );
@@ -251,10 +224,10 @@ async function main() {
       CONAPDIS: true,
       IMAS: false,
       physicalFileStatus: 'Completo',
-      medicalRecord: 'Activo',
-      dateHomeSINRUBE: '2023-10-05',
-      foodBank: 'Activo',
-      socioEconomicStudy: 'Completado',
+      medicalRecord: true,
+      dateHomeSINRUBE: true,
+      foodBank: true,
+      socioEconomicStudy: true,
       notes: 'Requiere apoyo de transporte',
       status: 'active',
     },
@@ -279,8 +252,7 @@ async function main() {
     data: {
       idCancer: cancer1.idCancer,
       idSurvivor: survivor.idSurvivor,
-      status: 'en recuperación',
-      aftermath: 'quimioterapia 2023, seguimiento 2024',
+      stage: 'Etapa II',
     },
   });
 
@@ -362,7 +334,7 @@ async function main() {
   });
 
   // Phones by headquarters
-  await prisma.headquarterPhone.createMany({
+  await prisma.phoneHeadquarter.createMany({
     data: [
       { idHeadquarter: hq1.idHeadquarter, idPhone: phoneObjs[0].idPhone }, // 8888-1234
       { idHeadquarter: hq1.idHeadquarter, idPhone: phoneObjs[1].idPhone }, // 2222-3333
@@ -377,7 +349,7 @@ async function main() {
   await prisma.phoneVolunteer.create({
     data: { idPhone: phoneObjs[4].idPhone, idVolunteer: volunteer.idVolunteer }, // 7011-2233
   });
-  await prisma.godparentPhone.create({
+  await prisma.phoneGodparent.create({
     data: { idGodparent: godparent.idGodparent, idPhone: phoneObjs[5].idPhone }, // 8911-2233
   });
 
@@ -387,7 +359,7 @@ async function main() {
       data: {
         nameEmergencyContact: 'Carlos Fernández',
         emailEmergencyContact: 'carlos.fernandez@example.com',
-        relationship: 'Padre',
+        identifier: '0-000-0000',
         status: 'active',
       },
     }),
@@ -395,20 +367,29 @@ async function main() {
       data: {
         nameEmergencyContact: 'Laura Pérez',
         emailEmergencyContact: 'laura.perez@example.com',
-        relationship: 'Esposa',
+        identifier: '0-000-0000',
         status: 'active',
       },
     }),
   ]);
 
+  // Associate emergency contacts with relationship in the intermediate table
   await prisma.emergencyContactVolunteer.create({
-    data: { idEmergencyContact: ec1.idEmergencyContact, idVolunteer: volunteer.idVolunteer },
+    data: { 
+      idEmergencyContact: ec1.idEmergencyContact, 
+      idVolunteer: volunteer.idVolunteer,
+      relationship: 'Padre'
+    },
   });
   await prisma.emergencyContactSurvivor.create({
-    data: { idEmergencyContact: ec2.idEmergencyContact, idSurvivor: survivor.idSurvivor },
+    data: { 
+      idEmergencyContact: ec2.idEmergencyContact, 
+      idSurvivor: survivor.idSurvivor,
+      relationshipType: 'Esposo/a'
+    },
   });
 
-  await prisma.emergencyContactPhone.createMany({
+  await prisma.phoneEmergencyContact.createMany({
     data: [
       { idEmergencyContact: ec1.idEmergencyContact, idPhone: phoneObjs[6].idPhone }, // 2456-7890
       { idEmergencyContact: ec2.idEmergencyContact, idPhone: phoneObjs[7].idPhone }, // 8888-5555

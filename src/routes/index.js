@@ -1,4 +1,4 @@
-// Will be used as Route Aggregator. Imports routes from each module, 
+// Route Aggregator: Imports routes from each module, 
 // compiles them to RegExp (with path.js), sorts by specificity 
 // (so that /login beats /:email) and does the matching for each request. 
 // Passes to handlers params, query and body already parsed.
@@ -18,12 +18,23 @@ const categoriesRoutes = require('./modules/Category/category.routes');
 const roleRoutes = require('./modules/Role/role.routes');
 const roleWindowsRoutes = require('./modules/RoleWindows/roleWindows.routes');
 const emergencyContactRoutes = require('./modules/emergencyContact/emergencyContact.routes');
+const emergencyContactPhoneRoutes = require('./modules/emergencyContactPhone/emergencyContactPhone.routes');
 const permissionRoutes = require('./modules/auth/permission.routes');
+const survivorRoutes = require('./modules/survivor/survivor.routes');
+const cancerSurvivorRoutes = require('./modules/cancerSurvivor/cancerSurvivor.routes');
+const emergencyContactSurvivorRoutes = require('./modules/emergencyContactSurvivor/emergencyContactSurvivor.routes');
+const phoneRoutes = require('./modules/phone/phone.routes');
+const phoneSurvivorRoutes = require('./modules/phoneSurvivor/phoneSurvivor.routes');
+const phoneGodparentRoutes = require('./modules/phoneGodparent/phoneGodparent.routes');
+const phoneHeadquarterRoutes = require('./modules/phoneHeadquarter/phoneHeadquarter.routes');
+const phoneVolunteerRoutes = require('./modules/phoneVolunteer/phoneVolunteer.routes');
 const godParentRoutes = require('./modules/GodParent/godParent.routes');
 const activityRoutes = require('./modules/activity/activity.routes');
 const volunteerRoutes = require('./modules/volunteer/volunteer.routes');
+const passwordRecoveryRoutes = require('./modules/passwordRecovery/passwordRecovery.routes');
+const suppliersRoutes = require('./modules/suppliers/suppliers.routes');
+const statsRoutes = require('./modules/stats/stats.routes');
 
-// const patientsRoutes = require('./modules/patients.routes');
 // 2) Concatenate and compile paths → { method, pattern, paramNames, handler }
 function buildRoutes() {
   const raw = [
@@ -35,10 +46,22 @@ function buildRoutes() {
     ...roleRoutes,
     ...roleWindowsRoutes,
     ...emergencyContactRoutes,
+    ...emergencyContactPhoneRoutes,
     ...permissionRoutes,
+    ...survivorRoutes,
+    ...cancerSurvivorRoutes,
+    ...emergencyContactSurvivorRoutes,
+    ...phoneRoutes,
+    ...phoneSurvivorRoutes,
+    ...phoneGodparentRoutes,
+    ...phoneHeadquarterRoutes,
+    ...phoneVolunteerRoutes,
     ...godParentRoutes,
     ...activityRoutes,
     ...volunteerRoutes,
+    ...passwordRecoveryRoutes,
+    ...suppliersRoutes,
+    ...statsRoutes,
   ];
 
   // Sort by specificity ("/login" before "/:email")

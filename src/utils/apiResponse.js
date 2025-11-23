@@ -140,6 +140,14 @@ const standardResponseMiddleware = (req, res, next) => {
     return res.status(401).json(ResponseHelpers.unauthorized(message));
   };
 
+  // Bad request (400 error with custom message)
+  res.badRequest = (message) => {
+    return res.status(400).json({
+      ok: false,
+      message
+    });
+  };
+
   // Throw API error (for use with next())
   res.throwError = (statusCode, message, errors = null) => {
     throw new ApiResponse(statusCode, message, errors);

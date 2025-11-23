@@ -11,15 +11,36 @@ const baseSelect = {
   idEmergencyContact: true,
   nameEmergencyContact: true,
   emailEmergencyContact: true,
-  relationship: true,
+  identifier: true,
   status: true,
 };
 
 
 const EmergencyContactsRepository = {
-  // Finds all emergency contacts
-  findAll: async () => {
+  // Finds a single emergency contact by email
+  findByEmail: (emailEmergencyContact) =>
+    prisma.emergencyContact.findFirst({
+      where: { emailEmergencyContact },
+      select: baseSelect,
+    }),
+
+  // Finds a single emergency contact by identifier
+  findByIdentifier: (identifier) =>
+    prisma.emergencyContact.findFirst({
+      where: { identifier },
+      select: baseSelect,
+    }),
+  // Finds all emergency contacts with optional status filter
+  findAll: async (filters = {}) => {
+    const where = {};
+    
+    // Status filter: 'active', 'inactive', or 'all'
+    if (filters.status && filters.status !== 'all') {
+      where.status = filters.status;
+    }
+    
     return await prisma.emergencyContact.findMany({
+      where,
       select: baseSelect,
     });
   },

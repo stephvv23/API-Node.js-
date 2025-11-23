@@ -17,5 +17,6 @@ module.exports = [
   // Emergency contact relationships
   { method: 'GET', path: '/api/volunteers/:id/emergencyContacts', handler: authenticate(authorizeWindow('Voluntarios','read')(VolunteerController.getEmergencyContacts)) },
   { method: 'POST', path: '/api/volunteers/:id/emergencyContacts', handler: authenticate(authorizeWindow('Voluntarios','read','create')(VolunteerController.addEmergencyContacts)) },
+  { method: 'PUT', path: '/api/volunteers/:id/emergencyContacts/:contactId/relationship', handler: authenticate(authorizeWindow('Voluntarios','read','update')(VolunteerController.updateEmergencyContactRelationship)) },
   { method: 'DELETE', path: '/api/volunteers/:id/emergencyContacts', handler: authenticate(authorizeWindow('Voluntarios','read','delete')(VolunteerController.removeEmergencyContacts)) },
 ];
