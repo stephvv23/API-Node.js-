@@ -214,7 +214,7 @@ async function main() {
     data: {
       idHeadquarter: hq1.idHeadquarter,
       survivorName: 'José Pérez',
-      identifier: '2-3456-0789',
+      documentNumber: '2-3456-0789',
       country: 'Costa Rica',
       birthday: new Date('1980-03-12'),
       email: 'jose.perez@example.com',
