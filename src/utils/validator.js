@@ -954,6 +954,7 @@ const EntityValidators = {
   /**
    * Emergency Contact entity validator
    * Schema: idEmergencyContact, nameEmergencyContact (VarChar 150), 
+
    *         emailEmergencyContact (VarChar 150), identifier (VarChar 50), status (VarChar 25)
    * @param {Object} data - The emergency contact data to validate  
    * @param {Object} options - Validation options
@@ -981,6 +982,7 @@ const EntityValidators = {
       if (!options.partial) emailValidator.required();
       emailValidator.string().minLength(1).email().maxLength(150);
     }
+
 
     // Identifier validation
     if (shouldValidateField(data.identifier)) {

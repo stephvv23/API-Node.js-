@@ -189,7 +189,7 @@ model Godparent {
   description      String @db.VarChar(250)
   status       String @default("active") @db.VarChar(25)
 
-  godParentsPhone GodparentPhone[] // relational table
+  phoneGodparent PhoneGodparent[] // relational table
   activityGodparent ActivityGodparent[] // relational table
 
   survivor Survivor? @relation(fields: [idSurvivor], references: [idSurvivor]) // Optional relation with Survivor
@@ -204,7 +204,7 @@ model EmergencyContact {
   status             String @default("active") @db.VarChar(25)
 
   emergencyContactVolunteer EmergencyContactVolunteer[] // relational table
-  emergencyContactPhone EmergencyContactPhone[] // relational table
+  phoneEmergencyContact PhoneEmergencyContact[] // relational table
   emergencyContactSurvivor EmergencyContactSurvivor[] // relational table
 }
 
@@ -255,9 +255,9 @@ model Phone {
 
   phoneVolunteers PhoneVolunteer[] // relational table
   phoneSurvivor   PhoneSurvivor[]   // relational table
-  emergencyContactPhone EmergencyContactPhone[] // relational table
-  headquarterPhone HeadquarterPhone[] // relational table
-  godparentPhone GodparentPhone[] // relational table
+  phoneEmergencyContact PhoneEmergencyContact[] // relational table
+  phoneHeadquarter PhoneHeadquarter[] // relational table
+  phoneGodparent PhoneGodparent[] // relational table
   phoneSupplier PhoneSupplier[] // relational table
 
 }
@@ -275,7 +275,7 @@ model Headquarter {
   activities     Activity[] // NEW ADDITION: FK with activity
   headquarterUser HeadquarterUser[] // NEW ADDITION: relational table with users
   headquarterVolunteer HeadquarterVolunteer[] // relational table 
-  headquarterPhone HeadquarterPhone[] // relational table 
+  phoneHeadquarter PhoneHeadquarter[] // relational table 
   godparent Godparent[] // Relation with Godparent
   survivor Survivor[] // Relation with Survivor
   asset Asset[] // Relation with Asset
@@ -305,13 +305,13 @@ model HeadquarterVolunteer {
   @@id([idHeadquarter, idVolunteer]) // Composite primary key
 }
 
-model HeadquarterPhone {
+model PhoneHeadquarter {
   idHeadquarter Int // Foreign key: references Headquarter.idHeadquarter
   idPhone       Int // Foreign key: references Phone.idPhone
 
   // Relations
-  headquarter Headquarter @relation(fields: [idHeadquarter], references: [idHeadquarter]) // Connects HeadquarterPhone to Headquarter
-  phone       Phone       @relation(fields: [idPhone], references: [idPhone])             // Connects HeadquarterPhone to Phone
+  headquarter Headquarter @relation(fields: [idHeadquarter], references: [idHeadquarter]) // Connects PhoneHeadquarter to Headquarter
+  phone       Phone       @relation(fields: [idPhone], references: [idPhone])             // Connects PhoneHeadquarter to Phone
 
   @@id([idHeadquarter, idPhone]) // Composite primary key
 }
@@ -338,13 +338,13 @@ model PhoneVolunteer {
   @@id([idPhone, idVolunteer]) // Composite primary key
 } 
 
-model GodparentPhone {
+model PhoneGodparent {
   idGodparent Int // Foreign key: references Godparent.idGodparent
   idPhone     Int // Foreign key: references Phone.idPhone
 
   // Relations
-  godparent Godparent @relation(fields: [idGodparent], references: [idGodparent]) // Connects GodparentPhone to Godparent
-  phone     Phone     @relation(fields: [idPhone], references: [idPhone])         // Connects GodparentPhone to Phone
+  godparent Godparent @relation(fields: [idGodparent], references: [idGodparent]) // Connects PhoneGodparent to Godparent
+  phone     Phone     @relation(fields: [idPhone], references: [idPhone])         // Connects PhoneGodparent to Phone
 
   @@id([idGodparent, idPhone]) // Composite primary key
 }
@@ -406,13 +406,13 @@ model EmergencyContactSurvivor {
   @@id([idEmergencyContact, idSurvivor]) // Composite primary key
 }
 
-model EmergencyContactPhone {
+model PhoneEmergencyContact {
   idEmergencyContact Int // Foreign key: references EmergencyContact.idEmergencyContact
   idPhone            Int // Foreign key: references Phone.idPhone
 
   // Relations
-  emergencyContact EmergencyContact @relation(fields: [idEmergencyContact], references: [idEmergencyContact]) // Connects EmergencyContactPhone to EmergencyContact
-  phone            Phone            @relation(fields: [idPhone], references: [idPhone])                         // Connects EmergencyContactPhone to Phone
+  emergencyContact EmergencyContact @relation(fields: [idEmergencyContact], references: [idEmergencyContact]) // Connects PhoneEmergencyContact to EmergencyContact
+  phone            Phone            @relation(fields: [idPhone], references: [idPhone])                         // Connects PhoneEmergencyContact to Phone
 
   @@id([idEmergencyContact, idPhone]) // Composite primary key
 }

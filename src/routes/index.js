@@ -18,12 +18,16 @@ const categoriesRoutes = require('./modules/Category/category.routes');
 const roleRoutes = require('./modules/Role/role.routes');
 const roleWindowsRoutes = require('./modules/RoleWindows/roleWindows.routes');
 const emergencyContactRoutes = require('./modules/emergencyContact/emergencyContact.routes');
+const emergencyContactPhoneRoutes = require('./modules/emergencyContactPhone/emergencyContactPhone.routes');
 const permissionRoutes = require('./modules/auth/permission.routes');
 const survivorRoutes = require('./modules/survivor/survivor.routes');
 const cancerSurvivorRoutes = require('./modules/cancerSurvivor/cancerSurvivor.routes');
 const emergencyContactSurvivorRoutes = require('./modules/emergencyContactSurvivor/emergencyContactSurvivor.routes');
 const phoneRoutes = require('./modules/phone/phone.routes');
 const phoneSurvivorRoutes = require('./modules/phoneSurvivor/phoneSurvivor.routes');
+const phoneGodparentRoutes = require('./modules/phoneGodparent/phoneGodparent.routes');
+const phoneHeadquarterRoutes = require('./modules/phoneHeadquarter/phoneHeadquarter.routes');
+const phoneVolunteerRoutes = require('./modules/phoneVolunteer/phoneVolunteer.routes');
 const godParentRoutes = require('./modules/GodParent/godParent.routes');
 const activityRoutes = require('./modules/activity/activity.routes');
 const volunteerRoutes = require('./modules/volunteer/volunteer.routes');
@@ -42,12 +46,16 @@ function buildRoutes() {
     ...roleRoutes,
     ...roleWindowsRoutes,
     ...emergencyContactRoutes,
+    ...emergencyContactPhoneRoutes,
     ...permissionRoutes,
     ...survivorRoutes,
     ...cancerSurvivorRoutes,
     ...emergencyContactSurvivorRoutes,
     ...phoneRoutes,
     ...phoneSurvivorRoutes,
+    ...phoneGodparentRoutes,
+    ...phoneHeadquarterRoutes,
+    ...phoneVolunteerRoutes,
     ...godParentRoutes,
     ...activityRoutes,
     ...volunteerRoutes,

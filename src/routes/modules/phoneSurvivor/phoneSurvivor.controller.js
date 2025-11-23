@@ -216,6 +216,7 @@ const PhoneSurvivorController = {
   /**
    * DELETE /api/survivors/:id/phone
    * Remove the phone from a survivor
+   * COMMENTED OUT - We don't delete phone numbers, only update them
    */
   // delete: async (req, res) => {
   //   const { id } = req.params;

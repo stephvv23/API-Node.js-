@@ -1,8 +1,8 @@
 
-
-// Import required services and utilities
-const { EmergencyContactsService } = require('./emergencyContact.service'); 
+const { EmergencyContactsService } = require('./emergencyContact.service');
 const { SecurityLogService } = require('../../../services/securitylog.service');
+const { PhoneService } = require('../phone/phone.service');
+const { EmergencyContactPhoneService } = require('../emergencyContactPhone/emergencyContactPhone.service');
 const { EntityValidators, ValidationRules } = require('../../../utils/validator');
 
 
@@ -35,6 +35,7 @@ const EmergencyContactController = {
   // Get emergency contact by its unique ID
   get: async (req, res) => {
     const { idEmergencyContact } = req.params;
+
     // Validate idEmergencyContact is a positive integer
     const id = Number(idEmergencyContact);
     if (!idEmergencyContact || isNaN(id) || !Number.isInteger(id) || id <= 0) {
@@ -81,6 +82,7 @@ const EmergencyContactController = {
 
     try {
 
+
       const allContacts = await EmergencyContactsService.list(); // Retrieve all existing contacts for duplication check
       const duplicateErrors = [];
 
@@ -112,6 +114,7 @@ const EmergencyContactController = {
         email: userEmail,
         action: 'CREATE',
         description:
+
           `Se creó el contacto de emergencia con los siguientes datos: ` +
           `ID: "${newContact.idEmergencyContact}", ` +
           `Nombre: "${newContact.nameEmergencyContact}", ` +
@@ -205,6 +208,7 @@ const EmergencyContactController = {
         previousContact.status === 'inactive' &&
         updatedContact.status === 'active' &&
         previousContact.nameEmergencyContact === updatedContact.nameEmergencyContact &&
+
         previousContact.emailEmergencyContact === updatedContact.emailEmergencyContact &&
         previousContact.identifier === updatedContact.identifier;
 
@@ -214,6 +218,7 @@ const EmergencyContactController = {
           email: userEmail,
           action: 'REACTIVATE',
           description:
+
             `Se reactivó el contacto de emergencia con ID "${idEmergencyContact}". Datos completos:\n` +
             `Nombre: "${updatedContact.nameEmergencyContact}", ` +
             `Correo: "${updatedContact.emailEmergencyContact}", ` +
@@ -244,6 +249,16 @@ const EmergencyContactController = {
 
       return res.success(updatedContact, 'Contacto de emergencia actualizado exitosamente');
     } catch (error) {
+      if (error.code === 'P2025') {
+        return res.notFound('Contacto de emergencia');
+      }
+      
+      // Handle Prisma P2000 error (value too long for column)
+      if (error.code === 'P2000') {
+        const columnName = error.meta?.column_name || 'campo';
+        return res.validationErrors([`El valor proporcionado para ${columnName} es demasiado largo`]);
+      }
+
       return res.error('Error al actualizar el contacto de emergencia');
     }
   },
@@ -252,6 +267,7 @@ const EmergencyContactController = {
   // Soft delete emergency contact
   delete: async (req, res) => {
     const { idEmergencyContact } = req.params;
+
 
     try {
 

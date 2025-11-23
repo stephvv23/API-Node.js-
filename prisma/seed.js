@@ -334,7 +334,7 @@ async function main() {
   });
 
   // Phones by headquarters
-  await prisma.headquarterPhone.createMany({
+  await prisma.phoneHeadquarter.createMany({
     data: [
       { idHeadquarter: hq1.idHeadquarter, idPhone: phoneObjs[0].idPhone }, // 8888-1234
       { idHeadquarter: hq1.idHeadquarter, idPhone: phoneObjs[1].idPhone }, // 2222-3333
@@ -349,7 +349,7 @@ async function main() {
   await prisma.phoneVolunteer.create({
     data: { idPhone: phoneObjs[4].idPhone, idVolunteer: volunteer.idVolunteer }, // 7011-2233
   });
-  await prisma.godparentPhone.create({
+  await prisma.phoneGodparent.create({
     data: { idGodparent: godparent.idGodparent, idPhone: phoneObjs[5].idPhone }, // 8911-2233
   });
 
@@ -389,7 +389,7 @@ async function main() {
     },
   });
 
-  await prisma.emergencyContactPhone.createMany({
+  await prisma.phoneEmergencyContact.createMany({
     data: [
       { idEmergencyContact: ec1.idEmergencyContact, idPhone: phoneObjs[6].idPhone }, // 2456-7890
       { idEmergencyContact: ec2.idEmergencyContact, idPhone: phoneObjs[7].idPhone }, // 8888-5555
