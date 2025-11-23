@@ -46,19 +46,23 @@ const UsersController = {
   list: async (_req, res) => {
     try {
       const users = await UsersService.list();
-      const mapped = users.map(u => ({
-        email: u.email,
-        name: u.name,
-        status: u.status,
-        roles: u.roles.map(r => ({
-          idRole: r.role.idRole,
-          rolName: r.role.rolName
-        })),
-        headquarters: u.headquarterUser.map(h => ({
+      const mapped = users.map(u => {
+        const headquarters = u.headquarterUser.map(h => ({
           idHeadquarter: h.headquarter.idHeadquarter,
           name: h.headquarter.name
-        }))
-      }));
+        }));
+        return {
+          email: u.email,
+          name: u.name,
+          status: u.status,
+          roles: u.roles.map(r => ({
+            idRole: r.role.idRole,
+            rolName: r.role.rolName
+          })),
+          sedes: headquarters, // Keep 'sedes' for frontend compatibility
+          headquarters: headquarters 
+        };
+      });
       return res.success(mapped);
     } catch (error) {
       console.error('[USERS] list error:', error);
@@ -76,14 +80,16 @@ const UsersController = {
     try {
       const user = await UsersService.get(email);
       if (!user) return res.notFound('User');
+      const headquarters = user.headquarterUser.map(h => ({
+        idHeadquarter: h.idHeadquarter,
+        name: h.headquarter.name
+      }));
       return res.success({
         email: user.email,
         name: user.name,
         status: user.status,
-        headquarters: user.headquarterUser.map(h => ({
-          idHeadquarter: h.idHeadquarter,
-          name: h.headquarter.name
-        })),
+        sedes: headquarters, // Keep 'sedes' for frontend compatibility
+        headquarters: headquarters, 
         roles: user.roles.map(r => ({
           idRole: r.role.idRole,
           name: r.role.rolName
@@ -134,7 +140,19 @@ const UsersController = {
           `${formatUserRelations(created)}.`,
         affectedTable: 'User',
       });
-      return res.status(201).success(created, 'User created successfully');
+      // Map response to include 'sedes' for frontend compatibility
+      const mappedCreated = {
+        ...created,
+        sedes: (created.headquarterUser || []).map(h => ({
+          idHeadquarter: h.headquarter?.idHeadquarter || h.idHeadquarter,
+          name: h.headquarter?.name || h.name
+        })),
+        headquarters: (created.headquarterUser || []).map(h => ({
+          idHeadquarter: h.headquarter?.idHeadquarter || h.idHeadquarter,
+          name: h.headquarter?.name || h.name
+        }))
+      };
+      return res.status(201).success(mappedCreated, 'User created successfully');
     } catch (e) {
       if (e && e.code === 'P2002')
         return res.validationErrors(['Email already exists']);
@@ -242,7 +260,19 @@ const UsersController = {
           affectedTable: 'User',
         });
       }
-      return res.success(updated, 'User updated successfully');
+      // Map response to include 'sedes' for frontend compatibility
+      const mappedUpdated = {
+        ...updated,
+        sedes: (updated.headquarterUser || []).map(h => ({
+          idHeadquarter: h.headquarter?.idHeadquarter || h.idHeadquarter,
+          name: h.headquarter?.name || h.name
+        })),
+        headquarters: (updated.headquarterUser || []).map(h => ({
+          idHeadquarter: h.headquarter?.idHeadquarter || h.idHeadquarter,
+          name: h.headquarter?.name || h.name
+        }))
+      };
+      return res.success(mappedUpdated, 'User updated successfully');
     } catch (e) {
       if (e && e.code === 'P2025') {
         return res.notFound('User');
@@ -308,7 +338,19 @@ const UsersController = {
           affectedTable: 'User',
         });
       }
-      return res.success(updatedWithRelations, 'User status updated successfully');
+      // Map response to include 'sedes' for frontend compatibility
+      const mappedUpdated = {
+        ...updatedWithRelations,
+        sedes: (updatedWithRelations.headquarterUser || []).map(h => ({
+          idHeadquarter: h.headquarter?.idHeadquarter || h.idHeadquarter,
+          name: h.headquarter?.name || h.name
+        })),
+        headquarters: (updatedWithRelations.headquarterUser || []).map(h => ({
+          idHeadquarter: h.headquarter?.idHeadquarter || h.idHeadquarter,
+          name: h.headquarter?.name || h.name
+        }))
+      };
+      return res.success(mappedUpdated, 'User status updated successfully');
     } catch (e) {
       if (e && e.code === 'P2025')
         return res.notFound('User');

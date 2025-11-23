@@ -6,8 +6,8 @@ const { EntityValidators } = require('../../../utils/validator');
 const CancerController = {
   update: async (req, res) => {
     const { idCancer } = req.params;
-    const exists = await CancerService.get(idCancer);
-    if (!exists) {
+    const previous = await CancerService.get(idCancer);
+    if (!previous) {
       return res.notFound('Cáncer');
     }
     const validation = EntityValidators.cancer(req.body, { partial: true });
@@ -17,12 +17,31 @@ const CancerController = {
     try {
       const updated = await CancerService.update(idCancer, req.body);
       const userEmail = req.user?.sub;
-      await SecurityLogService.log({
-        email: userEmail,
-        action: 'UPDATE',
-        description: `Se actualizó el cáncer "${updated.cancerName}"`,
-        affectedTable: 'cancer',
-      });
+      
+      // Check if only status changed from inactive to active (reactivation)
+      const onlyStatusChange =
+        previous.status === 'inactive' &&
+        updated.status === 'active' &&
+        previous.cancerName === updated.cancerName &&
+        previous.description === updated.description;
+      
+      if (onlyStatusChange) {
+        await SecurityLogService.log({
+          email: userEmail,
+          action: 'REACTIVATE',
+          description: `Se reactivó el cáncer "${updated.cancerName}" (ID: ${updated.idCancer}). ` +
+            `Descripción: "${updated.description}", Estado: "${updated.status}".`,
+          affectedTable: 'Cancer',
+        });
+      } else {
+        await SecurityLogService.log({
+          email: userEmail,
+          action: 'UPDATE',
+          description: `Se actualizó el cáncer de "${previous.cancerName}" a "${updated.cancerName}". ` +
+            `Descripción previa: "${previous.description}" → Nueva descripción: "${updated.description}".`,
+          affectedTable: 'Cancer',
+        });
+      }
       return res.success(updated, 'Cáncer actualizado exitosamente');
     } catch (e) {
       if (e.code === 'P2002') {
@@ -56,8 +75,8 @@ const CancerController = {
       await SecurityLogService.log({
         email: userEmail,
         action: 'CREATE',
-        description: `Se creó el cáncer "${created.cancerName}"`,
-        affectedTable: 'cancer',
+        description: `Se creó el cáncer "${created.cancerName}" con ID "${created.idCancer}" y descripción "${created.description}".`,
+        affectedTable: 'Cancer',
       });
       return res.status(201).success(created, 'Cáncer creado exitosamente');
     } catch (e) {
@@ -80,8 +99,9 @@ const CancerController = {
       await SecurityLogService.log({
         email: userEmail,
         action: 'INACTIVE',
-        description: `Se inactivó el cáncer "${updated.cancerName}"`,
-        affectedTable: 'cancer',
+        description: `Se inactivó el cáncer "${updated.cancerName}" (ID: ${updated.idCancer}). ` +
+          `Descripción: "${updated.description}".`,
+        affectedTable: 'Cancer',
       });
       return res.success(updated, 'Cáncer inactivado exitosamente');
     } catch (e) {
@@ -101,8 +121,9 @@ const CancerController = {
       await SecurityLogService.log({
         email: userEmail,
         action: 'REACTIVATE',
-        description: `Se reactivó el cáncer "${updated.cancerName}"`,
-        affectedTable: 'cancer',
+        description: `Se reactivó el cáncer "${updated.cancerName}" (ID: ${updated.idCancer}). ` +
+          `Descripción: "${updated.description}", Estado: "${updated.status}".`,
+        affectedTable: 'Cancer',
       });
       return res.success(updated, 'Cáncer reactivado exitosamente');
     } catch (e) {
