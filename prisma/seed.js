@@ -183,7 +183,7 @@ async function main() {
   ]);
 
   /* ===================== PHONES ===================== */
-   const phoneObjs = await Promise.all(
+  const phoneObjs = await Promise.all(
     ["88881234", "22223333", "70707070", "60501234", "70112233", "89112233", "24567890", "88885555", "40001234", "24501234"].map(
       (p) => prisma.phone.create({ data: { phone: p } })
     )
@@ -224,10 +224,10 @@ async function main() {
       CONAPDIS: true,
       IMAS: false,
       physicalFileStatus: 'Completo',
-      medicalRecord: 'Activo',
-      dateHomeSINRUBE: '2023-10-05',
-      foodBank: 'Activo',
-      socioEconomicStudy: 'Completado',
+      medicalRecord: true,
+      dateHomeSINRUBE: true,
+      foodBank: true,
+      socioEconomicStudy: true,
       notes: 'Requiere apoyo de transporte',
       status: 'active',
     },
@@ -252,8 +252,7 @@ async function main() {
     data: {
       idCancer: cancer1.idCancer,
       idSurvivor: survivor.idSurvivor,
-      status: 'en recuperación',
-      aftermath: 'quimioterapia 2023, seguimiento 2024',
+      stage: 'Etapa II',
     },
   });
 
@@ -383,7 +382,11 @@ async function main() {
     },
   });
   await prisma.emergencyContactSurvivor.create({
-    data: { idEmergencyContact: ec2.idEmergencyContact, idSurvivor: survivor.idSurvivor },
+    data: { 
+      idEmergencyContact: ec2.idEmergencyContact, 
+      idSurvivor: survivor.idSurvivor,
+      relationshipType: 'Esposo/a'
+    },
   });
 
   await prisma.emergencyContactPhone.createMany({

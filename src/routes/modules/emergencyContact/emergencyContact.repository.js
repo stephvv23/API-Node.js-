@@ -30,9 +30,17 @@ const EmergencyContactsRepository = {
       where: { identifier },
       select: baseSelect,
     }),
-  // Finds all emergency contacts
-  findAll: async () => {
+  // Finds all emergency contacts with optional status filter
+  findAll: async (filters = {}) => {
+    const where = {};
+    
+    // Status filter: 'active', 'inactive', or 'all'
+    if (filters.status && filters.status !== 'all') {
+      where.status = filters.status;
+    }
+    
     return await prisma.emergencyContact.findMany({
+      where,
       select: baseSelect,
     });
   },

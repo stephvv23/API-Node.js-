@@ -214,20 +214,22 @@ model Survivor {
   survivorName  String @db.VarChar(200)
   documentNumber String @db.VarChar(30)
   country       String @db.VarChar(75)
-  birthday      DateTime
+  birthday      DateTime @db.Date
   email         String @db.VarChar(150)
   residence     String @db.VarChar(300)
   genre         String @db.VarChar(25)
   workingCondition String @db.VarChar(50)
   CONAPDIS      Boolean
   IMAS          Boolean
-  physicalFileStatus String @db.VarChar(25)
-  medicalRecord  String @db.VarChar(25)
-  dateHomeSINRUBE String @db.VarChar(25)
-  foodBank       String @db.VarChar(25)
-  socioEconomicStudy String @db.VarChar(25)
+  physicalFileStatus String @db.VarChar(50)
+  medicalRecord  Boolean 
+  dateHomeSINRUBE Boolean 
+  foodBank       Boolean 
+  socioEconomicStudy Boolean 
   notes          String? @db.VarChar(250)
-  status       String @default("active") @db.VarChar(25)
+  status         String @default("active") @db.VarChar(25)
+  createdAt      DateTime @default(now()) // Creation date and time
+  updatedAt      DateTime? // Last update date and time
 
   emergencyContactSurvivor EmergencyContactSurvivor[] // relational table
   phoneSurvivor PhoneSurvivor[] // relational table
@@ -395,6 +397,7 @@ model EmergencyContactVolunteer {
 model EmergencyContactSurvivor {
   idEmergencyContact Int // Foreign key: references EmergencyContact.idEmergencyContact
   idSurvivor         Int // Foreign key: references Survivor.idSurvivor
+  relationshipType   String @db.VarChar(50) // Relationship type between emergency contact and survivor (e.g., "Madre", "Padre", "Hermano", "Tío")
 
   // Relations
   emergencyContact EmergencyContact @relation(fields: [idEmergencyContact], references: [idEmergencyContact]) // Connects EmergencyContactSurvivor to EmergencyContact
@@ -417,8 +420,8 @@ model EmergencyContactPhone {
 model CancerSurvivor {
   idCancer   Int // Foreign key: references Cancer.idCancer
   idSurvivor Int // Foreign key: references Survivor.idSurvivor
-  status     String
-  aftermath  String
+  stage      String @db.VarChar(255) // e.g., "I", "II", "III", "IV", "Remisión", "Curado"
+  status     String @default("active") @db.VarChar(25) // Soft delete: "active" or "inactive"
   // Relations
   cancer   Cancer   @relation(fields: [idCancer], references: [idCancer])     // Connects cancerSurvivor to Cancer
   survivor Survivor @relation(fields: [idSurvivor], references: [idSurvivor]) // Connects cancerSurvivor to Survivor
@@ -478,4 +481,4 @@ model PasswordResetToken {
 }
 
 
-// -------------  FIN NUEVAS TABLAS Y RELACIONES -------------
+// ------------- END NEW TABLES AND RELATIONS -------------
