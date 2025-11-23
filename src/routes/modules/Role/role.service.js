@@ -40,7 +40,7 @@ const roleService = {
     // Update a role by ID.
     update: async (id, data) => {
         const roleId = Number(id);
-        const isAdminRole = roleId === 1 || roleId === '1';
+        const isAdminRole = roleId === 1;
 
         // validate that the admin role is not being deactivated
         if (isAdminRole) {
@@ -63,7 +63,7 @@ const roleService = {
     // Soft-delete a role (set status to 'inactive').
     delete: async (id) => {
         const roleId = Number(id);
-        const isAdminRole = roleId === 1 || roleId === '1';
+        const isAdminRole = roleId === 1;
 
         // validate that the admin role is not being deleted
         if (isAdminRole) {

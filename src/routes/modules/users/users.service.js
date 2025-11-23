@@ -258,20 +258,21 @@ const UsersService = {
       if (data.headquarters.length === 0) {
         throw ApiError.badRequest('El usuario debe tener al menos una sede asignada');
       }
-      // verify that all the headquarters exist (regardless of status)
-      for (const headquarterId of data.headquarters) {
-        const headquarterCheck = await UsersRepository.checkHeadquarterExists(headquarterId);
-        if (!headquarterCheck) {
-          throw ApiError.notFound(`La sede con ID ${headquarterId} no existe`);
-        }
-      }
-      // Normalize headquarter IDs to integers and filter out invalid values
+      // Normalize headquarter IDs to integers and filter out invalid values first
       const normalizedHeadquarters = data.headquarters
         .map(id => typeof id === 'number' ? id : parseInt(id))
         .filter(id => !isNaN(id) && id > 0);
       
       if (normalizedHeadquarters.length === 0) {
         throw ApiError.badRequest('El usuario debe tener al menos una sede asignada válida');
+      }
+      
+      // verify that all the normalized headquarters exist (regardless of status)
+      for (const headquarterId of normalizedHeadquarters) {
+        const headquarterCheck = await UsersRepository.checkHeadquarterExists(headquarterId);
+        if (!headquarterCheck) {
+          throw ApiError.notFound(`La sede con ID ${headquarterId} no existe`);
+        }
       }
       
       // Clear and assign headquarters
@@ -291,20 +292,21 @@ const UsersService = {
       if (data.roles.length === 0) {
         throw ApiError.badRequest('El usuario debe tener al menos un rol asignado');
       }
-      // verify that all the roles exist (regardless of status)
-      for (const roleId of data.roles) {
-        const roleCheck = await UsersRepository.checkRoleExists(roleId);
-        if (!roleCheck) {
-          throw ApiError.notFound(`El rol con ID ${roleId} no existe`);
-        }
-      }
-      // Normalize role IDs to integers and filter out invalid values
+      // Normalize role IDs to integers and filter out invalid values first
       const normalizedRoles = data.roles
         .map(id => typeof id === 'number' ? id : parseInt(id))
         .filter(id => !isNaN(id) && id > 0);
       
       if (normalizedRoles.length === 0) {
         throw ApiError.badRequest('El usuario debe tener al menos un rol asignado válido');
+      }
+      
+      // verify that all the normalized roles exist (regardless of status)
+      for (const roleId of normalizedRoles) {
+        const roleCheck = await UsersRepository.checkRoleExists(roleId);
+        if (!roleCheck) {
+          throw ApiError.notFound(`El rol con ID ${roleId} no existe`);
+        }
       }
       
       // Clear and assign roles
@@ -379,8 +381,8 @@ const UsersService = {
       // verify if it is the last active admin
       const activeAdminsCount = await UsersRepository.countActiveAdmins(email);
       if (activeAdminsCount === 0) {
-        const error = new ApiError(400, 'No se puede desactivar este usuario porque es el último usuario activo con rol de administrador. Debe haber al menos un usuario con rol de administrador activo en el sistema.');
-        error.code = 'CANNOT_DEACTIVATE_LAST_ADMIN';
+        const error = ApiError.badRequest('No se puede desactivar este usuario porque es el último usuario activo con rol de administrador. Debe haber al menos un usuario con rol de administrador activo en el sistema.');
+        error.errorCode = 'CANNOT_DEACTIVATE_LAST_ADMIN';
         throw error;
       }
     }

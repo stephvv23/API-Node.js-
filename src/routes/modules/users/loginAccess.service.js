@@ -3,7 +3,7 @@ const prisma = require('../../../lib/prisma.js');
 const LoginAccessService  = {
   log: async ({ email}) => {
     const now = new Date();
-    const adjustedDate = new Date(now.getTime() - (6 * 60 * 60 * 1000)); // it rest 6 hours to the date because the server is in UTC+6
+    const adjustedDate = new Date(now.getTime() - (6 * 60 * 60 * 1000)); // Subtract 6 hours to convert from server UTC time to Costa Rica time (UTC-6)
     
     return prisma.loginAccess.create({
       data: {

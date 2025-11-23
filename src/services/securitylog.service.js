@@ -2,7 +2,7 @@ const prisma = require('../lib/prisma.js');
 
 const SecurityLogService = {
   log: async ({ email, action, description, affectedTable }) => {
-    // Adjust timezone: subtract 6 hours because server is in UTC and we need UTC-6 (Costa Rica timezone)
+    // Adjust timezone: subtract 6 hours to convert from UTC to UTC-6 (Costa Rica timezone)
     const now = new Date();
     const adjustedDate = new Date(now.getTime() - (6 * 60 * 60 * 1000));
     
