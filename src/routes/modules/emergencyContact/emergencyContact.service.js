@@ -10,8 +10,8 @@ const EmergencyContactsService = {
 
   // Find emergency contact by identifier
   getByIdentifier: (identifier) => EmergencyContactsRepository.findByIdentifier(identifier),
-  // Returns a list of all emergency contacts
-  list: () => EmergencyContactsRepository.findAll(),
+  // Returns a list of all emergency contacts with optional filters
+  list: (filters = {}) => EmergencyContactsRepository.findAll(filters),
 
 
   // Retrieves an emergency contact by id

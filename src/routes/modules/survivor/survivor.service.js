@@ -1,8 +1,8 @@
 const { SurvivorRepository } = require('./survivor.repository');
 
 const SurvivorService = {
-  listActive: async () => {
-    return SurvivorRepository.listActive();
+  listActive: async ({ take = 100, skip = 0 } = {}) => {
+    return SurvivorRepository.listActive({ take, skip });
   },
 
   list: async (filters = {}) => {

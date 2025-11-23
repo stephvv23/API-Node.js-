@@ -32,13 +32,12 @@ module.exports = [
   },
 
   // Delete phone from survivor
-  // COMMENTED OUT - We don't delete phone numbers, only update them
-  /* {
-    method: 'DELETE',
-    path: '/api/survivors/:id/phone',
-    handler: authenticate(
-      authorizeWindow('Supervivientes', 'read', 'delete')(PhoneSurvivorController.delete)
-    )
-  } */
+  // {
+  //   method: 'DELETE',
+  //   path: '/api/survivors/:id/phone',
+  //   handler: authenticate(
+  //     authorizeWindow('Supervivientes', 'read', 'delete')(PhoneSurvivorController.delete)
+  //   )
+  // }
 ];
 

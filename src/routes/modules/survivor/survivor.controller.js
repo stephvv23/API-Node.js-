@@ -13,10 +13,12 @@ const {
 const SurvivorController = {
   // helper functions removed in favor of centralized ValidationRules
   // List all active survivors
-  getAllActive: async (_req, res) => {
+  getAllActive: async (req, res) => {
     try {
-      const survivors = await SurvivorService.listActive();
-      return res.success(survivors);
+      const take = parseInt(req.query.take) || 100;
+      const skip = parseInt(req.query.skip) || 0;
+      const result = await SurvivorService.listActive({ take, skip });
+      return res.success(result);
     } catch (error) {
       console.error("[SURVIVORS] getAllActive error:", error);
       return res.error("Error retrieving active survivors");
@@ -44,17 +46,23 @@ const SurvivorController = {
         filters.search = String(req.query.search).trim();
       }
 
-      // Cancer ID filter
+      // Cancer ID filter (supports multiple IDs: ?cancerId=1,2,3)
       if (req.query.cancerId) {
-        const cancerId = ValidationRules.parseIdParam(
-          String(req.query.cancerId)
-        );
-        if (!cancerId) {
-          return res.validationErrors([
-            "El parámetro cancerId debe ser numérico",
-          ]);
+        const cancerIdStr = String(req.query.cancerId).trim();
+        const cancerIds = cancerIdStr.split(',').map(id => id.trim());
+        const validIds = [];
+        
+        for (const id of cancerIds) {
+          const parsed = ValidationRules.parseIdParam(id);
+          if (!parsed) {
+            return res.validationErrors([
+              `El parámetro cancerId contiene un valor inválido: "${id}". Debe ser numérico.`,
+            ]);
+          }
+          validIds.push(Number(parsed));
         }
-        filters.cancerId = Number(cancerId);
+        
+        filters.cancerIds = validIds;
       }
 
       // Gender filter
@@ -238,8 +246,8 @@ const SurvivorController = {
       const take = parseInt(req.query.take) || 100;
       const skip = parseInt(req.query.skip) || 0;
 
-      const survivors = await SurvivorService.list({ ...filters, take, skip });
-      return res.success(survivors);
+      const result = await SurvivorService.list({ ...filters, take, skip });
+      return res.success(result);
     } catch (error) {
       console.error("[SURVIVORS] getAll error:", error);
       return res.error("Error al obtener supervivientes");
@@ -518,7 +526,8 @@ const SurvivorController = {
       }
 
       // Check for duplicates
-      const allSurvivors = await SurvivorService.list({ status: "all" });
+      const allSurvivorsResponse = await SurvivorService.list({ status: "all" });
+      const allSurvivors = allSurvivorsResponse.data;
       const duplicateErrors = [];
       // Compare normalized values to avoid duplicates with spacing differences
       const normalizeForCompare = (v) =>
@@ -755,7 +764,8 @@ const SurvivorController = {
       };
 
       // Check uniqueness for documentNumber and email if being updated
-      const allSurvivors = await SurvivorService.list({ status: "all" });
+      const allSurvivorsResponse = await SurvivorService.list({ status: "all" });
+      const allSurvivors = allSurvivorsResponse.data;
       const normalizeForCompare = (v) =>
         v ? String(v).trim().replace(/\s+/g, " ").toLowerCase() : "";
       if (payload.documentNumber) {

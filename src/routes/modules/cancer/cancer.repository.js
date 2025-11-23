@@ -1,7 +1,19 @@
 const prisma = require('../../../lib/prisma.js');
 
 const CancerRepository = {
-  list: () => prisma.cancer.findMany(),
+  list: (filters = {}) => {
+    const where = {};
+    
+    // Status filter - only apply if explicitly specified
+    if (filters.status && filters.status !== 'all') {
+      where.status = filters.status;
+    }
+    
+    return prisma.cancer.findMany({ 
+      where,
+      orderBy: { idCancer: 'asc' }
+    });
+  },
 
   findById: (idCancer) =>
     prisma.cancer.findUnique({

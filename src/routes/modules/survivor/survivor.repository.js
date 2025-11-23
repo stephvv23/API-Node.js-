@@ -77,7 +77,7 @@ const SurvivorRepository = {
   list: ({ 
     status = 'active', 
     search, 
-    cancerId, 
+    cancerIds, 
     gender, 
     headquarterId,
     emergencyContactId,
@@ -112,14 +112,18 @@ const SurvivorRepository = {
       ];
     }
 
-    // Cancer filter
-    if (cancerId) {
-      where.cancerSurvivor = {
-        some: {
-          idCancer: Number(cancerId),
-          status: 'active' // Only active cancer relations
+    // Cancer filter (supports multiple cancer IDs - survivor must have ALL of them)
+    if (cancerIds && cancerIds.length > 0) {
+      // For multiple cancers, we need the survivor to have ALL of them
+      // We use AND with multiple 'some' conditions
+      where.AND = cancerIds.map(id => ({
+        cancerSurvivor: {
+          some: {
+            idCancer: Number(id),
+            status: 'active'
+          }
         }
-      };
+      }));
     }
 
     // Gender filter
@@ -212,15 +216,34 @@ const SurvivorRepository = {
       orderBy: { idSurvivor: 'asc' },
       take: Number(take),
       skip: Number(skip),
+    }).then(async (survivors) => {
+      // Get total count without pagination
+      const total = await prisma.survivor.count({ where });
+      return {
+        data: survivors,
+        total: total,
+        take: Number(take),
+        skip: Number(skip)
+      };
     });
   },
 
-  // List only active survivors
-  listActive: () =>
+  // List only active survivors with pagination and total
+  listActive: ({ take = 100, skip = 0 } = {}) =>
     prisma.survivor.findMany({
       where: { status: 'active' },
       select: baseSelect,
-      orderBy: { idSurvivor: 'asc' } // Order by ID ascending
+      orderBy: { idSurvivor: 'asc' },
+      take: Number(take),
+      skip: Number(skip)
+    }).then(async (survivors) => {
+      const total = await prisma.survivor.count({ where: { status: 'active' } });
+      return {
+        data: survivors,
+        total: total,
+        take: Number(take),
+        skip: Number(skip)
+      };
     }),
 
   // Find by ID
