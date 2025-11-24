@@ -26,6 +26,11 @@ model User {
   securityLogs  SecurityLog[] // Relation: User has many SecurityLog records
   roles         UserRole[]    // Relation: User has many roles through UserRole join table
   headquarterUser HeadquarterUser[] // NEW ADDITION: relational table with headquarters
+
+   // Indexes
+  @@index([status]) // Frequent filtering by status
+  @@index([status, email]) // Active users search (composite)
+
 }
 
 model LoginAccess {
@@ -35,6 +40,11 @@ model LoginAccess {
 
   // Relation
   user User @relation(fields: [email], references: [email]) // Connects LoginAccess to User by email
+
+   // Indexes
+  @@index([email]) // Foreign key lookup
+  @@index([date]) // Date range searches
+  @@index([email, date]) // User access history (composite)
 }
 
 model SecurityLog {
@@ -47,6 +57,15 @@ model SecurityLog {
 
   // Relation
   user User @relation(fields: [email], references: [email]) // Connects SecurityLog to User by email
+
+  // Indexes
+  @@index([email]) // Foreign key lookup
+  @@index([date]) // Date searches
+  @@index([affectedTable]) // Filter by affected table
+  @@index([action]) // Filter by action type
+  @@index([email, date]) // User and date audits (composite)
+  @@index([affectedTable, date]) // Table and date audits (composite)
+  @@index([affectedTable, action]) // Table and action audits (composite)
 }
 
 model Role {
@@ -56,6 +75,10 @@ model Role {
 
   users   UserRole[]   // Relation: Role has many users through UserRole join table
   windows RoleWindow[] // Relation: Role has many windows through RoleWindow join table
+
+   // Indexes
+  @@index([status]) // Filter by status
+
 }
 
 model Window {
@@ -64,6 +87,10 @@ model Window {
   status     String @default("active") @db.VarChar(25) // Status of the window, defaults to 'active'
 
   roles RoleWindow[] // Relation: Window has many roles through RoleWindow join table
+
+    // Indexes
+  @@index([status]) // Filter by status
+
 }
 
 model UserRole {
@@ -74,7 +101,8 @@ model UserRole {
   role Role @relation(fields: [idRole], references: [idRole]) // Connects UserRole to Role
   user User @relation(fields: [email], references: [email])   // Connects UserRole to User
 
-  @@id([idRole, email]) // Composite primary key
+  @@id([idRole, email])
+  @@index([email]) // Reverse lookup by user
 }
 
 model RoleWindow {
@@ -90,22 +118,32 @@ model RoleWindow {
   window Window @relation(fields: [idWindow], references: [idWindow]) // Connects RoleWindow to Window
 
   @@id([idRole, idWindow]) // Composite primary key
+  @@index([idWindow]) // Reverse lookup by window
 }
 
 
 // NEW TABLES AND RELATIONS
 
 model Asset {
-    idAsset Int @id @default(autoincrement())
-    idCategory Int 
-    idHeadquarter Int
-    name String @db.VarChar(50)
-    type String @db.VarChar(50)
-    description String @db.VarChar(750)
-    status String @db.VarChar(25)
-    // Relations
-    category     Category     @relation(fields: [idCategory], references: [idCategory])
-    headquarter  Headquarter  @relation(fields: [idHeadquarter], references: [idHeadquarter])
+  idAsset Int @id @default(autoincrement())
+  idCategory Int 
+  idHeadquarter Int
+  name String @db.VarChar(50)
+  type String @db.VarChar(50)
+  description String @db.VarChar(750)
+  status String @db.VarChar(25)
+  // Relations
+  category     Category     @relation(fields: [idCategory], references: [idCategory])
+  headquarter  Headquarter  @relation(fields: [idHeadquarter], references: [idHeadquarter])
+
+  // Indexes
+  @@index([idCategory]) // Category foreign key lookup
+  @@index([idHeadquarter]) // Headquarter foreign key lookup
+  @@index([status]) // Filter by status
+  @@index([type]) // Filter by asset type
+  @@index([idHeadquarter, status]) // Assets by headquarter and status (composite)
+  @@index([idCategory, status]) // Assets by category and status (composite)
+  @@index([idHeadquarter, type]) // Assets by headquarter and type (composite)
 
 }
 
@@ -116,6 +154,9 @@ model Category {
 
   asset      Asset[]  // Relation: Category has many assets
   categorySupplier CategorySupplier[] // relational table
+
+  // Indexes
+  @@index([status]) // Filter by status
 }
 
 model Supplier {
@@ -132,6 +173,12 @@ model Supplier {
   categorySupplier CategorySupplier[] // relational table
   headquarterSupplier HeadquarterSupplier[] // relational table
   phoneSupplier PhoneSupplier[] // relational table
+
+    // Indexes
+  @@index([status]) // Filter by status
+  @@index([email]) // Search by email
+  @@index([type]) // Filter by supplier type
+  @@index([status, type]) // Active suppliers by type (composite)
 }
 
 model Activity {
@@ -151,6 +198,18 @@ model Activity {
   activityVolunteer ActivityVolunteer[] // relational table
   activitySurvivor ActivitySurvivor[] // relational table
   activityGodparent ActivityGodparent[] // relational table
+
+  // Indexes - HIGH PRIORITY
+  @@index([idHeadquarter]) // Headquarter foreign key lookup (very frequent)
+  @@index([status]) // Filter by status
+  @@index([date]) // Search by date
+  @@index([type]) // Filter by type
+  @@index([modality]) // Filter by modality
+  @@index([idHeadquarter, status]) // Active activities by headquarter (composite)
+  @@index([idHeadquarter, date]) // Activities by headquarter and date (composite)
+  @@index([status, date]) // Active activities by date (composite)
+  @@index([type, status]) // Active activities by type (composite)
+  @@index([idHeadquarter, status, date]) // Complex searches by headquarter, status and date (composite)
 }
 
 model Volunteer {
@@ -175,6 +234,14 @@ model Volunteer {
   headquarterVolunteer HeadquarterVolunteer [] // relational table
   emergencyContactVolunteer EmergencyContactVolunteer [] // relational table
   activityVolunteer ActivityVolunteer [] // relational table
+
+  // Indexes - HIGH PRIORITY
+  // identifier already has automatic unique index
+  @@index([email]) // Search by email
+  @@index([status]) // Filter by status
+  @@index([modality]) // Filter by modality
+  @@index([status, modality]) // Active volunteers by modality (composite)
+  @@index([status, email]) // Active volunteers by email (composite)
 }
 
 model Godparent {
@@ -194,6 +261,14 @@ model Godparent {
 
   survivor Survivor? @relation(fields: [idSurvivor], references: [idSurvivor]) // Optional relation with Survivor
   headquarter Headquarter @relation(fields: [idHeadquarter], references: [idHeadquarter]) // Relation with Headquarters
+
+ // Indexes - HIGH PRIORITY
+  @@index([idHeadquarter]) // Headquarter foreign key lookup
+  @@index([status]) // Filter by status
+  @@index([email]) // Search by email
+  @@index([idSurvivor]) // Survivor foreign key lookup
+  @@index([idHeadquarter, status]) // Active godparents by headquarter (composite)
+  @@index([status, paymentMethod]) // Active godparents by payment method (composite)
 }
 
 model EmergencyContact {
@@ -206,6 +281,10 @@ model EmergencyContact {
   emergencyContactVolunteer EmergencyContactVolunteer[] // relational table
   phoneEmergencyContact PhoneEmergencyContact[] // relational table
   emergencyContactSurvivor EmergencyContactSurvivor[] // relational table
+
+  // Indexes
+  @@index([status]) // Filter by status
+  @@index([emailEmergencyContact]) // Search by email
 }
 
 model Survivor {
@@ -238,6 +317,17 @@ model Survivor {
   godparent       Godparent[]       // relational table
 
   headquarter Headquarter @relation(fields: [idHeadquarter], references: [idHeadquarter]) // Relation with Headquarters
+  
+  // Indexes - HIGH PRIORITY
+  // documentNumber already has automatic unique index
+  @@index([idHeadquarter]) // Headquarter foreign key lookup (very frequent)
+  @@index([status]) // Filter by status
+  @@index([email]) // Search by email
+  @@index([genre]) // Filter by genre
+  @@index([idHeadquarter, status]) // Active survivors by headquarter (composite)
+  @@index([status, genre]) // Active survivors by genre (composite)
+  @@index([idHeadquarter, genre]) // Survivors by headquarter and genre (composite)
+  @@index([email, status]) // Active survivors by email (composite)
 }
 
 model Cancer {
@@ -247,6 +337,9 @@ model Cancer {
   status     String @default("active") @db.VarChar(25)
 
   cancerSurvivor CancerSurvivor[] // relational table
+
+  // Indexes
+  @@index([status]) // Filter by status
 }
 
 model Phone {
@@ -280,6 +373,10 @@ model Headquarter {
   survivor Survivor[] // Relation with Survivor
   asset Asset[] // Relation with Asset
   headquarterSupplier HeadquarterSupplier[] // relational table
+
+    // Indexes
+  @@index([status]) // Filter by status
+  @@index([email]) // Search by email
 }
 
 // RELATIONAL TABLES
@@ -290,8 +387,9 @@ model HeadquarterUser {
   // Relations
   headquarter Headquarter @relation(fields: [idHeadquarter], references: [idHeadquarter]) // Connects HeadquartersUser to Headquarters
   user         User         @relation(fields: [email], references: [email])                   // Connects HeadquartersUser to User
-
-  @@id([idHeadquarter, email]) // Composite primary key
+  
+  @@id([idHeadquarter, email])
+  @@index([email]) // Reverse lookup by user
 }
 
 model HeadquarterVolunteer {
@@ -302,7 +400,8 @@ model HeadquarterVolunteer {
   headquarter Headquarter @relation(fields: [idHeadquarter], references: [idHeadquarter]) // Connects HeadquarterVolunteer to Headquarter
   volunteer   Volunteer   @relation(fields: [idVolunteer], references: [idVolunteer])       // Connects HeadquarterVolunteer to Volunteer
 
-  @@id([idHeadquarter, idVolunteer]) // Composite primary key
+  @@id([idHeadquarter, idVolunteer])
+  @@index([idVolunteer]) // Reverse lookup by volunteer
 }
 
 model PhoneHeadquarter {
@@ -313,7 +412,8 @@ model PhoneHeadquarter {
   headquarter Headquarter @relation(fields: [idHeadquarter], references: [idHeadquarter]) // Connects PhoneHeadquarter to Headquarter
   phone       Phone       @relation(fields: [idPhone], references: [idPhone])             // Connects PhoneHeadquarter to Phone
 
-  @@id([idHeadquarter, idPhone]) // Composite primary key
+  @@id([idHeadquarter, idPhone])
+  @@index([idPhone]) // Reverse lookup by phone
 }
 
 model PhoneSurvivor {
@@ -325,6 +425,7 @@ model PhoneSurvivor {
   survivor Survivor @relation(fields: [idSurvivor], references: [idSurvivor]) // Connects phoneSurvivor to Survivor
 
   @@id([idPhone, idSurvivor]) // Composite primary key
+  @@index([idSurvivor]) // Reverse lookup by survivor
 }
 
 model PhoneVolunteer {
@@ -336,6 +437,8 @@ model PhoneVolunteer {
   volunteer Volunteer @relation(fields: [idVolunteer], references: [idVolunteer]) // Connects phoneVolunteer to Volunteer
 
   @@id([idPhone, idVolunteer]) // Composite primary key
+  @@index([idVolunteer]) // Reverse lookup by volunteer
+
 } 
 
 model PhoneGodparent {
@@ -347,6 +450,7 @@ model PhoneGodparent {
   phone     Phone     @relation(fields: [idPhone], references: [idPhone])         // Connects PhoneGodparent to Phone
 
   @@id([idGodparent, idPhone]) // Composite primary key
+  @@index([idPhone]) // Reverse lookup by phone
 }
 
 model ActivityVolunteer {
@@ -358,6 +462,7 @@ model ActivityVolunteer {
   volunteer Volunteer @relation(fields: [idVolunteer], references: [idVolunteer]) // Connects ActivityVolunteer to Volunteer
 
   @@id([idActivity, idVolunteer]) // Composite primary key
+  @@index([idVolunteer]) // Reverse lookup by volunteer
 }
 
 model ActivityGodparent {
@@ -369,6 +474,7 @@ model ActivityGodparent {
   godparent Godparent @relation(fields: [idGodparent], references: [idGodparent]) // Connects ActivityGodparent to Godparent
 
   @@id([idActivity, idGodparent]) // Composite primary key
+  @@index([idGodparent]) // Reverse lookup by godparent
 }
 
 model ActivitySurvivor {
@@ -380,6 +486,7 @@ model ActivitySurvivor {
   survivor Survivor @relation(fields: [idSurvivor], references: [idSurvivor]) // Connects activitySurvivor to Survivor
 
   @@id([idActivity, idSurvivor]) // Composite primary key
+  @@index([idSurvivor]) // Reverse lookup by survivor
 }
 
 model EmergencyContactVolunteer {
@@ -392,6 +499,7 @@ model EmergencyContactVolunteer {
   volunteer        Volunteer        @relation(fields: [idVolunteer], references: [idVolunteer])                   // Connects EmergencyContactVolunteer to Volunteer
 
   @@id([idEmergencyContact, idVolunteer]) // Composite primary key
+  @@index([idVolunteer]) // Reverse lookup by volunteer
 }
 
 model EmergencyContactSurvivor {
@@ -404,6 +512,7 @@ model EmergencyContactSurvivor {
   survivor         Survivor         @relation(fields: [idSurvivor], references: [idSurvivor])                   // Connects EmergencyContactSurvivor to Survivor
 
   @@id([idEmergencyContact, idSurvivor]) // Composite primary key
+  @@index([idSurvivor]) // Reverse lookup by survivor
 }
 
 model PhoneEmergencyContact {
@@ -415,6 +524,7 @@ model PhoneEmergencyContact {
   phone            Phone            @relation(fields: [idPhone], references: [idPhone])                         // Connects PhoneEmergencyContact to Phone
 
   @@id([idEmergencyContact, idPhone]) // Composite primary key
+  @@index([idPhone]) // Reverse lookup by phone
 }
 
 model CancerSurvivor {
@@ -427,6 +537,8 @@ model CancerSurvivor {
   survivor Survivor @relation(fields: [idSurvivor], references: [idSurvivor]) // Connects cancerSurvivor to Survivor
 
   @@id([idCancer, idSurvivor]) // Composite primary key
+  @@index([idSurvivor]) // Reverse lookup (get all cancers of a survivor)
+  @@index([idCancer, status]) // Filter survivors by cancer type and status (composite)
 }
 
 model CategorySupplier {
@@ -437,6 +549,7 @@ model CategorySupplier {
   supplier Supplier @relation(fields: [idSupplier], references: [idSupplier])
 
   @@id([idCategory, idSupplier]) // Composite primary key
+  @@index([idSupplier]) // Reverse lookup by supplier
 }
 
 
@@ -448,6 +561,7 @@ model PhoneSupplier {
   supplier Supplier @relation(fields: [idSupplier], references: [idSupplier])
 
   @@id([idPhone, idSupplier]) // Composite primary key
+  @@index([idSupplier]) // Reverse lookup by supplier
 }
 
 model HeadquarterSupplier {
@@ -458,6 +572,7 @@ model HeadquarterSupplier {
   supplier     Supplier     @relation(fields: [idSupplier], references: [idSupplier])
 
   @@id([idHeadquarter, idSupplier]) // Composite primary key
+  @@index([idSupplier]) // Reverse lookup by supplier
 }
 
 // ------------- BlackList -------------
@@ -465,6 +580,10 @@ model TokenBlacklist {
   id        Int      @id @default(autoincrement())
   token     String   @db.Text
   createdAt DateTime @default(now())
+  
+  // Indexes
+  @@index([token(length: 255)]) // Index on token (limited to 255 characters for TEXT)
+  @@index([createdAt]) // Periodic cleanup of old tokens
 }
 
 // ------------- Password Reset Token -------------
