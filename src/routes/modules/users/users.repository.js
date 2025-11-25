@@ -9,15 +9,91 @@ const UsersRepository = {
   // Returns all users with selected fields
   list: () => prisma.user.findMany({ select: baseSelect }),
   // Returns all users with their roles and headquarters
-  findAll: () => prisma.user.findMany({
-  select: {
-    email: true,
-    name: true,
-    status: true,
-    roles: {
-      select: {idRole: true, role: {select: {idRole: true,rolName: true}}}},
-    headquarterUser: {  
-      select: {idHeadquarter: true, headquarter: {select: {idHeadquarter: true,name: true}}}}}}),
+  // Using separate queries to avoid Prisma bug with nested relations
+  findAll: async () => {
+    // First, get all users (basic fields only)
+    const users = await prisma.user.findMany({
+      select: {
+        email: true,
+        name: true,
+        status: true
+      }
+    });
+
+    // Then, get all roles for all users in one query
+    const allUserRoles = await prisma.userRole.findMany({
+      where: {
+        email: {
+          in: users.map(u => u.email)
+        }
+      },
+      include: {
+        role: {
+          select: {
+            idRole: true,
+            rolName: true
+          }
+        }
+      }
+    });
+
+    // Get all headquarters for all users in one query
+    const allUserHeadquarters = await prisma.headquarterUser.findMany({
+      where: {
+        email: {
+          in: users.map(u => u.email)
+        }
+      },
+      include: {
+        headquarter: {
+          select: {
+            idHeadquarter: true,
+            name: true
+          }
+        }
+      }
+    });
+
+    // Group roles and headquarters by user email
+    const rolesByEmail = {};
+    allUserRoles.forEach(ur => {
+      if (!rolesByEmail[ur.email]) {
+        rolesByEmail[ur.email] = [];
+      }
+      rolesByEmail[ur.email].push({
+        idRole: ur.role.idRole,
+        role: {
+          idRole: ur.role.idRole,
+          rolName: ur.role.rolName
+        }
+      });
+    });
+
+    const headquartersByEmail = {};
+    allUserHeadquarters.forEach(hu => {
+      if (!headquartersByEmail[hu.email]) {
+        headquartersByEmail[hu.email] = [];
+      }
+      headquartersByEmail[hu.email].push({
+        idHeadquarter: hu.headquarter.idHeadquarter,
+        headquarter: {
+          idHeadquarter: hu.headquarter.idHeadquarter,
+          name: hu.headquarter.name
+        }
+      });
+    });
+
+    // Combine everything and sort
+    return users
+      .map(user => ({
+        email: user.email,
+        name: user.name,
+        status: user.status,
+        roles: rolesByEmail[user.email] || [],
+        headquarterUser: headquartersByEmail[user.email] || []
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  },
 
   create: (data) => prisma.user.create({ data, select: baseSelect }),
   
@@ -45,8 +121,22 @@ const UsersRepository = {
 
   assignRoles: (email, ids) => prisma.userRole.createMany({data: ids.map((id) => ({ email, idRole: id })),skipDuplicates: true}),
 
-  // Finds a user by email (primary key)
-  findByEmailWithHeadquarters: (email) => prisma.user.findUnique({ where: { email },include: {headquarterUser: { select: { idHeadquarter: true, headquarter: true } },roles: { select: { idRole: true, role: true } }}}),
+  // Finds a user by email (primary key) with relations
+  findByEmailWithHeadquarters: (email) => prisma.user.findUnique({ 
+    where: { email },
+    include: {
+      headquarterUser: { 
+        include: {
+          headquarter: true
+        }
+      },
+      roles: { 
+        include: {
+          role: true
+        }
+      }
+    }
+  }),
   // Login roles and permissions for the window - only includes active roles
   findAuthWithRoles: (email) =>prisma.user.findUnique({
     where: { email }, 
@@ -130,6 +220,43 @@ const UsersRepository = {
     return prisma.tokenBlacklist.create({
       data: { token },
     });
+  },
+
+  // Count active users with admin role (ID: 1), optionally excluding a specific user
+  countActiveAdmins: async (excludeEmail = null) => {
+    const where = {
+      status: 'active',
+      roles: {
+        some: {
+          idRole: 1 // Admin role ID
+        }
+      }
+    };
+    
+    if (excludeEmail) {
+      where.email = { not: excludeEmail };
+    }
+    
+    return prisma.user.count({ where });
+  },
+
+  // Check if a user has the admin role (ID: 1)
+  userHasAdminRole: async (email) => {
+    const user = await prisma.user.findUnique({
+      where: { email },
+      select: {
+        roles: {
+          where: {
+            idRole: 1 // Admin role ID
+          },
+          select: {
+            idRole: true
+          }
+        }
+      }
+    });
+    
+    return user && user.roles && user.roles.length > 0;
   },
   
 };

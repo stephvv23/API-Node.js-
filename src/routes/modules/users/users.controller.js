@@ -10,9 +10,9 @@ const { SecurityLogService } = require('../../../services/securitylog.service');
  * @returns {string} - Formatted string with headquarters and roles info
  */
 const formatUserRelations = (user) => {
-  const sedes = user.headquarterUser?.map(h => `${h.headquarter.name} (ID: ${h.headquarter.idHeadquarter})`).join(', ') || 'Sin sedes';
-  const roles = user.roles?.map(r => `${r.role.rolName} (ID: ${r.role.idRole})`).join(', ') || 'Sin roles';
-  return `Sedes: [${sedes}], Roles: [${roles}]`;
+  const headquarters = user.headquarterUser?.map(h => `${h.headquarter.name} (ID: ${h.headquarter.idHeadquarter})`).join(', ') || 'No headquarters';
+  const roles = user.roles?.map(r => `${r.role.rolName} (ID: ${r.role.idRole})`).join(', ') || 'No roles';
+  return `Headquarters: [${headquarters}], Roles: [${roles}]`;
 };
 
 /**
@@ -46,19 +46,23 @@ const UsersController = {
   list: async (_req, res) => {
     try {
       const users = await UsersService.list();
-      const mapped = users.map(u => ({
-        email: u.email,
-        name: u.name,
-        status: u.status,
-        roles: u.roles.map(r => ({
-          idRole: r.role.idRole,
-          rolName: r.role.rolName
-        })),
-        sedes: u.headquarterUser.map(h => ({
+      const mapped = users.map(u => {
+        const headquarters = u.headquarterUser.map(h => ({
           idHeadquarter: h.headquarter.idHeadquarter,
           name: h.headquarter.name
-        }))
-      }));
+        }));
+        return {
+          email: u.email,
+          name: u.name,
+          status: u.status,
+          roles: u.roles.map(r => ({
+            idRole: r.role.idRole,
+            rolName: r.role.rolName
+          })),
+          sedes: headquarters, // Keep 'sedes' for frontend compatibility
+          headquarters: headquarters 
+        };
+      });
       return res.success(mapped);
     } catch (error) {
       console.error('[USERS] list error:', error);
@@ -76,14 +80,16 @@ const UsersController = {
     try {
       const user = await UsersService.get(email);
       if (!user) return res.notFound('User');
+      const headquarters = user.headquarterUser.map(h => ({
+        idHeadquarter: h.idHeadquarter,
+        name: h.headquarter.name
+      }));
       return res.success({
         email: user.email,
         name: user.name,
         status: user.status,
-        sedes: user.headquarterUser.map(h => ({
-          idHeadquarter: h.idHeadquarter,
-          name: h.headquarter.name
-        })),
+        sedes: headquarters, // Keep 'sedes' for frontend compatibility
+        headquarters: headquarters, 
         roles: user.roles.map(r => ({
           idRole: r.role.idRole,
           name: r.role.rolName
@@ -134,12 +140,35 @@ const UsersController = {
           `${formatUserRelations(created)}.`,
         affectedTable: 'User',
       });
-      return res.status(201).success(created, 'User created successfully');
+      // Map response to include 'sedes' for frontend compatibility
+      const mappedCreated = {
+        ...created,
+        sedes: (created.headquarterUser || []).map(h => ({
+          idHeadquarter: h.headquarter?.idHeadquarter || h.idHeadquarter,
+          name: h.headquarter?.name || h.name
+        })),
+        headquarters: (created.headquarterUser || []).map(h => ({
+          idHeadquarter: h.headquarter?.idHeadquarter || h.idHeadquarter,
+          name: h.headquarter?.name || h.name
+        }))
+      };
+      return res.status(201).success(mappedCreated, 'User created successfully');
     } catch (e) {
       if (e && e.code === 'P2002')
         return res.validationErrors(['Email already exists']);
       if (typeof e?.message === 'string' && e.message.includes('no existe')) {
         return res.notFound(e.message);
+      }
+      // handle specific admin protection errors
+      if (e && e.errorCode) {
+        return res.status(400).json({
+          ok: false,
+          error: {
+            code: e.errorCode,
+            message: e.message,
+            status: 400
+          }
+        });
       }
       console.error('[USERS] create error:', e);
       return res.error('Error creating user');
@@ -153,24 +182,43 @@ const UsersController = {
    */
   update: async (req, res) => {
     const { email } = req.params;
+    // Normalize email to lowercase for consistency
+    const normalizedEmail = email.toLowerCase();
     const body = req.body || {};
     if (body.__jsonError) {
       return res.validationErrors(['Invalid JSON. Check request body syntax.']);
     }
     // Check existence before update
-    const previousUser = await UsersService.get(email);
+    const previousUser = await UsersService.get(normalizedEmail);
     if (!previousUser) {
       return res.notFound('User');
     }
-    const { name, status, password, sedes, roles } = body;
+    const { name, status, password, sedes, headquarters, roles } = body;
+    // Support both 'sedes' (legacy) and 'headquarters' (new) for backward compatibility
+    const headquartersData = headquarters !== undefined ? headquarters : sedes;
+    
     // Centralized validation (partial)
     const validation = EntityValidators.user({ email, name, password, status }, { partial: true });
     const errors = [...validation.errors];
+    
+    // Validate that if headquarters or roles are provided, they are not empty
+    if (headquartersData !== undefined) {
+      if (!Array.isArray(headquartersData) || headquartersData.length === 0) {
+        errors.push('El usuario debe tener al menos una sede asignada');
+      }
+    }
+    
+    if (roles !== undefined) {
+      if (!Array.isArray(roles) || roles.length === 0) {
+        errors.push('El usuario debe tener al menos un rol asignado');
+      }
+    }
+    
     if (errors.length > 0) {
       return res.validationErrors(errors);
     }
     try {
-      const updated = await UsersService.update(email, { name, status, password, sedes, roles });
+      const updated = await UsersService.update(normalizedEmail, { name, status, password, headquarters: headquartersData, roles });
       // Log the user update
       const userEmail = req.user?.sub;
       // Check if only status changed from inactive to active (reactivation)
@@ -212,13 +260,36 @@ const UsersController = {
           affectedTable: 'User',
         });
       }
-      return res.success(updated, 'User updated successfully');
+      // Map response to include 'sedes' for frontend compatibility
+      const mappedUpdated = {
+        ...updated,
+        sedes: (updated.headquarterUser || []).map(h => ({
+          idHeadquarter: h.headquarter?.idHeadquarter || h.idHeadquarter,
+          name: h.headquarter?.name || h.name
+        })),
+        headquarters: (updated.headquarterUser || []).map(h => ({
+          idHeadquarter: h.headquarter?.idHeadquarter || h.idHeadquarter,
+          name: h.headquarter?.name || h.name
+        }))
+      };
+      return res.success(mappedUpdated, 'User updated successfully');
     } catch (e) {
       if (e && e.code === 'P2025') {
         return res.notFound('User');
       }
       if (typeof e?.message === 'string' && e.message.includes('no existe')) {
         return res.notFound(e.message);
+      }
+      // handle specific admin protection errors
+      if (e && e.errorCode) {
+        return res.status(400).json({
+          ok: false,
+          error: {
+            code: e.errorCode,
+            message: e.message,
+            status: 400
+          }
+        });
       }
       console.error('[USERS] update error:', e);
       return res.error('Error updating user');
@@ -267,10 +338,33 @@ const UsersController = {
           affectedTable: 'User',
         });
       }
-      return res.success(updatedWithRelations, 'User status updated successfully');
+      // Map response to include 'sedes' for frontend compatibility
+      const mappedUpdated = {
+        ...updatedWithRelations,
+        sedes: (updatedWithRelations.headquarterUser || []).map(h => ({
+          idHeadquarter: h.headquarter?.idHeadquarter || h.idHeadquarter,
+          name: h.headquarter?.name || h.name
+        })),
+        headquarters: (updatedWithRelations.headquarterUser || []).map(h => ({
+          idHeadquarter: h.headquarter?.idHeadquarter || h.idHeadquarter,
+          name: h.headquarter?.name || h.name
+        }))
+      };
+      return res.success(mappedUpdated, 'User status updated successfully');
     } catch (e) {
       if (e && e.code === 'P2025')
         return res.notFound('User');
+      // handle specific admin protection errors
+      if (e && e.errorCode) {
+        return res.status(400).json({
+          ok: false,
+          error: {
+            code: e.errorCode,
+            message: e.message,
+            status: 400
+          }
+        });
+      }
       console.error('[USERS] updateStatus error:', e);
       return res.error('Error updating user status');
     }
@@ -332,6 +426,17 @@ const UsersController = {
     } catch (e) {
       if (e && e.code === 'P2025')
         return res.notFound('User');
+      // handle specific admin protection errors
+      if (e && e.errorCode) {
+        return res.status(400).json({
+          ok: false,
+          error: {
+            code: e.errorCode,
+            message: e.message,
+            status: 400
+          }
+        });
+      }
       console.error('[USERS] remove error:', e);
       return res.error('Error deactivating user');
     }
@@ -340,15 +445,15 @@ const UsersController = {
   /**
    * Login a user into page
    * POST /users/login
-   * Required fields: email, name, windowName
+   * Required fields: email, password, windowName
    */
   login: async (req, res, next) => {
     try {
-      const { email, password, windowName, clientDate } = req.body || {};
+      const { email, password, windowName } = req.body || {};
       if (!email || !password || !windowName) 
         return next(ApiError.badRequest('email, password y windowName requeridos'));
 
-      const user = await UsersService.login(email, password, windowName, clientDate);
+      const user = await UsersService.login(email, password, windowName);
 
       if (!process.env.JWT_SECRET) return next(ApiError.internal('Falta JWT_SECRET'));
     // data of token - subject,name,roles. Email its sub because a standard of jwt
@@ -365,7 +470,8 @@ const UsersController = {
           email: email,
         });
 
-      res.json({ message: 'Login exitoso', token, user });
+      const { roles: _, ...userWithoutRoles } = user;
+      res.json({ message: 'Login exitoso', token, user: userWithoutRoles });
     } catch (e) {
       next(e);
     }
@@ -381,7 +487,6 @@ const UsersController = {
     try {
       const authHeader = req.headers['authorization'];
       const token = authHeader && authHeader.split(' ')[1];
-      const { clientDate } = req.body || {};
 
       if (!token) return next(ApiError.unauthorized('Token requerido para cerrar sesión.'));
 
@@ -392,7 +497,6 @@ const UsersController = {
         email: userEmail || 'unknown',
         action: 'LOGOUT',
         description: `El usuario "${userName || userEmail}" cerró sesión.`,
-        clientDate: clientDate || new Date().toISOString(),
         affectedTable: 'User',
       });
 

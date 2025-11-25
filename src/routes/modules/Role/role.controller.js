@@ -225,6 +225,16 @@ const roleController = {
                     return res.notFound('Rol');
                 }
                 // Check if it's the admin role protection error
+                if (error && error.errorCode) {
+                    return res.status(400).json({
+                        ok: false,
+                        error: {
+                            code: error.errorCode,
+                            message: error.message,
+                            status: 400
+                        }
+                    });
+                }
                 if (error.message && error.message.includes('ADMIN')) {
                     return res.status(403).json({
                         success: false,
