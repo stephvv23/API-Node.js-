@@ -1,0 +1,603 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  email     String      @id
+  name      String      @db.VarChar(150)
+  status    String      @default("active") @db.VarChar(25)
+  password  String   @db.VarChar(255)
+
+  // Relations
+  loginAccess   LoginAccess[] // Relation: User has many LoginAccess records
+  securityLogs  SecurityLog[] // Relation: User has many SecurityLog records
+  roles         UserRole[]    // Relation: User has many roles through UserRole join table
+  headquarterUser HeadquarterUser[] // NEW ADDITION: relational table with headquarters
+
+   // Indexes
+  @@index([status]) // Frequent filtering by status
+  @@index([status, email]) // Active users search (composite)
+
+}
+
+model LoginAccess {
+  loginIdAccess Int     @id @default(autoincrement())
+  email         String @db.VarChar(150) // Foreign key: references User.email
+  date          DateTime @default(now())
+
+  // Relation
+  user User @relation(fields: [email], references: [email]) // Connects LoginAccess to User by email
+
+   // Indexes
+  @@index([email]) // Foreign key lookup
+  @@index([date]) // Date range searches
+  @@index([email, date]) // User access history (composite)
+}
+
+model SecurityLog {
+  securityIdLog Int      @id @default(autoincrement())
+  email         String @db.VarChar(150) // Foreign key: references User.email
+  date          DateTime @default(now())
+  action        String @db.VarChar(25)
+  description   String @db.VarChar(4000) 
+  affectedTable String @db.VarChar(50)
+
+  // Relation
+  user User @relation(fields: [email], references: [email]) // Connects SecurityLog to User by email
+
+  // Indexes
+  @@index([email]) // Foreign key lookup
+  @@index([date]) // Date searches
+  @@index([affectedTable]) // Filter by affected table
+  @@index([action]) // Filter by action type
+  @@index([email, date]) // User and date audits (composite)
+  @@index([affectedTable, date]) // Table and date audits (composite)
+  @@index([affectedTable, action]) // Table and action audits (composite)
+}
+
+model Role {
+  idRole Int    @id @default(autoincrement())
+  rolName String @db.VarChar(50) @unique
+  status  String @default("active") @db.VarChar(25)
+
+  users   UserRole[]   // Relation: Role has many users through UserRole join table
+  windows RoleWindow[] // Relation: Role has many windows through RoleWindow join table
+
+   // Indexes
+  @@index([status]) // Filter by status
+
+}
+
+model Window {
+  idWindow   Int    @id @default(autoincrement()) // Primary key: unique identifier for each window/module
+  windowName String @db.VarChar(75) @unique// Name of the window/module
+  status     String @default("active") @db.VarChar(25) // Status of the window, defaults to 'active'
+
+  roles RoleWindow[] // Relation: Window has many roles through RoleWindow join table
+
+    // Indexes
+  @@index([status]) // Filter by status
+
+}
+
+model UserRole {
+  idRole Int   // Foreign key: references Role.idRole
+  email  String @db.VarChar(150) // Foreign key: references User.email
+
+  // Relations
+  role Role @relation(fields: [idRole], references: [idRole]) // Connects UserRole to Role
+  user User @relation(fields: [email], references: [email])   // Connects UserRole to User
+
+  @@id([idRole, email])
+  @@index([email]) // Reverse lookup by user
+}
+
+model RoleWindow {
+  idRole   Int // Foreign key: references Role.idRole
+  idWindow Int // Foreign key: references Window.idWindow
+  create   Boolean
+  read     Boolean
+  update   Boolean
+  delete   Boolean
+
+  // Relations
+  role   Role   @relation(fields: [idRole], references: [idRole])     // Connects RoleWindow to Role
+  window Window @relation(fields: [idWindow], references: [idWindow]) // Connects RoleWindow to Window
+
+  @@id([idRole, idWindow]) // Composite primary key
+  @@index([idWindow]) // Reverse lookup by window
+}
+
+
+// NEW TABLES AND RELATIONS
+
+model Asset {
+  idAsset Int @id @default(autoincrement())
+  idCategory Int 
+  idHeadquarter Int
+  name String @db.VarChar(50)
+  type String @db.VarChar(50)
+  description String @db.VarChar(750)
+  status String @db.VarChar(25)
+  // Relations
+  category     Category     @relation(fields: [idCategory], references: [idCategory])
+  headquarter  Headquarter  @relation(fields: [idHeadquarter], references: [idHeadquarter])
+
+  // Indexes
+  @@index([idCategory]) // Category foreign key lookup
+  @@index([idHeadquarter]) // Headquarter foreign key lookup
+  @@index([status]) // Filter by status
+  @@index([type]) // Filter by asset type
+  @@index([idHeadquarter, status]) // Assets by headquarter and status (composite)
+  @@index([idCategory, status]) // Assets by category and status (composite)
+  @@index([idHeadquarter, type]) // Assets by headquarter and type (composite)
+
+}
+
+model Category {
+  idCategory Int     @id @default(autoincrement())
+  name       String  @db.VarChar(150) @unique
+  status     String  @db.VarChar(25)
+
+  asset      Asset[]  // Relation: Category has many assets
+  categorySupplier CategorySupplier[] // relational table
+
+  // Indexes
+  @@index([status]) // Filter by status
+}
+
+model Supplier {
+  idSupplier    Int     @id @default(autoincrement()) 
+  name          String  @db.VarChar(150)
+  taxId         String?  @db.VarChar(20)
+  type          String  @db.VarChar(50)
+  email         String  @db.VarChar(150)
+  address       String  @db.VarChar(150)
+  paymentTerms  String  @db.VarChar(50)
+  description   String  @db.VarChar(750)
+  status        String  @db.VarChar(25)
+
+  categorySupplier CategorySupplier[] // relational table
+  headquarterSupplier HeadquarterSupplier[] // relational table
+  phoneSupplier PhoneSupplier[] // relational table
+
+    // Indexes
+  @@index([status]) // Filter by status
+  @@index([email]) // Search by email
+  @@index([type]) // Filter by supplier type
+  @@index([status, type]) // Active suppliers by type (composite)
+}
+
+model Activity {
+  idActivity     Int @id @default(autoincrement())
+  idHeadquarter  Int // FK for headquarter
+  title          String @db.VarChar(150)
+  description    String @db.VarChar(750)
+  type           String @db.VarChar(50)
+  modality       String @db.VarChar(25)
+  capacity       Int
+  location       String @db.VarChar(300)
+  date           DateTime 
+  status         String @default("active") @db.VarChar(25)
+
+
+  headquarter Headquarter @relation(fields: [idHeadquarter], references: [idHeadquarter]) 
+  activityVolunteer ActivityVolunteer[] // relational table
+  activitySurvivor ActivitySurvivor[] // relational table
+  activityGodparent ActivityGodparent[] // relational table
+
+  // Indexes - HIGH PRIORITY
+  @@index([idHeadquarter]) // Headquarter foreign key lookup (very frequent)
+  @@index([status]) // Filter by status
+  @@index([date]) // Search by date
+  @@index([type]) // Filter by type
+  @@index([modality]) // Filter by modality
+  @@index([idHeadquarter, status]) // Active activities by headquarter (composite)
+  @@index([idHeadquarter, date]) // Activities by headquarter and date (composite)
+  @@index([status, date]) // Active activities by date (composite)
+  @@index([type, status]) // Active activities by type (composite)
+  @@index([idHeadquarter, status, date]) // Complex searches by headquarter, status and date (composite)
+}
+
+model Volunteer {
+  idVolunteer    Int    @id @default(autoincrement())
+  name           String @db.VarChar(200)
+  identifier     String @db.VarChar(30)
+  country        String @db.VarChar(75)
+  birthday       DateTime
+  email          String @db.VarChar(80)
+  residence      String @db.VarChar(300)
+  modality       String @db.VarChar(20)
+  institution    String @db.VarChar(100)
+  availableSchedule String @db.VarChar(300)
+  requiredHours  Int?
+  startDate       DateTime
+  finishDate      DateTime?
+  imageAuthorization Boolean
+  notes           String @db.VarChar(250)
+  status        String @default("active") @db.VarChar(25)
+
+  phoneVolunteer PhoneVolunteer [] // relational table
+  headquarterVolunteer HeadquarterVolunteer [] // relational table
+  emergencyContactVolunteer EmergencyContactVolunteer [] // relational table
+  activityVolunteer ActivityVolunteer [] // relational table
+
+  // Indexes - HIGH PRIORITY
+  // identifier already has automatic unique index
+  @@index([email]) // Search by email
+  @@index([status]) // Filter by status
+  @@index([modality]) // Filter by modality
+  @@index([status, modality]) // Active volunteers by modality (composite)
+  @@index([status, email]) // Active volunteers by email (composite)
+}
+
+model Godparent {
+  idGodparent   Int    @id @default(autoincrement())
+  idSurvivor    Int?    // FK for survivors
+  idHeadquarter Int    // FK for headquarters
+  name          String @db.VarChar(200)
+  email         String @db.VarChar(150)
+  paymentMethod String @db.VarChar(50)
+  startDate     DateTime
+  finishDate    DateTime?
+  description      String @db.VarChar(250)
+  status       String @default("active") @db.VarChar(25)
+
+  phoneGodparent PhoneGodparent[] // relational table
+  activityGodparent ActivityGodparent[] // relational table
+
+  survivor Survivor? @relation(fields: [idSurvivor], references: [idSurvivor]) // Optional relation with Survivor
+  headquarter Headquarter @relation(fields: [idHeadquarter], references: [idHeadquarter]) // Relation with Headquarters
+
+ // Indexes - HIGH PRIORITY
+  @@index([idHeadquarter]) // Headquarter foreign key lookup
+  @@index([status]) // Filter by status
+  @@index([email]) // Search by email
+  @@index([idSurvivor]) // Survivor foreign key lookup
+  @@index([idHeadquarter, status]) // Active godparents by headquarter (composite)
+  @@index([status, paymentMethod]) // Active godparents by payment method (composite)
+}
+
+model EmergencyContact {
+  idEmergencyContact Int    @id @default(autoincrement())
+  nameEmergencyContact String @db.VarChar(150)
+  emailEmergencyContact String @db.VarChar(150)
+  identifier       String @db.VarChar(50)
+  status             String @default("active") @db.VarChar(25)
+
+  emergencyContactVolunteer EmergencyContactVolunteer[] // relational table
+  phoneEmergencyContact PhoneEmergencyContact[] // relational table
+  emergencyContactSurvivor EmergencyContactSurvivor[] // relational table
+
+  // Indexes
+  @@index([status]) // Filter by status
+  @@index([emailEmergencyContact]) // Search by email
+}
+
+model Survivor {
+  idSurvivor    Int    @id @default(autoincrement())
+  idHeadquarter Int    // FK for headquarters
+  survivorName  String @db.VarChar(200)
+  documentNumber String @db.VarChar(30)
+  country       String @db.VarChar(75)
+  birthday      DateTime @db.Date
+  email         String @db.VarChar(150)
+  residence     String @db.VarChar(300)
+  genre         String @db.VarChar(25)
+  workingCondition String @db.VarChar(50)
+  CONAPDIS      Boolean
+  IMAS          Boolean
+  physicalFileStatus String @db.VarChar(50)
+  medicalRecord  Boolean 
+  dateHomeSINRUBE Boolean 
+  foodBank       Boolean 
+  socioEconomicStudy Boolean 
+  notes          String? @db.VarChar(250)
+  status         String @default("active") @db.VarChar(25)
+  createdAt      DateTime @default(now()) // Creation date and time
+  updatedAt      DateTime? // Last update date and time
+
+  emergencyContactSurvivor EmergencyContactSurvivor[] // relational table
+  phoneSurvivor PhoneSurvivor[] // relational table
+  activitySurvivor ActivitySurvivor[] // relational table
+  cancerSurvivor CancerSurvivor[] // relational table
+  godparent       Godparent[]       // relational table
+
+  headquarter Headquarter @relation(fields: [idHeadquarter], references: [idHeadquarter]) // Relation with Headquarters
+  
+  // Indexes - HIGH PRIORITY
+  // documentNumber already has automatic unique index
+  @@index([idHeadquarter]) // Headquarter foreign key lookup (very frequent)
+  @@index([status]) // Filter by status
+  @@index([email]) // Search by email
+  @@index([genre]) // Filter by genre
+  @@index([idHeadquarter, status]) // Active survivors by headquarter (composite)
+  @@index([status, genre]) // Active survivors by genre (composite)
+  @@index([idHeadquarter, genre]) // Survivors by headquarter and genre (composite)
+  @@index([email, status]) // Active survivors by email (composite)
+}
+
+model Cancer {
+  idCancer    Int    @id @default(autoincrement())
+  cancerName String @db.VarChar(100) @unique
+  description String @db.VarChar(300)
+  status     String @default("active") @db.VarChar(25)
+
+  cancerSurvivor CancerSurvivor[] // relational table
+
+  // Indexes
+  @@index([status]) // Filter by status
+}
+
+model Phone {
+  idPhone       Int @id @default(autoincrement())
+  phone         String @db.VarChar(12) @unique
+
+  phoneVolunteers PhoneVolunteer[] // relational table
+  phoneSurvivor   PhoneSurvivor[]   // relational table
+  phoneEmergencyContact PhoneEmergencyContact[] // relational table
+  phoneHeadquarter PhoneHeadquarter[] // relational table
+  phoneGodparent PhoneGodparent[] // relational table
+  phoneSupplier PhoneSupplier[] // relational table
+
+}
+
+
+model Headquarter {
+  idHeadquarter Int    @id @default(autoincrement())
+  name           String @db.VarChar(150) @unique
+  schedule       String @db.VarChar(300)
+  location       String @db.VarChar(300)
+  email          String @db.VarChar(150)
+  description    String @db.VarChar(750)
+  status         String @default("active") @db.VarChar(25)
+
+  activities     Activity[] // NEW ADDITION: FK with activity
+  headquarterUser HeadquarterUser[] // NEW ADDITION: relational table with users
+  headquarterVolunteer HeadquarterVolunteer[] // relational table 
+  phoneHeadquarter PhoneHeadquarter[] // relational table 
+  godparent Godparent[] // Relation with Godparent
+  survivor Survivor[] // Relation with Survivor
+  asset Asset[] // Relation with Asset
+  headquarterSupplier HeadquarterSupplier[] // relational table
+
+    // Indexes
+  @@index([status]) // Filter by status
+  @@index([email]) // Search by email
+}
+
+// RELATIONAL TABLES
+model HeadquarterUser {
+  idHeadquarter Int    // Foreign key: references Headquarters.idHeadquarters
+  email          String @db.VarChar(150) // Foreign key: references User.email
+
+  // Relations
+  headquarter Headquarter @relation(fields: [idHeadquarter], references: [idHeadquarter]) // Connects HeadquartersUser to Headquarters
+  user         User         @relation(fields: [email], references: [email])                   // Connects HeadquartersUser to User
+  
+  @@id([idHeadquarter, email])
+  @@index([email]) // Reverse lookup by user
+}
+
+model HeadquarterVolunteer {
+  idHeadquarter Int    // Foreign key: references Headquarter.idHeadquarter
+  idVolunteer   Int    // Foreign key: references Volunteer.idVolunteer
+
+  // Relations
+  headquarter Headquarter @relation(fields: [idHeadquarter], references: [idHeadquarter]) // Connects HeadquarterVolunteer to Headquarter
+  volunteer   Volunteer   @relation(fields: [idVolunteer], references: [idVolunteer])       // Connects HeadquarterVolunteer to Volunteer
+
+  @@id([idHeadquarter, idVolunteer])
+  @@index([idVolunteer]) // Reverse lookup by volunteer
+}
+
+model PhoneHeadquarter {
+  idHeadquarter Int // Foreign key: references Headquarter.idHeadquarter
+  idPhone       Int // Foreign key: references Phone.idPhone
+
+  // Relations
+  headquarter Headquarter @relation(fields: [idHeadquarter], references: [idHeadquarter]) // Connects PhoneHeadquarter to Headquarter
+  phone       Phone       @relation(fields: [idPhone], references: [idPhone])             // Connects PhoneHeadquarter to Phone
+
+  @@id([idHeadquarter, idPhone])
+  @@index([idPhone]) // Reverse lookup by phone
+}
+
+model PhoneSurvivor {
+  idPhone       Int // Foreign key: references Phone.idPhone
+  idSurvivor    Int // Foreign key: references Survivor.idSurvivor
+
+  // Relations
+  phone    Phone    @relation(fields: [idPhone], references: [idPhone])       // Connects phoneSurvivor to Phone
+  survivor Survivor @relation(fields: [idSurvivor], references: [idSurvivor]) // Connects phoneSurvivor to Survivor
+
+  @@id([idPhone, idSurvivor]) // Composite primary key
+  @@index([idSurvivor]) // Reverse lookup by survivor
+}
+
+model PhoneVolunteer {
+  idPhone      Int // Foreign key: references Phone.idPhone
+  idVolunteer  Int // Foreign key: references Volunteer.idVolunteer
+
+  // Relations
+  phone     Phone     @relation(fields: [idPhone], references: [idPhone])       // Connects phoneVolunteer to Phone
+  volunteer Volunteer @relation(fields: [idVolunteer], references: [idVolunteer]) // Connects phoneVolunteer to Volunteer
+
+  @@id([idPhone, idVolunteer]) // Composite primary key
+  @@index([idVolunteer]) // Reverse lookup by volunteer
+
+} 
+
+model PhoneGodparent {
+  idGodparent Int // Foreign key: references Godparent.idGodparent
+  idPhone     Int // Foreign key: references Phone.idPhone
+
+  // Relations
+  godparent Godparent @relation(fields: [idGodparent], references: [idGodparent]) // Connects PhoneGodparent to Godparent
+  phone     Phone     @relation(fields: [idPhone], references: [idPhone])         // Connects PhoneGodparent to Phone
+
+  @@id([idGodparent, idPhone]) // Composite primary key
+  @@index([idPhone]) // Reverse lookup by phone
+}
+
+model ActivityVolunteer {
+  idActivity   Int // Foreign key: references Activity.idActivity
+  idVolunteer  Int // Foreign key: references Volunteer.idVolunteer
+
+  // Relations
+  activity  Activity  @relation(fields: [idActivity], references: [idActivity])   // Connects ActivityVolunteer to Activity
+  volunteer Volunteer @relation(fields: [idVolunteer], references: [idVolunteer]) // Connects ActivityVolunteer to Volunteer
+
+  @@id([idActivity, idVolunteer]) // Composite primary key
+  @@index([idVolunteer]) // Reverse lookup by volunteer
+}
+
+model ActivityGodparent {
+  idActivity  Int // Foreign key: references Activity.idActivity
+  idGodparent Int // Foreign key: references Godparent.idGodparent
+
+  // Relations
+  activity  Activity  @relation(fields: [idActivity], references: [idActivity])   // Connects ActivityGodparent to Activity
+  godparent Godparent @relation(fields: [idGodparent], references: [idGodparent]) // Connects ActivityGodparent to Godparent
+
+  @@id([idActivity, idGodparent]) // Composite primary key
+  @@index([idGodparent]) // Reverse lookup by godparent
+}
+
+model ActivitySurvivor {
+  idActivity  Int // Foreign key: references Activity.idActivity
+  idSurvivor  Int // Foreign key: references Survivor.idSurvivor
+
+  // Relations
+  activity Activity @relation(fields: [idActivity], references: [idActivity]) // Connects activitySurvivor to Activity
+  survivor Survivor @relation(fields: [idSurvivor], references: [idSurvivor]) // Connects activitySurvivor to Survivor
+
+  @@id([idActivity, idSurvivor]) // Composite primary key
+  @@index([idSurvivor]) // Reverse lookup by survivor
+}
+
+model EmergencyContactVolunteer {
+  idEmergencyContact Int // Foreign key: references EmergencyContact.idEmergencyContact
+  idVolunteer        Int // Foreign key: references Volunteer.idVolunteer
+  relationship       String @default("No especificado") @db.VarChar(50) // Relationship between volunteer and emergency contact
+
+  // Relations
+  emergencyContact EmergencyContact @relation(fields: [idEmergencyContact], references: [idEmergencyContact]) // Connects EmergencyContactVolunteer to EmergencyContact
+  volunteer        Volunteer        @relation(fields: [idVolunteer], references: [idVolunteer])                   // Connects EmergencyContactVolunteer to Volunteer
+
+  @@id([idEmergencyContact, idVolunteer]) // Composite primary key
+  @@index([idVolunteer]) // Reverse lookup by volunteer
+}
+
+model EmergencyContactSurvivor {
+  idEmergencyContact Int // Foreign key: references EmergencyContact.idEmergencyContact
+  idSurvivor         Int // Foreign key: references Survivor.idSurvivor
+  relationshipType   String @db.VarChar(50) // Relationship type between emergency contact and survivor (e.g., "Madre", "Padre", "Hermano", "Tío")
+
+  // Relations
+  emergencyContact EmergencyContact @relation(fields: [idEmergencyContact], references: [idEmergencyContact]) // Connects EmergencyContactSurvivor to EmergencyContact
+  survivor         Survivor         @relation(fields: [idSurvivor], references: [idSurvivor])                   // Connects EmergencyContactSurvivor to Survivor
+
+  @@id([idEmergencyContact, idSurvivor]) // Composite primary key
+  @@index([idSurvivor]) // Reverse lookup by survivor
+}
+
+model PhoneEmergencyContact {
+  idEmergencyContact Int // Foreign key: references EmergencyContact.idEmergencyContact
+  idPhone            Int // Foreign key: references Phone.idPhone
+
+  // Relations
+  emergencyContact EmergencyContact @relation(fields: [idEmergencyContact], references: [idEmergencyContact]) // Connects PhoneEmergencyContact to EmergencyContact
+  phone            Phone            @relation(fields: [idPhone], references: [idPhone])                         // Connects PhoneEmergencyContact to Phone
+
+  @@id([idEmergencyContact, idPhone]) // Composite primary key
+  @@index([idPhone]) // Reverse lookup by phone
+}
+
+model CancerSurvivor {
+  idCancer   Int // Foreign key: references Cancer.idCancer
+  idSurvivor Int // Foreign key: references Survivor.idSurvivor
+  stage      String @db.VarChar(255) // e.g., "I", "II", "III", "IV", "Remisión", "Curado"
+  status     String @default("active") @db.VarChar(25) // Soft delete: "active" or "inactive"
+  // Relations
+  cancer   Cancer   @relation(fields: [idCancer], references: [idCancer])     // Connects cancerSurvivor to Cancer
+  survivor Survivor @relation(fields: [idSurvivor], references: [idSurvivor]) // Connects cancerSurvivor to Survivor
+
+  @@id([idCancer, idSurvivor]) // Composite primary key
+  @@index([idSurvivor]) // Reverse lookup (get all cancers of a survivor)
+  @@index([idCancer, status]) // Filter survivors by cancer type and status (composite)
+}
+
+model CategorySupplier {
+  idCategory Int
+  idSupplier Int
+
+  category Category @relation(fields: [idCategory], references: [idCategory])
+  supplier Supplier @relation(fields: [idSupplier], references: [idSupplier])
+
+  @@id([idCategory, idSupplier]) // Composite primary key
+  @@index([idSupplier]) // Reverse lookup by supplier
+}
+
+
+model PhoneSupplier {
+  idPhone    Int
+  idSupplier Int
+
+  phone    Phone    @relation(fields: [idPhone], references: [idPhone])
+  supplier Supplier @relation(fields: [idSupplier], references: [idSupplier])
+
+  @@id([idPhone, idSupplier]) // Composite primary key
+  @@index([idSupplier]) // Reverse lookup by supplier
+}
+
+model HeadquarterSupplier {
+  idHeadquarter Int
+  idSupplier    Int
+
+  headquarter Headquarter @relation(fields: [idHeadquarter], references: [idHeadquarter])
+  supplier     Supplier     @relation(fields: [idSupplier], references: [idSupplier])
+
+  @@id([idHeadquarter, idSupplier]) // Composite primary key
+  @@index([idSupplier]) // Reverse lookup by supplier
+}
+
+// ------------- BlackList -------------
+model TokenBlacklist {
+  id        Int      @id @default(autoincrement())
+  token     String   @db.Text
+  createdAt DateTime @default(now())
+  
+  // Indexes
+  @@index([token(length: 255)]) // Index on token (limited to 255 characters for TEXT)
+  @@index([createdAt]) // Periodic cleanup of old tokens
+}
+
+// ------------- Password Reset Token -------------
+model PasswordResetToken {
+  id        Int      @id @default(autoincrement())
+  email     String   @db.VarChar(150)
+  token     String   @db.VarChar(255) @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([token])
+}
+
+
+// ------------- END NEW TABLES AND RELATIONS -------------
